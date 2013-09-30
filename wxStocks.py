@@ -255,6 +255,40 @@ class WelcomePage(Tab):
 							 "Welcome to wxStocks", 
 							 (10,10)
 							 )
+		instructions_text = '''
+
+Instructions: 	this program is essentially a work-flow following the tabs above.
+---------------------------------------------------------------------------------------------------------------------------------
+
+Tickers:		This page is where you load in a .CSV file to create a list of tickers to scrape.
+			You can get a properly formatted .CSV from the exchanges you want via a link on this page.
+
+Scrape:		This page takes the tickers, and then scrapes current stock data using them.
+
+Stocks:		This page generates a list of all stocks that have been scraped and presents all the data about them.
+			Use this page to double check your data to make sure it's accurate and up to date.
+
+Screen:		This page allows you to screen for stocks that fit your criteria, and save them for later.
+
+Saved Screens:	This page allows you to recall old screens you've saved.
+
+Rank:		This page allows you to rank stocks along certain criteria. 
+
+Sale Prep:	This page allows you to estimate the amount of funds generated from a potential stock sale.
+
+Trade:		This page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated, 
+			and lets you estimate the volume of stocks to buy to satisfy your diversification requirements.
+
+Portfolio:	This page allows you to load your portfolios from which you plan on making trades.
+			If you have more than one portfolio you plan on working from, you may add more.
+'''
+
+		instructions = wx.StaticText(self, -1, 
+									instructions_text, 
+									(10,20)
+									)
+
+
 class TickerPage(Tab):
 	def __init__(self, parent):
 		self.ticker_list_file = None
