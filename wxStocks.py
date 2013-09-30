@@ -1,4 +1,4 @@
-import wx, sys, os, csv, time, datetime, logging, ast, math
+import wx, sys, os, csv, time, datetime, logging, ast, math, threading
 from pyql import pyql
 from wx.lib import sheet
 import cPickle as pickle
@@ -59,14 +59,14 @@ except Exception, e:
 		pickle.dump(data_from_portfolios_file, output, pickle.HIGHEST_PROTOCOL)
 	data_from_portfolios_file = open('portfolios.pk', 'rb')
 DATA_ABOUT_PORTFOLIOS = pickle.load(data_from_portfolios_file
-                                    # DATA_ABOUT_PORTFOLIOS = 	[
+									# DATA_ABOUT_PORTFOLIOS = 	[
 									#								NUMBER_OF_PORTFOLIOS, # this is an integer
 									#								[
 									#									"Portfolio Name", # string
 									#									etc...
 									#								]
 									#							]
-                                    )
+									)
 data_from_portfolios_file.close()
 NUMBER_OF_PORTFOLIOS = DATA_ABOUT_PORTFOLIOS[0]	
 PORTFOLIO_NAMES = []
@@ -335,8 +335,13 @@ class ScrapePage(Tab):
 							 "Welcome to the scrape page", 
 							 (10,10)
 							 )
-		scrape_button = wx.Button(self, label="Scrape YQL", pos=(5,100), size=(-1,-1))
-		scrape_button.Bind(wx.EVT_BUTTON, self.confirmScrape, scrape_button)
+		self.scrape_button = wx.Button(self, label="Scrape YQL", pos=(5,100), size=(-1,-1))
+		self.scrape_button.Bind(wx.EVT_BUTTON, self.confirmScrape, self.scrape_button)
+
+		self.abort_scrape_button = wx.Button(self, label="Cancel Scrape", pos=(5,100), size=(-1,-1))
+		self.abort_scrape_button.Bind(wx.EVT_BUTTON, self.abortScrape, self.abort_scrape_button)
+		self.abort_scrape_button.Hide()
+		self.abort_scrape = False
 
 		self.progress_bar = wx.Gauge(self, -1, 100, size=(995, -1), pos = (0, 200))
 		self.progress_bar.Hide()
@@ -362,6 +367,7 @@ class ScrapePage(Tab):
 					 "Time = %s" % scrape_time, 
 					 (10,50)
 					 )
+		self.numScrapedStocks = 0
 
 		#self.Show()
 	def confirmScrape(self, event):
@@ -371,19 +377,17 @@ class ScrapePage(Tab):
 								   style = wx.YES_NO
 								   )
 		confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
-        try:
-        	confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
-        except AttributeError:
-        	pass
+		yesNoAnswer = confirm.ShowModal()
+		#try:
+		#	confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+		#except AttributeError:
+		#	pass
 		confirm.Destroy()
 
-
-
 		if yesNoAnswer == wx.ID_YES:
-			self.executeScrape()
+			self.setUpScrape()
 
-	def executeScrape(self):
-		# while loop data
+	def setUpScrape(self):
 		global GLOBAL_TICKER_LIST
 		global GLOBAL_STOCK_LIST
 		global SCRAPE_CHUNK_LENGTH
@@ -402,10 +406,10 @@ class ScrapePage(Tab):
 		num_of_tickers = len(ticker_list)
 		sleep_time = SCRAPE_SLEEP_TIME
 
-		self.progress_bar.SetValue(0)
-		self.progress_bar.Show()
-		global app
-		app.Yield() # this updates the gui within a script (it must be here, or the progress bar will not show till the function finishes, also below for updates)
+		# self.progress_bar.SetValue(0)
+		# self.progress_bar.Show()
+		# global app
+		# app.Yield() # this updates the gui within a script (it must be here, or the progress bar will not show till the function finishes, also below for updates)
 
 		slice_start = 0
 		slice_end = chunk_length
@@ -418,6 +422,8 @@ class ScrapePage(Tab):
 			return
 		count = 0
 		last_loop = False
+
+		chunk_list = []
 		while slice_end < (num_of_tickers + (chunk_length)):
 			if slice_end > num_of_tickers:
 				slice_end = num_of_tickers
@@ -426,171 +432,165 @@ class ScrapePage(Tab):
 			data2= None
 			logging.info('While loop #%d' % count)
 			ticker_chunk = ticker_list[slice_start:slice_end]
-			if ticker_chunk:
-				scrape_1_failed = False
-				try:
-					data = pyql.lookupQuote(ticker_chunk)
-				except:
-					logging.warning("Scrape didn't work. Nothing scraped.")
-					scrape_1_failed = True
-				if scrape_1_failed:
-					#time.sleep(sleep_time)
-					return
-				else:
-					logging.warning("Scrape 1 Success: mid-scrape sleep for %d seconds" % sleep_time)
-					time.sleep(sleep_time)
-					try:
-						data2 = pyql.lookupKeyStats(ticker_chunk)
-					except:
-						logging.warning("Scrape 2 didn't work. Abort.")
-						time.sleep(sleep_time)
-						return
-			for stock in data:
-				new_stock = None
-				for key, value in stock.iteritems():
-					if key == "symbol":
-						new_stock = return_stock_by_symbol(value)
-						if not new_stock:
-							new_stock = Stock(value)
-							GLOBAL_STOCK_LIST.append(new_stock)
-						else:
-							new_stock.updated = datetime.datetime.now()
-							new_stock.epoch = float(time.time())
-				for key, value in stock.iteritems():
-					# Here we hijack the power of the expando db structure
-					# This adds the attribute of every possible attribute that can be passed
-					setattr(new_stock, 
-							str(key), 
-							value
-							)
-				logging.warning("Success, putting %s: Data 1" % new_stock.symbol)
-			#save
-			with open('all_stocks.pk', 'wb') as output:
-				pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
+			chunk_list.append(ticker_chunk)
+			count += 1
+			print count
+			slice_start += chunk_length
+			slice_end += chunk_length
 
-			for stock2 in data2:
-				for key, value in stock2.iteritems():
-					if key == "symbol":
-						new_stock = return_stock_by_symbol(value)
-						if not new_stock:
-							new_stock = Stock(value)
-							GLOBAL_STOCK_LIST.append(new_stock)
-				for key, value in stock2.iteritems():
-					if isinstance(value, (list, dict)):
-						#logging.warning(type(value))
-						x = repr(value)
-						term = None
-						content = None
-						#logging.warning(x)
-						if x[0] == "[":
-							y = ast.literal_eval(x)
-							#logging.warning(y)
-							for i in y:
-								try:
-									test = i["term"]
-									test = i["content"]
-								except Exception, e:
-									#logging.error(new_stock.symbol)
-									#logging.error(y)
-									#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
-									continue
-								#logging.warning(i)
-								try:
-									key_str = str(key)
-									term = str(i["term"])
-									term = term.replace(" ", "_")
-									term = term.replace(",", "")
-									term = strip_string_whitespace(term)
-									key_term = key_str + "_" + term
-									key_term = strip_string_whitespace(key_term)
-									if "p_52_WeekHigh" in key_term:
-										date = key_term[14:]
-										setattr(new_stock, 
-											"52_WeekHigh_Date", 
-											date
-											)
-										key_str = "52_WeekHigh"
-									elif "p_52_WeekLow" in key_term:
-										date = key_term[13:]
-										setattr(new_stock, 
-											"52_WeekLow_Date", 
-											date
-											)
-										key_str = "52_WeekLow"
-									elif "ForwardPE_fye" in key_term:
-										date = key_term[14:]
-										setattr(new_stock, 
-											"ForwardPE_fiscal_y_end_Date", 
-											date
-											)
-										key_str = "ForwardPE"
-									elif "EnterpriseValue_" in key_term:
-										date = key_term[16:]
-										setattr(new_stock, 
-											"EnterpriseValue_Date", 
-											date
-											)
-										key_str = "EnterpriseValue"
-									elif "TrailingPE_ttm_" in key_term:
-										date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
-										setattr(new_stock, 
-											"TrailingPE_ttm_Date", 
-											date
-											)
-										key_str = "TrailingPE_ttm"
-									elif "SharesShort_as_of" in key_term:
-										date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
-										setattr(new_stock, 
-											"SharesShort_as_of_Date", 
-											date
-											)
-										key_str = "SharesShort"
-									elif "ShortRatio_as_of" in key_term:
-										date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
-										setattr(new_stock, 
-											"ShortRatio_as_of_Date", 
-											date
-											)
-										key_str = "ShortRatio"
-									elif "ShortPercentageofFloat_as_of" in key_term:
-										date = key_term[29:]
-										setattr(new_stock, 
-											"ShortPercentageofFloat_as_of_Date", 
-											date
-											)
-										key_str = "ShortPercentageofFloat"
-									elif "p_2" in key_term or "p_5" in key_term:
-										key_str = key_str[2:]
-									else:
-										key_str = str(key + "_" + term)
-									content = str(i["content"])
-									setattr(new_stock, 
-											key_str, 
-											content
-											)
-								except Exception, e:
-									logging.warning(repr(i))
-									logging.warning("complex list method did not work")
-									logging.exception(e)
-									setattr(new_stock, 
-											str(key), 
-											x
-											)
+		print "got this far"
+		
+		#self.progress_dialog = wx.ProgressDialog('Scrape Progress', 
+		#									'The stocks are currently downloading', 
+		#									num_of_tickers,
+		#									parent=self, 
+		#									style=wx.PD_CAN_ABORT|wx.PD_REMAINING_TIME
+		#									)
 
-						elif x[0] == "{":
-							y = ast.literal_eval(x)
+
+		number_of_tickers_in_chunk_list = 0
+		for chunk in chunk_list:
+			for ticker in chunk:
+				number_of_tickers_in_chunk_list += 1
+				print number_of_tickers_in_chunk_list
+		number_of_tickers_previously_updated = len(GLOBAL_TICKER_LIST) - number_of_tickers_in_chunk_list
+		print number_of_tickers_previously_updated
+		total_number_of_tickers_done = number_of_tickers_previously_updated
+		percent_of_full_scrape_done = round(100 * float(total_number_of_tickers_done) / float(len(GLOBAL_TICKER_LIST)) )
+
+		print percent_of_full_scrape_done
+		
+		self.progress_bar.SetValue(percent_of_full_scrape_done)
+		self.progress_bar.Show()
+		self.scrape_button.Hide()
+		self.abort_scrape_button.Show()
+		# Process the scrape while updating a progress bar
+		timer = threading.Timer(0, self.executeScrapePartOne, [chunk_list, 0])
+		timer.start()
+
+			#scrape_thread = threading.Thread(target=self.executeOneScrape, args = (ticker_chunk,))
+			#scrape_thread.daemon = True
+			#scrape_thread.start()
+			#while scrape_thread.isAlive():
+
+			#	# Every two sleep times execute a new scrape
+			#	full_scrape_sleep = float(sleep_time * 2)
+			#	scrape_thread.join(full_scrape_sleep)
+			#	cont, skip = progress_dialog.Update(self.numScrapedStocks)
+			#	if not cont:
+			#		progress_dialog.Destroy()
+			#		return
+
+	def executeScrapePartOne(self, ticker_chunk_list, position_of_this_chunk):
+		if self.abort_scrape == True:
+			self.abort_scrape = False
+			self.progress_bar.Hide()
+			print "Scrape canceled."
+			return
+		global GLOBAL_TICKER_LIST
+		global GLOBAL_STOCK_LIST
+		global SCRAPE_CHUNK_LENGTH
+		global SCRAPE_SLEEP_TIME
+		global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+		sleep_time = SCRAPE_SLEEP_TIME
+
+
+		ticker_chunk = ticker_chunk_list[position_of_this_chunk]
+
+		if ticker_chunk:
+			scrape_1_failed = False
+			try:
+				data = pyql.lookupQuote(ticker_chunk)
+			except:
+				logging.warning("Scrape didn't work. Nothing scraped.")
+				scrape_1_failed = True
+			if scrape_1_failed:
+				#time.sleep(sleep_time)
+				return
+			else:
+				logging.warning("Scrape 1 Success: mid-scrape sleep for %d seconds" % sleep_time)
+
+				timer = threading.Timer(sleep_time, self.executeScrapePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
+				timer.start()
+
+	def executeScrapePartTwo(self, ticker_chunk_list, position_of_this_chunk, successful_pyql_data):
+		if self.abort_scrape == True:
+			self.abort_scrape = False
+			self.progress_bar.Hide()
+			print "Scrape canceled."
+			return
+		global GLOBAL_TICKER_LIST
+		global GLOBAL_STOCK_LIST
+		global SCRAPE_CHUNK_LENGTH
+		global SCRAPE_SLEEP_TIME
+		global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+		sleep_time = SCRAPE_SLEEP_TIME
+
+		ticker_chunk = ticker_chunk_list[position_of_this_chunk]
+		number_of_stocks_in_this_scrape = len(ticker_chunk)
+
+		data = successful_pyql_data
+
+		try:
+			data2 = pyql.lookupKeyStats(ticker_chunk)
+		except:
+			logging.warning("Scrape 2 didn't work. Abort.")
+			time.sleep(sleep_time)
+			return
+
+		for stock in data:
+			new_stock = None
+			for key, value in stock.iteritems():
+				if key == "symbol":
+					new_stock = return_stock_by_symbol(value)
+					if not new_stock:
+						new_stock = Stock(value)
+						GLOBAL_STOCK_LIST.append(new_stock)
+					else:
+						new_stock.updated = datetime.datetime.now()
+						new_stock.epoch = float(time.time())
+			for key, value in stock.iteritems():
+				# Here we hijack the power of the expando db structure
+				# This adds the attribute of every possible attribute that can be passed
+				setattr(new_stock, 
+						str(key), 
+						value
+						)
+			logging.warning("Success, putting %s: Data 1" % new_stock.symbol)
+		#save
+		with open('all_stocks.pk', 'wb') as output:
+			pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
+
+		for stock2 in data2:
+			for key, value in stock2.iteritems():
+				if key == "symbol":
+					new_stock = return_stock_by_symbol(value)
+					if not new_stock:
+						new_stock = Stock(value)
+						GLOBAL_STOCK_LIST.append(new_stock)
+			for key, value in stock2.iteritems():
+				if isinstance(value, (list, dict)):
+					#logging.warning(type(value))
+					x = repr(value)
+					term = None
+					content = None
+					#logging.warning(x)
+					if x[0] == "[":
+						y = ast.literal_eval(x)
+						#logging.warning(y)
+						for i in y:
 							try:
-								test = y["term"]
-								test = y["content"]
+								test = i["term"]
+								test = i["content"]
 							except Exception, e:
 								#logging.error(new_stock.symbol)
 								#logging.error(y)
 								#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
 								continue
-							#logging.warning(y)
+							#logging.warning(i)
 							try:
 								key_str = str(key)
-								term = str(y["term"])
+								term = str(i["term"])
 								term = term.replace(" ", "_")
 								term = term.replace(",", "")
 								term = strip_string_whitespace(term)
@@ -656,52 +656,183 @@ class ScrapePage(Tab):
 									key_str = key_str[2:]
 								else:
 									key_str = str(key + "_" + term)
-								content = str(y["content"])
+								content = str(i["content"])
 								setattr(new_stock, 
 										key_str, 
 										content
 										)
 							except Exception, e:
-								logging.warning("complex dict method did not work")
+								logging.warning(repr(i))
+								logging.warning("complex list method did not work")
 								logging.exception(e)
 								setattr(new_stock, 
 										str(key), 
 										x
 										)
-						else:
+
+					elif x[0] == "{":
+						y = ast.literal_eval(x)
+						try:
+							test = y["term"]
+							test = y["content"]
+						except Exception, e:
+							#logging.error(new_stock.symbol)
+							#logging.error(y)
+							#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
+							continue
+						#logging.warning(y)
+						try:
 							key_str = str(key)
-							if "p_2" in key_str or "p_5" in key_str:
+							term = str(y["term"])
+							term = term.replace(" ", "_")
+							term = term.replace(",", "")
+							term = strip_string_whitespace(term)
+							key_term = key_str + "_" + term
+							key_term = strip_string_whitespace(key_term)
+							if "p_52_WeekHigh" in key_term:
+								date = key_term[14:]
+								setattr(new_stock, 
+									"52_WeekHigh_Date", 
+									date
+									)
+								key_str = "52_WeekHigh"
+							elif "p_52_WeekLow" in key_term:
+								date = key_term[13:]
+								setattr(new_stock, 
+									"52_WeekLow_Date", 
+									date
+									)
+								key_str = "52_WeekLow"
+							elif "ForwardPE_fye" in key_term:
+								date = key_term[14:]
+								setattr(new_stock, 
+									"ForwardPE_fiscal_y_end_Date", 
+									date
+									)
+								key_str = "ForwardPE"
+							elif "EnterpriseValue_" in key_term:
+								date = key_term[16:]
+								setattr(new_stock, 
+									"EnterpriseValue_Date", 
+									date
+									)
+								key_str = "EnterpriseValue"
+							elif "TrailingPE_ttm_" in key_term:
+								date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
+								setattr(new_stock, 
+									"TrailingPE_ttm_Date", 
+									date
+									)
+								key_str = "TrailingPE_ttm"
+							elif "SharesShort_as_of" in key_term:
+								date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
+								setattr(new_stock, 
+									"SharesShort_as_of_Date", 
+									date
+									)
+								key_str = "SharesShort"
+							elif "ShortRatio_as_of" in key_term:
+								date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
+								setattr(new_stock, 
+									"ShortRatio_as_of_Date", 
+									date
+									)
+								key_str = "ShortRatio"
+							elif "ShortPercentageofFloat_as_of" in key_term:
+								date = key_term[29:]
+								setattr(new_stock, 
+									"ShortPercentageofFloat_as_of_Date", 
+									date
+									)
+								key_str = "ShortPercentageofFloat"
+							elif "p_2" in key_term or "p_5" in key_term:
 								key_str = key_str[2:]
+							else:
+								key_str = str(key + "_" + term)
+							content = str(y["content"])
 							setattr(new_stock, 
-								key_str, 
-								x
-								)
+									key_str, 
+									content
+									)
+						except Exception, e:
+							logging.warning("complex dict method did not work")
+							logging.exception(e)
+							setattr(new_stock, 
+									str(key), 
+									x
+									)
 					else:
 						key_str = str(key)
 						if "p_2" in key_str or "p_5" in key_str:
 							key_str = key_str[2:]
 						setattr(new_stock, 
-								key_str, 
-								value
-								)
-				logging.warning("Success, putting %s: Data 2" % new_stock.symbol)
+							key_str, 
+							x
+							)
+				else:
+					key_str = str(key)
+					if "p_2" in key_str or "p_5" in key_str:
+						key_str = key_str[2:]
+					setattr(new_stock, 
+							key_str, 
+							value
+							)
+			logging.warning("Success, putting %s: Data 2" % new_stock.symbol)
 
-			#save again
-			with open('all_stocks.pk', 'wb') as output:
-				pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
+		#save again
+		with open('all_stocks.pk', 'wb') as output:
+			pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
 
-			logging.warning("This stock chunk finished successfully.")
-			self.progress_bar.SetValue((float(slice_end)/float(num_of_tickers)) * 100)
-			app.Yield()
-			if last_loop:
-				break
-			else:
-				logging.warning("Sleeping for %d seconds before the next task" % sleep_time)
-				time.sleep(sleep_time)
-			# while ending
-			count += 1
-			slice_start += chunk_length
-			slice_end += chunk_length
+		logging.warning("This stock chunk finished successfully.")
+		#self.progress_bar.SetValue((float(slice_end)/float(num_of_tickers)) * 100)
+		#app.Yield()
+
+		logging.warning("Sleeping for %d seconds before the next task" % sleep_time)
+		#time.sleep(sleep_time)
+
+		#self.numScrapedStocks += number_of_stocks_in_this_scrape
+		#cont, skip = self.progress_dialog.Update(self.numScrapedStocks)
+		#if not cont:
+		#	self.progress_dialog.Destroy()
+		#	return
+
+
+		number_of_tickers_in_chunk_list = 0
+		for chunk in ticker_chunk_list:
+			for ticker in chunk:
+				number_of_tickers_in_chunk_list += 1
+		number_of_tickers_previously_updated = len(GLOBAL_TICKER_LIST) - number_of_tickers_in_chunk_list
+		number_of_tickers_done_in_this_scrape = 0
+		for i in range(len(ticker_chunk_list)):
+			if i > position_of_this_chunk:
+				continue
+			for ticker in ticker_chunk_list[i]:
+				number_of_tickers_done_in_this_scrape += 1
+		total_number_of_tickers_done = number_of_tickers_previously_updated + number_of_tickers_done_in_this_scrape
+		percent_of_full_scrape_done = round( 100 * float(total_number_of_tickers_done) / float(len(GLOBAL_TICKER_LIST)))
+
+		position_of_this_chunk += 1
+		percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
+		print "%d%%" % percent_done, "done this scrape execution."
+		print "%d%%" % percent_of_full_scrape_done, "done of all tickers."
+		self.progress_bar.SetValue(percent_of_full_scrape_done)
+		if position_of_this_chunk >= len(ticker_chunk_list):
+			# finished
+			self.abort_scrape_button.Hide()
+			self.scrape_button.Show()
+			self.progress_bar.SetValue(100)
+			return
+		else:
+			timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
+			timer.start()
+
+	def abortScrape(self, event):
+		if self.abort_scrape == False:
+			self.abort_scrape = True
+			self.abort_scrape_button.Hide()
+			self.scrape_button.Show()
+
+
 class AllStocksPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -709,17 +840,27 @@ class AllStocksPage(Tab):
 							 "Full Stock List", 
 							 (10,10)
 							 )
-		#sub_panel = wx.Panel(self, -1, size = (wx.EXPAND, wx.EXPAND), pos = (0,50))
-		#sub_panel.SetBackgroundColour('#999999')
-		#wx.TextCtrl(sub_panel, -1, size=(50,50), pos = (50,50))
+
+		self.spreadsheet = None
+
+		refresh_button = wx.Button(self, label="refresh", pos=(110,4), size=(-1,-1))
+		refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFill, refresh_button)
+
+		#self.spreadSheetFill('event')
+
+	def spreadSheetFill(self, event):
+		try:
+			self.spreadsheet.Destroy()
+		except Exception, exception:
+			print exception
 
 		global GLOBAL_STOCK_LIST
-		spreadsheet = GridAllStocks(self, -1, size=(1000,680), pos=(0,50))
-		self.spreadSheetFill(spreadsheet, GLOBAL_STOCK_LIST)
+		stock_list = GLOBAL_STOCK_LIST
+		self.spreadsheet = GridAllStocks(self, -1, size=(1000,680), pos=(0,50))
 
-	def spreadSheetFill(self, spreadsheet, stock_list):
-		spreadsheet.CreateGrid(spreadsheet.num_rows, spreadsheet.num_columns)
-		spreadsheet.EnableEditing(False)
+
+		self.spreadsheet.CreateGrid(self.spreadsheet.num_rows, self.spreadsheet.num_columns)
+		self.spreadsheet.EnableEditing(False)
 
 		attribute_list = []
 		for stock in stock_list:
@@ -746,15 +887,16 @@ class AllStocksPage(Tab):
 			for attribute in attribute_list:
 				#if not attribute.startswith('_'):
 				if row_count == 0:
-					spreadsheet.SetColLabelValue(col_count, str(attribute))
+					self.spreadsheet.SetColLabelValue(col_count, str(attribute))
 				try:
-					spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
+					self.spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
 				except:
 					pass
 				col_count += 1
 			row_count += 1
 			col_count = 0
-		spreadsheet.AutoSizeColumns()
+		self.spreadsheet.AutoSizeColumns()
+
 class ScreenPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -1411,10 +1553,10 @@ class SalePrepPage(Tab):
 			if i>=5:
 				horizontal_offset = 200
 			checkbox_to_add = wx.CheckBox(self, -1, 
-			                              PORTFOLIO_NAMES[i], 
-			                              pos=((600+ horizontal_offset), (16*i)), 
-			                              size=(-1,-1)
-			                              )
+										  PORTFOLIO_NAMES[i], 
+										  pos=((600+ horizontal_offset), (16*i)), 
+										  size=(-1,-1)
+										  )
 			try:
 				throw_error = PORTFOLIO_OBJECTS_LIST[i].stock_list
 				checkbox_to_add.SetValue(True)
@@ -1470,10 +1612,10 @@ class SalePrepPage(Tab):
 			if i>=5:
 				horizontal_offset = 200
 			checkbox_to_add = wx.CheckBox(self, -1, 
-			                              PORTFOLIO_NAMES[i], 
-			                              pos=((600 + horizontal_offset), (16*i)), 
-			                              size=(-1,-1)
-			                              )
+										  PORTFOLIO_NAMES[i], 
+										  pos=((600 + horizontal_offset), (16*i)), 
+										  size=(-1,-1)
+										  )
 			try:
 				throw_error = PORTFOLIO_OBJECTS_LIST[i].stock_list
 				checkbox_to_add.SetValue(True)
