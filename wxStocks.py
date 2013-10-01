@@ -1,4 +1,4 @@
-import wx, sys, os, csv, time, datetime, logging, ast, math, threading
+import wx, sys, os, csv, time, datetime, logging, ast, math, threading, inspect
 from pyql import pyql
 from wx.lib import sheet
 import cPickle as pickle
@@ -22,11 +22,16 @@ class Account(object):
 		self.stock_list = stock_list
 		for stock in self.stock_list:
 			setattr(self, stock.symbol, stock)
+def line_number():
+    """Returns the current line number in our program."""
+    line_number = inspect.currentframe().f_back.f_lineno
+    line_number_string = "Line %d:" % line_number
+    return line_number_string
 
 try:
 	ticker_list = open('ticker.pk', 'rb')
 except Exception, e:
-	print e
+	print line_number(), e
 	ticker_list = open('ticker.pk', 'wb')
 	ticker_list = []
 	with open('ticker.pk', 'wb') as output:
@@ -37,7 +42,7 @@ ticker_list.close()
 try:
 	stock_list = open('all_stocks.pk', 'rb')
 except Exception, e:
-	print e
+	print line_number(), e
 	stock_list = open('all_stocks.pk', 'wb')
 	stock_list = []
 	with open('all_stocks.pk', 'wb') as output:
@@ -52,7 +57,7 @@ SCREEN_LIST = []
 try:
 	data_from_portfolios_file = open('portfolios.pk', 'rb')
 except Exception, e:
-	print e
+	print line_number(), lineno(), e
 	data_from_portfolios_file = open('portfolios.pk', 'wb')
 	data_from_portfolios_file = [1,["Primary"]]
 	with open('portfolios.pk', 'wb') as output:
@@ -74,7 +79,7 @@ for i in range(NUMBER_OF_PORTFOLIOS):
 	try:
 		PORTFOLIO_NAMES.append(DATA_ABOUT_PORTFOLIOS[1][i])
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		logging.error('Portfolio names do not match number of portfolios')
 PORTFOLIO_OBJECTS_LIST = []
 for i in range(NUMBER_OF_PORTFOLIOS):
@@ -84,7 +89,7 @@ for i in range(NUMBER_OF_PORTFOLIOS):
 		portfolio_account_obj_file.close()
 		PORTFOLIO_OBJECTS_LIST.append(portfolio_obj)
 	except Exception, e:
-		print e
+		print line_number(), e
 IRRELEVANT_ATTRIBUTES = ["updated",
 						"epoch",
 						"TradeDate",
@@ -166,8 +171,8 @@ class GridAllStocks(wx.grid.Grid):
 					num_attributes += 1
 			if self.num_columns < num_attributes:
 				self.num_columns = num_attributes
-		#print "Number of rows: %d" % self.num_rows
-		#print "Number of columns: %d" % self.num_columns
+		#print line_number(), "Number of rows: %d" % self.num_rows
+		#print line_number(), "Number of columns: %d" % self.num_columns
 class StockScreenGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
@@ -184,9 +189,9 @@ class StockScreenGrid(wx.grid.Grid):
 					num_attributes += 1
 			if self.num_columns < num_attributes:
 				self.num_columns = num_attributes
-				print num_attributes
-		#print "Number of rows: %d" % self.num_rows
-		#print "Number of columns: %d" % self.num_columns
+				#print line_number(), num_attributes
+		#print line_number(), "Number of rows: %d" % self.num_rows
+		#print line_number(), "Number of columns: %d" % self.num_columns
 class SalePrepGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
@@ -257,31 +262,31 @@ class WelcomePage(Tab):
 							 )
 		instructions_text = '''
 
-Instructions: 	this program is essentially a work-flow following the tabs above.
----------------------------------------------------------------------------------------------------------------------------------
+	Instructions: 	this program is essentially a work-flow following the tabs above.
+	---------------------------------------------------------------------------------------------------------------------------------
 
-Tickers:		This page is where you load in a .CSV file to create a list of tickers to scrape.
-			You can get a properly formatted .CSV from the exchanges you want via a link on this page.
+	Tickers:		This page is where you load in a .CSV file to create a list of tickers to scrape.
+				You can get a properly formatted .CSV from the exchanges you want via a link on this page.
 
-Scrape:		This page takes the tickers, and then scrapes current stock data using them.
+	Scrape:		This page takes the tickers, and then scrapes current stock data using them.
 
-Stocks:		This page generates a list of all stocks that have been scraped and presents all the data about them.
-			Use this page to double check your data to make sure it's accurate and up to date.
+	Stocks:		This page generates a list of all stocks that have been scraped and presents all the data about them.
+				Use this page to double check your data to make sure it's accurate and up to date.
 
-Screen:		This page allows you to screen for stocks that fit your criteria, and save them for later.
+	Screen:		This page allows you to screen for stocks that fit your criteria, and save them for later.
 
-Saved Screens:	This page allows you to recall old screens you've saved.
+	Saved Screens:	This page allows you to recall old screens you've saved.
 
-Rank:		This page allows you to rank stocks along certain criteria. 
+	Rank:		This page allows you to rank stocks along certain criteria. 
 
-Sale Prep:	This page allows you to estimate the amount of funds generated from a potential stock sale.
+	Sale Prep:	This page allows you to estimate the amount of funds generated from a potential stock sale.
 
-Trade:		This page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated, 
-			and lets you estimate the volume of stocks to buy to satisfy your diversification requirements.
+	Trade:		This page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated, 
+				and lets you estimate the volume of stocks to buy to satisfy your diversification requirements.
 
-Portfolio:	This page allows you to load your portfolios from which you plan on making trades.
-			If you have more than one portfolio you plan on working from, you may add more.
-'''
+	Portfolio:	This page allows you to load your portfolios from which you plan on making trades.
+				If you have more than one portfolio you plan on working from, you may add more.
+	'''
 
 		instructions = wx.StaticText(self, -1, 
 									instructions_text, 
@@ -468,11 +473,11 @@ class ScrapePage(Tab):
 			ticker_chunk = ticker_list[slice_start:slice_end]
 			chunk_list.append(ticker_chunk)
 			count += 1
-			print count
+			print line_number(), count
 			slice_start += chunk_length
 			slice_end += chunk_length
 
-		print "got this far"
+		print line_number(), "got this far"
 		
 		#self.progress_dialog = wx.ProgressDialog('Scrape Progress', 
 		#									'The stocks are currently downloading', 
@@ -486,13 +491,13 @@ class ScrapePage(Tab):
 		for chunk in chunk_list:
 			for ticker in chunk:
 				number_of_tickers_in_chunk_list += 1
-				print number_of_tickers_in_chunk_list
+				print line_number(), number_of_tickers_in_chunk_list
 		number_of_tickers_previously_updated = len(GLOBAL_TICKER_LIST) - number_of_tickers_in_chunk_list
-		print number_of_tickers_previously_updated
+		print line_number(), number_of_tickers_previously_updated
 		total_number_of_tickers_done = number_of_tickers_previously_updated
 		percent_of_full_scrape_done = round(100 * float(total_number_of_tickers_done) / float(len(GLOBAL_TICKER_LIST)) )
 
-		print percent_of_full_scrape_done
+		print line_number(), percent_of_full_scrape_done
 		
 		self.progress_bar.SetValue(percent_of_full_scrape_done)
 		self.progress_bar.Show()
@@ -519,7 +524,7 @@ class ScrapePage(Tab):
 		if self.abort_scrape == True:
 			self.abort_scrape = False
 			self.progress_bar.Hide()
-			print "Scrape canceled."
+			print line_number(), "Scrape canceled."
 			return
 		global GLOBAL_TICKER_LIST
 		global GLOBAL_STOCK_LIST
@@ -551,7 +556,7 @@ class ScrapePage(Tab):
 		if self.abort_scrape == True:
 			self.abort_scrape = False
 			self.progress_bar.Hide()
-			print "Scrape canceled."
+			print line_number(), "Scrape canceled."
 			return
 		global GLOBAL_TICKER_LIST
 		global GLOBAL_STOCK_LIST
@@ -847,8 +852,8 @@ class ScrapePage(Tab):
 
 		position_of_this_chunk += 1
 		percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
-		print "%d%%" % percent_done, "done this scrape execution."
-		print "%d%%" % percent_of_full_scrape_done, "done of all tickers."
+		print line_number(), "%d%%" % percent_done, "done this scrape execution."
+		print line_number(), "%d%%" % percent_of_full_scrape_done, "done of all tickers."
 		self.progress_bar.SetValue(percent_of_full_scrape_done)
 		if position_of_this_chunk >= len(ticker_chunk_list):
 			# finished
@@ -886,7 +891,7 @@ class AllStocksPage(Tab):
 		try:
 			self.spreadsheet.Destroy()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 
 		global GLOBAL_STOCK_LIST
 		stock_list = GLOBAL_STOCK_LIST
@@ -907,12 +912,12 @@ class AllStocksPage(Tab):
 		try:
 			attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 		except Exception, e:
-			print e
+			print line_number(), e
 		try:
 			attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
 		except Exception, e:
-			print e
-		#print attribute_list
+			print line_number(), e
+		#print line_number(), attribute_list
 
 		row_count = 0
 		col_count = 0
@@ -958,7 +963,7 @@ class ScreenPage(Tab):
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			existing_screen_names_file = open('screen_names.pk', 'wb')
 			empty_list = []
 			with open('screen_names.pk', 'wb') as output:
@@ -985,7 +990,7 @@ class ScreenPage(Tab):
 				return
 			else:
 				existing_screen_names.append(saved_screen_name)
-				print existing_screen_names
+				print line_number(), existing_screen_names
 				with open('screen_names.pk', 'wb') as output:
 					pickle.dump(existing_screen_names, output, pickle.HIGHEST_PROTOCOL)
 
@@ -1012,7 +1017,7 @@ class ScreenPage(Tab):
 		try:
 			self.screen_grid.Destroy()
 		except Exception, e:
-			print e
+			print line_number(), e
 
 		self.screen_grid = StockScreenGrid(self, -1, size=(1000,680), pos=(0,50))
 		self.spreadSheetFill(self.screen_grid, stock_list)
@@ -1035,7 +1040,7 @@ class ScreenPage(Tab):
 		# adjust list order for important terms
 		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 		attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-		#print attribute_list
+		#print line_number(), attribute_list
 
 		row_count = 0
 		col_count = 0
@@ -1069,7 +1074,7 @@ class SavedScreenPage(Tab):
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			existing_screen_names_file = open('screen_names.pk', 'wb')
 			empty_list = []
 			with open('screen_names.pk', 'wb') as output:
@@ -1101,21 +1106,21 @@ class SavedScreenPage(Tab):
 		confirm.Destroy()
 
 
-		print self.screen_grid
+		print line_number(), self.screen_grid
 		if yesNoAnswer != wx.ID_YES:
 			return
 		try:
-			print self.currently_viewed_screen
+			print line_number(), self.currently_viewed_screen
 			existing_screen_names_file = open('screen_names.pk', 'rb')
 			existing_screen_names = pickle.load(existing_screen_names_file)
-			#print existing_screen_names
+			#print line_number(), existing_screen_names
 			existing_screen_names.remove(self.currently_viewed_screen)
 			with open('screen_names.pk', 'wb') as output:
 				pickle.dump(existing_screen_names, output, pickle.HIGHEST_PROTOCOL)
 			os.remove('screen-%s.pk' % self.currently_viewed_screen)
 			self.screen_grid.Destroy()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			error = wx.MessageDialog(self,
 									 "Something went wrong. File was not deleted, because this file doesn't seem to exist.",
 									 'Error: File Does Not Exist',
@@ -1135,7 +1140,7 @@ class SavedScreenPage(Tab):
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			existing_screen_names_file = open('screen_names.pk', 'wb')
 			empty_list = []
 			with open('screen_names.pk', 'wb') as output:
@@ -1156,7 +1161,7 @@ class SavedScreenPage(Tab):
 			saved_screen = pickle.load(saved_screen_file)
 			saved_screen_file.close()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			error = wx.MessageDialog(self,
 									 "Something went wrong. This file doesn't seem to exist.",
 									 'Error: File Does Not Exist',
@@ -1172,7 +1177,7 @@ class SavedScreenPage(Tab):
 		try:
 			self.screen_grid.Destroy()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 
 		self.spreadSheetFill(stock_list)
 
@@ -1204,7 +1209,7 @@ class SavedScreenPage(Tab):
 		# adjust list order for important terms
 		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 		attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-		#print attribute_list
+		#print line_number(), attribute_list
 
 		row_count = 0
 		col_count = 0
@@ -1259,7 +1264,7 @@ class RankPage(Tab):
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			existing_screen_names_file = open('screen_names.pk', 'wb')
 			empty_list = []
 			with open('screen_names.pk', 'wb') as output:
@@ -1278,7 +1283,7 @@ class RankPage(Tab):
 		for i in range(len(PORTFOLIO_NAMES)):
 			tuple_to_append = [PORTFOLIO_NAMES[i], (i+1)]
 			self.portfolio_name_tuple_list.append(tuple_to_append)
-			#print self.portfolio_name_tuple_list
+			#print line_number(), self.portfolio_name_tuple_list
 
 		self.accounts_drop_down = wx.ComboBox(self, 
 									 pos=(305, 31), 
@@ -1342,7 +1347,7 @@ class RankPage(Tab):
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			existing_screen_names_file = open('screen_names.pk', 'wb')
 			empty_list = []
 			with open('screen_names.pk', 'wb') as output:
@@ -1361,7 +1366,7 @@ class RankPage(Tab):
 		for i in range(len(PORTFOLIO_NAMES)):
 			tuple_to_append = [PORTFOLIO_NAMES[i], (i+1)]
 			self.portfolio_name_tuple_list.append(tuple_to_append)
-			print self.portfolio_name_tuple_list
+			print line_number(), self.portfolio_name_tuple_list
 
 		self.accounts_drop_down = wx.ComboBox(self, 
 									 pos=(305, 31), 
@@ -1375,7 +1380,7 @@ class RankPage(Tab):
 			saved_screen = pickle.load(saved_screen_file)
 			saved_screen_file.close()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			error = wx.MessageDialog(self,
 									 "Something went wrong. This file doesn't seem to exist.",
 									 'Error: File Does Not Exist',
@@ -1395,7 +1400,7 @@ class RankPage(Tab):
 		try:
 			self.screen_grid.Destroy()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 
 		self.spreadSheetFill(self.full_ticker_list)
 	def loadAccount(self, event):
@@ -1409,7 +1414,7 @@ class RankPage(Tab):
 					saved_account = pickle.load(saved_account_file)
 					saved_account_file.close()
 				except Exception, exception:
-					print exception
+					print line_number(), exception
 					error = wx.MessageDialog(self,
 											 "Something went wrong. This file doesn't seem to exist.",
 											 'Error: File Does Not Exist',
@@ -1437,7 +1442,7 @@ class RankPage(Tab):
 		try:
 			self.screen_grid.Destroy()
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 
 		self.spreadSheetFill(self.full_ticker_list)
 	def spreadSheetFill(self, ticker_list):
@@ -1480,7 +1485,7 @@ class RankPage(Tab):
 							self.full_attribute_list.append(str(attribute)) # Reset root attribute list
 			break
 		#for i in self.full_attribute_list:
-		#	print i
+		#	print line_number(), i
 		if not attribute_list:
 			logging.warning('attribute list empty')
 			return
@@ -1488,7 +1493,7 @@ class RankPage(Tab):
 		# adjust list order for important terms
 		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 		attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-		#print attribute_list
+		#print line_number(), attribute_list
 
 		row_count = 0
 		col_count = 0
@@ -1504,7 +1509,7 @@ class RankPage(Tab):
 						self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
 				except Exception, exception:
 					pass
-					#print exception
+					#print line_number(), exception
 				col_count += 1
 			row_count += 1
 			col_count = 0
@@ -1519,7 +1524,7 @@ class RankPage(Tab):
 											 )
 		except Exception, exception:
 			pass
-			#print exception
+			#print line_number(), exception
 		self.clear_button.Show()
 		self.sort_button.Show()
 		self.sort_drop_down.Show()
@@ -1546,7 +1551,7 @@ class RankPage(Tab):
 					except:
 						str_stock_value_list.append(stock)
 				except Exception, exception:
-					#print exception
+					#print line_number(), exception
 					incompatible_stock_list.append(stock)
 
 		num_stock_value_list.sort(key = lambda x: float(getattr(x, sort_field)), reverse=reverse_var)
@@ -1595,7 +1600,7 @@ class SalePrepPage(Tab):
 				throw_error = PORTFOLIO_OBJECTS_LIST[i].stock_list
 				checkbox_to_add.SetValue(True)
 			except Exception, exception:
-				pass#print exception
+				pass#print line_number(), exception
 			self.checkbox_list.append(checkbox_to_add)
 		
 		line = wx.StaticLine(self, -1, pos=(0,83), size=(1000,-1))
@@ -1621,13 +1626,13 @@ class SalePrepPage(Tab):
 			box = self.checkbox_list[i]
 			if box:
 				is_checked = box.GetValue()
-				#print is_checked
+				#print line_number(), is_checked
 				if is_checked:
 					self.spreadSheetFill('event')
 					break
 
 	def exportSaleCandidates(self, event):
-		print "Boom goes the dynamite!"
+		print line_number(), "Boom goes the dynamite!"
 		self.save_button.Hide()
 		self.saved_text.Show()
 		
@@ -1639,7 +1644,7 @@ class SalePrepPage(Tab):
 			try:
 				i.Destroy()
 			except Exception, exception:
-				print exception
+				print line_number(), exception
 		self.checkbox_list = []
 		for i in range(NUMBER_OF_PORTFOLIOS):
 			horizontal_offset = 0
@@ -1654,14 +1659,15 @@ class SalePrepPage(Tab):
 				throw_error = PORTFOLIO_OBJECTS_LIST[i].stock_list
 				checkbox_to_add.SetValue(True)
 			except Exception, exception:
-				pass#print exception
+				pass#print line_number(), exception
 			self.checkbox_list.append(checkbox_to_add)
 		self.spreadSheetFill("event")
 	def spreadSheetFill(self, event):
 		try:
 			self.grid.Destroy()
 		except Exception, exception:
-			print exception
+			pass
+			#print line_number(), exception
 		
 		relevant_portfolios_list = []
 		for i in range(len(self.checkbox_list)):
@@ -1678,9 +1684,9 @@ class SalePrepPage(Tab):
 				num_rows += 1 # for account name
 				num_stocks = len(account.stock_list)
 				num_rows += num_stocks
-				print num_rows
+				#print line_number(), num_rows
 			except Exception, exception:
-				pass#print exception
+				pass#print line_number(), exception
 
 		self.grid = SalePrepGrid(self, -1, size=(1000,650), pos=(0,83))
 		self.grid.CreateGrid(num_rows, num_columns)
@@ -1752,16 +1758,16 @@ class SalePrepPage(Tab):
 					try:
 						self.grid.SetCellValue(row_count, 5, stock_data.Name)
 					except Exception, exception:
-						print exception
+						print line_number(), exception
 					self.grid.SetCellValue(row_count, 9, stock.quantity)
 					try:
 						self.grid.SetCellValue(row_count, 10, stock_data.LastTradePriceOnly)
 					except Exception, exception:
-						print exception
+						print line_number(), exception
 					self.grid.SetCellValue(row_count, 15, str(float(stock.quantity.replace(",","")) * float(stock_data.LastTradePriceOnly)))
 					row_count += 1
 			except Exception, exception:
-				print exception, "\nAn account appears to not be loaded with a .csv, but this isn't a problem."
+				print line_number(), exception, "\nAn account appears to not be loaded with a .csv, but this isn't a problem."
 		self.grid.AutoSizeColumns()
 	def updateGrid(self, event):
 		row = event.GetRow()
@@ -1774,7 +1780,7 @@ class SalePrepPage(Tab):
 				number_of_shares_to_sell = int(value)
 			except:
 				self.setGridError(row)
-			#print "# of stocks to sell changed"
+			#print line_number(), "# of stocks to sell changed"
 			self.grid.SetCellValue(row, 2, "")
 			if num_shares >= number_of_shares_to_sell:
 				self.grid.SetCellValue(row, 7, str(number_of_shares_to_sell))
@@ -1872,7 +1878,7 @@ class PortfolioPage(Tab):
 		if not portfolios_that_already_exist:
 			new_portfolio_name_list = []
 			for i in range(NUMBER_OF_PORTFOLIOS):
-				#print i
+				#print line_number(), i
 				portfolio_name = None
 				if NUMBER_OF_PORTFOLIOS < 10:
 					portfolio_name = "Portfolio %d" % (i+1)
@@ -1892,11 +1898,11 @@ class PortfolioPage(Tab):
 		else:
 			need_to_save = False
 			for i in range(NUMBER_OF_PORTFOLIOS):
-				#print i
+				#print line_number(), i
 				try:
 					portfolio_name = portfolios_that_already_exist[i]
 				except Exception, exception:
-					print exception
+					print line_number(), exception
 					if i < 3:
 						number_words = ["Primary", "Secondary", "Tertiary"]
 						portfolio_name = number_words[i]
@@ -1929,11 +1935,11 @@ class PortfolioAccountTab(Tab):
 		tab_panel = wx.Panel.__init__(self, parent, tab_number)
 		
 		self.portfolio_id = tab_number
-		#print self.portfolio_id
+		#print line_number(), self.portfolio_id
 		try:
 			portfolio_file = open('portfolio_%d.pk' % self.portfolio_id, 'rb')
 		except Exception, e:
-			print e
+			print line_number(), e
 			portfolio_file = open('portfolio_%d.pk' % self.portfolio_id, 'wb')
 			new_portfolio_entry = []
 			with open('portfolio_%d.pk' % self.portfolio_id, 'wb') as output:
@@ -1946,14 +1952,14 @@ class PortfolioAccountTab(Tab):
 		try:
 			self.account_obj = PORTFOLIO_OBJECTS_LIST[(int(self.portfolio_id) - 1)]
 		except Exception, e:
-			print e
+			print line_number(), e
 			try:
 				portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'rb')
 				self.account_obj = pickle.load(portfolio_account_obj_file)
 				PORTFOLIO_OBJECTS_LIST[(int(self.portfolio_id) - 1)] = self.account_obj
 				portfolio_account_obj_file.close()
 			except Exception, e:
-				print e
+				print line_number(), e
 				self.account_obj = None
 			# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'wb')
 			# 	portfolio_account_obj = []
@@ -1989,16 +1995,16 @@ class PortfolioAccountTab(Tab):
 		self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
 	def printData(self, event):
 		if self.account_obj:
-			print "cash:", self.account_obj.availble_cash
+			print line_number(),"cash:", self.account_obj.availble_cash
 			for account_attribute in dir(self.account_obj):
 				if not account_attribute.startswith("_"):
-					print account_attribute, ":"
+					print line_number(),account_attribute, ":"
 					try:
 						for stock_attribute in dir(getattr(self.account_obj, account_attribute)):
 							if not stock_attribute.startswith("_"):
-								print stock_attribute, getattr(getattr(self.account_obj, account_attribute), stock_attribute)
+								print line_number(),stock_attribute, getattr(getattr(self.account_obj, account_attribute), stock_attribute)
 					except Exception, exception:
-						print exception
+						print line_number(),exception
 	def changeNumberOfPortfolios(self, event):
 		global NUMBER_OF_PORTFOLIOS
 		num_of_portfolios_popup = wx.NumberEntryDialog(None,
@@ -2081,7 +2087,7 @@ class PortfolioAccountTab(Tab):
 			cash = "This should be changed"
 			count = 0
 			for row in self.portfolio_data:
-				print count
+				print line_number(),count
 				if count <= 1:
 					count += 1
 					continue
@@ -2089,16 +2095,16 @@ class PortfolioAccountTab(Tab):
 					if row[0] and row[11]:
 						if str(row[11]) == "Cash & Money Market":
 							cash = row[5]
-							print 'cash'
+							print line_number(),'cash'
 						elif str(row[11]) == "Equity":
 							# format: ticker(0), name(1), quantity(2), price(3), change(4), market value(5), day change$(6), day change%(7), reinvest dividends?(8), capital gain(9), percent of account(10), security type(11)
 							# HeldStock.__init__(self, symbol, quantity, security_type)
 							stock_to_add = HeldStock(row[0], row[2], row[11])
 							new_account_stock_list.append(stock_to_add)
-							print "stock"
+							print line_number(),"stock"
 				except Exception, exception:
-					print exception
-					print row
+					print line_number(),exception
+					print line_number(),row
 				count += 1
 			if cash == "This should be changed":
 				logging.error('Formatting error in CSV import')
@@ -2147,7 +2153,7 @@ class PortfolioAccountTab(Tab):
 				DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
 				with open('portfolios.pk', 'wb') as output:
 					pickle.dump(DATA_ABOUT_PORTFOLIOS, output, pickle.HIGHEST_PROTOCOL)
-				print DATA_ABOUT_PORTFOLIOS
+				print line_number(),DATA_ABOUT_PORTFOLIOS
 				confirm = wx.MessageDialog(self,
 										 "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
 										 'Restart Required',
@@ -2199,7 +2205,7 @@ def screen_pe_less_than_10():
 				if float(stock.PERatio) < 10:
 					screen.append(stock)
 		except Exception, e:
-			print e
+			print line_number(),e
 	return screen
 ####################### Pickle functions #######################
 def saveStocks(obj, stock_list):
@@ -2226,11 +2232,11 @@ def return_list_of_lists(csv_file):
 	reader = csv.reader(csv_file)
 	for row in reader:
 		full_data.append(list(row))
-	#print full_data
+	#print line_number(),full_data
 	return full_data
 def openCSV_return_list_of_lists():
 	csv_file = filedialog.askopenfile()
-	print 'opening', csv_file
+	print line_number(),'opening', csv_file
 	try:
 		ticker_list = return_list_of_lists(csv_file)
 		return ticker_list
