@@ -155,6 +155,10 @@ IRRELEVANT_ATTRIBUTES = ["updated",
 						"50_DayMovingAverage",
 						"200_DayMovingAverage"
 						]
+
+DEFAULT_ROWS_ON_SALES_PREP_PAGE = 9
+SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE = [] # [[relevant portfolios list], [sale ticker|#shares tuple list]]
+
 # with open('dummy.pk', 'wb') as output:
 #	pickle.dump(SOME_DATA, output, pickle.HIGHEST_PROTOCOL)
 
@@ -195,8 +199,9 @@ class StockScreenGrid(wx.grid.Grid):
 class SalePrepGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
-
-							
+class TradeGrid(wx.grid.Grid):
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
 
 class AccountDataGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
@@ -1611,7 +1616,7 @@ class SalePrepPage(Tab):
 		load_new_account_data_button = wx.Button(self, label="Refresh Accounts Data and Spreadsheet", pos=(110,30), size=(-1,-1))
 		load_new_account_data_button.Bind(wx.EVT_BUTTON, self.refreshAccountData, load_new_account_data_button)
 
-		self.save_button = wx.Button(self, label="Export to Trade Window", pos=(420,50), size=(-1,-1))
+		self.save_button = wx.Button(self, label="Export for Trade Window", pos=(420,50), size=(-1,-1))
 		self.save_button.Bind(wx.EVT_BUTTON, self.exportSaleCandidates, self.save_button)
 		self.save_button.Hide()
 
@@ -1632,8 +1637,45 @@ class SalePrepPage(Tab):
 					break
 
 	def exportSaleCandidates(self, event):
-		print line_number(), "Boom goes the dynamite!"
 		self.save_button.Hide()
+
+		num_columns = self.grid.GetNumberCols()
+		num_rows = self.grid.GetNumberRows()
+
+		global DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		default_rows = DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		
+		sell_tuple_list = [] # this will end up being a list of tuples for each stock to sell
+		for column_num in range(num_columns):
+			for row_num in range(num_rows):
+				if not row_num >= default_rows:
+					continue
+				elif column_num == 7:
+					not_empty = self.grid.GetCellValue(row_num, column_num)
+					#print not_empty
+					if not_empty:
+						ticker = str(self.grid.GetCellValue(row_num, 3))
+						number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, 7))
+						sell_tuple = (ticker, number_of_shares_to_sell)
+						sell_tuple_list.append(sell_tuple)
+
+		for i in sell_tuple_list:
+			print i
+
+		# Here, i'm not sure whether to save to file or not (currently not saving to file, obviously)
+		relevant_portfolios_list = []
+		for i in range(len(self.checkbox_list)):
+			box = self.checkbox_list[i]
+			is_checked = box.GetValue()
+			if is_checked:
+				relevant_portfolios_list.append(self.portfolio_obj_list[i])
+
+		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
+		SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE= [
+															relevant_portfolios_list,
+															sell_tuple_list
+														]
+
 		self.saved_text.Show()
 		
 	def refreshAccountData(self, event):
@@ -1662,6 +1704,22 @@ class SalePrepPage(Tab):
 				pass#print line_number(), exception
 			self.checkbox_list.append(checkbox_to_add)
 		self.spreadSheetFill("event")
+
+	def hideSaveButtonWhileEnteringData(self, event):
+		# This function has been deactivated, unfortunately it causes too many false positives...
+		
+		# color = self.grid.GetCellBackgroundColour(event.GetRow(), event.GetCol())
+		# print color
+		# print type(color)
+		# print "---------"
+		# if color != (255, 255, 255, 255):
+		# 	print 'it works'
+		# 	self.save_button.Hide()
+		# event.Skip()
+		
+		pass
+
+
 	def spreadSheetFill(self, event):
 		try:
 			self.grid.Destroy()
@@ -1677,7 +1735,10 @@ class SalePrepPage(Tab):
 				relevant_portfolios_list.append(self.portfolio_obj_list[i])
 
 		num_columns = 17
-		default_rows = 9
+		
+		global DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		default_rows = DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		
 		num_rows = default_rows
 		for account in relevant_portfolios_list:
 			try:
@@ -1691,6 +1752,10 @@ class SalePrepPage(Tab):
 		self.grid = SalePrepGrid(self, -1, size=(1000,650), pos=(0,83))
 		self.grid.CreateGrid(num_rows, num_columns)
 		self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, self.grid)
+
+		# I deactivated this binding because it caused too much confusion if you don't click on a white square after entering data
+		# self.grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK ,self.hideSaveButtonWhileEnteringData, self.grid)
+
 
 
 		for column_num in range(num_columns):
@@ -1714,10 +1779,13 @@ class SalePrepPage(Tab):
 			self.grid.SetCellBackgroundColour(6, i, "#333333")
 			self.grid.SetCellBackgroundColour(8, i, "#333333")
 
+
+		# Note: i should define the locations on the grid, THEN attach those variables to the set cell function.
+
 		self.grid.SetCellValue(5, 1, "# of shares to sell")
 		self.grid.SetCellValue(5, 2, "% of shares to sell")
 		self.grid.SetCellValue(5, 3, "Ticker")
-		self.grid.SetCellValue(5, 4, "Syntax Check")
+		self.grid.SetCellValue(5, 4, "")#Syntax Check")
 		self.grid.SetCellValue(5, 5, "Name")
 		self.grid.SetCellValue(5, 6, "Sale Check")
 		self.grid.SetCellValue(5, 7, "# of shares to sell")
@@ -1773,16 +1841,20 @@ class SalePrepPage(Tab):
 		row = event.GetRow()
 		column = event.GetCol()
 		value = self.grid.GetCellValue(row, column)
-		num_shares = self.grid.GetCellValue(row, 9)
+		num_shares = str(self.grid.GetCellValue(row, 9))
+		num_shares = num_shares.replace(",","")
+		value = strip_string_whitespace(value)
 		price = self.grid.GetCellValue(row, 10)
 		if column == 1:
 			try:
 				number_of_shares_to_sell = int(value)
-			except:
-				self.setGridError(row)
+			except Exception, exception:
+				print line_number(), exception
+				number_of_shares_to_sell = None
+				#self.setGridError(row) # this should actually be changed below
 			#print line_number(), "# of stocks to sell changed"
 			self.grid.SetCellValue(row, 2, "")
-			if num_shares >= number_of_shares_to_sell:
+			if str(number_of_shares_to_sell).isdigit() and num_shares >= number_of_shares_to_sell and number_of_shares_to_sell != 0:
 				self.grid.SetCellValue(row, 7, str(number_of_shares_to_sell))
 				percent_of_total_holdings = round(100 * float(number_of_shares_to_sell)/float(num_shares))
 				self.grid.SetCellValue(row, 8, "%d%%" % percent_of_total_holdings)
@@ -1797,6 +1869,13 @@ class SalePrepPage(Tab):
 
 				percent_to_commission = 100 * 10/sale_value
 				self.grid.SetCellValue(row, 12, "%.2f%%" % percent_to_commission)
+
+			elif value == "" or number_of_shares_to_sell == 0:
+				self.grid.SetCellValue(row, 7, "")
+				self.grid.SetCellValue(row, 8, "")
+				self.grid.SetCellValue(row, 6, "")
+				self.grid.SetCellTextColour(row, 6, "black")
+
 			else:
 				self.setGridError(row)
 
@@ -1805,16 +1884,28 @@ class SalePrepPage(Tab):
 				value = value.strip("%")
 				try:
 					value = float(value)/100
-				except:
+				except Exception, exception:
+					print line_number(), exception
 					self.setGridError(row)
+					return
 			else:
 				try:
 					value = float(value)
-				except:
-					self.setGridError(row)
+				except Exception, exception:
+					print line_number(), exception
+					if value != "":
+						self.setGridError(row)
+						return
 			percent_of_holdings_to_sell = value
 			self.grid.SetCellValue(row, 1, "")
-			if percent_of_holdings_to_sell <= 1:
+
+			if percent_of_holdings_to_sell == "" or percent_of_holdings_to_sell == 0:
+				self.grid.SetCellValue(row, 7, "")
+				self.grid.SetCellValue(row, 8, "")
+				self.grid.SetCellValue(row, 6, "")
+				self.grid.SetCellTextColour(row, 6, "black")
+
+			elif percent_of_holdings_to_sell <= 1:
 				self.grid.SetCellValue(row, 8, "%d%%" % round(percent_of_holdings_to_sell * 100))
 
 				number_of_shares_to_sell = int(math.floor( int(num_shares) * percent_of_holdings_to_sell ) )
@@ -1832,10 +1923,14 @@ class SalePrepPage(Tab):
 				percent_to_commission = 100 * 10/sale_value
 				self.grid.SetCellValue(row, 12, "%.2f%%" % percent_to_commission)
 
+
+
 			else:
 				self.setGridError(row)
 		self.saved_text.Hide()
 		self.save_button.Show()
+		#print "Show Me!"
+
 	def setGridError(self, row):
 		self.grid.SetCellValue(row, 6, "Error")
 		self.grid.SetCellTextColour(row, 6, "red")
@@ -1854,12 +1949,297 @@ class TradePage(Tab):
 							 (10,10)
 							 )
 		self.ticker_list = []
+		
+		self.relevant_portfolios_list = []
+		self.sale_tuple_list = []
 
+		self.default_columns = 19
+		self.default_min_rows = 17
+		
 		add_ticker_text_entry = wx.TextCtrl(self, -1, "TICKER", pos=(210,8), size=(53, -1))
 		add_ticker_button = wx.Button(self, label="Add Ticker", pos=(110,5), size=(-1,-1))
 		add_ticker_button.Bind(wx.EVT_BUTTON, self.addTicker, add_ticker_button)
 
+		import_sale_candidates_button = wx.Button(self, label="Import sale candidates and refresh spreadsheet", pos=(0,30), size=(-1,-1))
+		import_sale_candidates_button.Bind(wx.EVT_BUTTON, self.importSaleCandidates, import_sale_candidates_button)
+
+		create_grid_button = wx.Button(self, label="create grid", pos=(500,30), size=(-1,-1))
+		create_grid_button.Bind(wx.EVT_BUTTON, self.spreadSheetFill, create_grid_button)
+
+
+		self.grid = None
+
+	def importSaleCandidates(self, event):
+		print "Boom goes the boom!!!!!!!!"
+		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
+
+		self.relevant_portfolios_list = SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
+		self.sale_tuple_list = SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]
+		
+		for portfolio in self.relevant_portfolios_list:
+			id_number = portfolio.id_number
+			print id_number
+			global PORTFOLIO_NAMES
+			print PORTFOLIO_NAMES[id_number - 1]
+		print self.sale_tuple_list
+
+		# Now, how to refresh only parts of the list... hmmmm
+
 	def addTicker(self, event):
+		pass
+
+	def spreadSheetFill(self, event):
+
+		# THIS NEEDS TO BE REWRITTEN!!! 
+
+
+		try:
+			self.grid.Destroy()
+		except Exception, exception:
+			pass
+			#print line_number(), exception
+
+		# CREATE A GRID HERE
+		self.grid = TradeGrid(self, -1, size=(1000,650), pos=(0,83))
+		# calc rows
+		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
+		try:
+			num_rows = len(SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1])
+		except Exception, exception:
+			print line_number(), exception
+			num_rows = 0
+		num_rows = max(num_rows, self.default_min_rows)
+		self.grid.CreateGrid(num_rows, self.default_columns)
+		self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, self.grid)
+
+		# Defining cells separately from forming them so they are easy to edit
+		# e.g. dummy_cell_var = [Row, Column, "Name/Value"]
+		# cell_list = [dummy_cell_var, dummy_cell_2, etc...]
+		# for cell in cell_list:
+		# 	self.grid.SetCellValue(cell[0],cell[1],cell[2])
+		spreadsheet_cell_list = []
+
+		# Column 0 (using zero-based numbering for simplicity):
+		this_column_number = 0
+
+		title_with_relevant_portfolios_string = ", ".join(self.relevant_portfolios_list) + " Trade Prep"
+
+		name_of_spreadsheet_cell = [0, this_column_number, title_with_relevant_portfolios_string]
+		share_to_sell_cell = [2, this_column_number, "Shares to sell:"]
+		ticker_cell = [3, this_column_number, "Ticker"]
+
+		spreadsheet_cell_list.append(name_of_spreadsheet_cell)
+		spreadsheet_cell_list.append(share_to_sell_cell)
+		spreadsheet_cell_list.append(ticker_cell)
+
+		# Column 1:
+		this_column_number = 1
+
+		num_shares_cell = [3, this_column_number,"# shares"]		
+		spreadsheet_cell_list.append(num_shares_cell)
+
+		# Column 2:
+		this_column_number = 2
+
+		volume_cell = [3, this_column_number, "Volume"]
+		spreadsheet_cell_list.append(volume_cell)
+
+		# Column 3:
+		# empty
+
+		# Column 4:
+		this_column_number = 4
+
+		total_asset_cell = [0, this_column_number, "Total asset value ="]
+		approximate_surplus_cash_cell = [3, this_column_number, "Approximate surplus cash from sale ="]
+		percent_total_cash_cell = [6, this_column_number, "%% Total Cash"]
+		portfolio_cash_available_cell = [9, this_column_number, "Portfolio Cash Available ="]
+		num_stocks_to_look_cell = [12, this_column_number, "# of stocks to look at at for 3%% of portfolio each."]
+		approximate_to_spend_cell = [15, this_column_number, "Approximate to spend on each (3%) stock."]
+
+		spreadsheet_cell_list.append(total_asset_cell)
+		spreadsheet_cell_list.append(approximate_surplus_cash_cell)
+		spreadsheet_cell_list.append(percent_total_cash_cell)
+		spreadsheet_cell_list.append(portfolio_cash_available_cell)
+		spreadsheet_cell_list.append(num_stocks_to_look_cell)
+		spreadsheet_cell_list.append(approximate_to_spend_cell)
+
+		# Column 5:
+		# empty
+
+		# Column 6:
+		this_column_number = 6
+
+		num_symbol_cell = [5, this_column_number, "#"]
+		spreadsheet_cell_list.append(num_symbol_cell)
+
+		# Column 7:
+		this_column_number = 7
+
+		shares_to_buy_cell = [2, this_column_number, "Shares to buy:"]
+		input_ticker_cell = [3, this_column_number, "Input ticker"]
+
+		spreadsheet_cell_list.append(shares_to_buy_cell)
+		spreadsheet_cell_list.append(input_ticker_cell)
+
+		# Column 8:
+		# empty
+
+		# Column 9:
+		# empty
+
+		# Column 10:
+		this_column_number = 10
+
+		num_shares_to_buy_cell = [2, this_column_number, "# of shares to buy for"]
+		three_percent_cell = [3, this_column_number, "3%"]
+
+		spreadsheet_cell_list.append(num_shares_to_buy_cell)
+		spreadsheet_cell_list.append(three_percent_cell)
+
+		# Column 11:
+		this_column_number = 11
+
+		for_cell = [2, this_column_number, "for"]
+		five_percent_cell = [3, this_column_number, "5%"]
+
+		spreadsheet_cell_list.append(for_cell)
+		spreadsheet_cell_list.append(five_percent_cell)
+
+		# Column 12:
+		this_column_number = 12
+
+		for_cell_2 = [2, this_column_number, "for"]
+		ten_percent_cell = [3, this_column_number, "10%"]
+
+		spreadsheet_cell_list.append(for_cell_2)
+		spreadsheet_cell_list.append(ten_percent_cell)
+
+		# Column 13:
+		# empty
+
+		# Column 14:
+		this_column_number = 14
+
+		input_num_shares_cell = [3, this_column_number, "Input # Shares to Purchase"]
+		spreadsheet_cell_list.append(input_num_shares_cell)
+
+		# Column 15:
+		this_column_number = 15
+
+		cost_cell = [3, this_column_number, "Cost"]
+		spreadsheet_cell_list.append(cost_cell)
+
+		# Column 16: 
+		# empty
+
+		# Column 17:
+		this_column_number = 17
+
+		total_cost_cell = [1, this_column_number, "Total Cost ="]
+		adjusted_cash_cell = [2, this_column_number, "Adjusted Cash Available ="]
+		num_stocks_to_purchase_cell = [3, this_column_number, "Number of stocks left to purchase at 3% ="]
+		new_cash_percentage_cell = [4, this_column_number, "New cash %% of portfolio ="]
+		# this cell may be irrelevant
+		new_cash_total_cell = [5, this_column_number, "New cash %% of total ="]
+
+		spreadsheet_cell_list.append(total_cost_cell)
+		spreadsheet_cell_list.append(adjusted_cash_cell)
+		spreadsheet_cell_list.append(num_stocks_to_purchase_cell)
+		spreadsheet_cell_list.append(new_cash_percentage_cell)
+		spreadsheet_cell_list.append(new_cash_total_cell)
+
+		# Column 18:
+		# computed values only
+
+		# Finally, set cell values in list:
+		for cell in spreadsheet_cell_list:
+			self.grid.SetCellValue(cell[0],cell[1],cell[2])
+
+		self.grid.AutoSizeColumns()
+
+
+		############################### old and from sales prep page
+		
+
+		# for column_num in range(num_columns):
+		# 	for row_num in range(num_rows):
+		# 		if not ((row_num >= default_rows and column_num in [1,2]) or (row_num == 3 and column_num == 14)):
+		# 			self.grid.SetReadOnly(row_num, column_num, True)
+		# 		elif column_num == 14:
+		# 			self.grid.SetCellBackgroundColour(row_num, column_num, "#C5DBCA")
+		# 		elif column_num == 1:
+		# 			self.grid.SetCellBackgroundColour(row_num, column_num, "#CFE8FC")
+		# 		elif column_num == 2:
+		# 			self.grid.SetCellBackgroundColour(row_num, column_num, "#CFFCEF")
+
+		# self.grid.SetCellValue(2, 0, str(time.time()))
+		# self.grid.SetCellValue(2, 14, "Input carryover loss (if any)")
+		# self.grid.SetCellValue(3, 14, str(0.00))
+
+		# self.grid.SetCellValue(7, 0, "Totals:")
+		
+		# for i in range(num_columns):
+		# 	self.grid.SetCellBackgroundColour(6, i, "#333333")
+		# 	self.grid.SetCellBackgroundColour(8, i, "#333333")
+
+		# self.grid.SetCellValue(5, 1, "# of shares to sell")
+		# self.grid.SetCellValue(5, 2, "% of shares to sell")
+		# self.grid.SetCellValue(5, 3, "Ticker")
+		# self.grid.SetCellValue(5, 4, "Syntax Check")
+		# self.grid.SetCellValue(5, 5, "Name")
+		# self.grid.SetCellValue(5, 6, "Sale Check")
+		# self.grid.SetCellValue(5, 7, "# of shares to sell")
+		# self.grid.SetCellValue(5, 8, "% of shares to sell")
+		# self.grid.SetCellValue(5, 9, "Total # of shares")
+		# self.grid.SetCellValue(5, 10, "Price")
+		# self.grid.SetCellValue(5, 11, "Sale Value")
+		# self.grid.SetCellValue(5, 12, "Commission loss ($10/trade)")
+		# self.grid.SetCellValue(5, 13, "FIFO Capital Gains")
+		# self.grid.SetCellValue(5, 14, "Adjusted Capital Gains (including carryovers)")
+		# self.grid.SetCellValue(5, 15, "Market Value")
+		# self.grid.SetCellValue(5, 16, "Unrealized Capital +/-")
+
+		# global PORTFOLIO_NAMES
+		# portfolio_num = 0
+
+		# row_count = default_rows
+		# col_count = 0
+		# for account in relevant_portfolios_list:
+		# 	try:
+		# 		throw_error = account.stock_list
+		# 		# intentionally throws an error if account hasn't been imported
+
+		# 		self.grid.SetCellValue(row_count, 0, PORTFOLIO_NAMES[portfolio_num])
+		# 		self.grid.SetCellBackgroundColour(row_count, 1, "white")
+		# 		self.grid.SetReadOnly(row_count, 1, True)
+		# 		self.grid.SetCellBackgroundColour(row_count, 2, "white")
+		# 		self.grid.SetReadOnly(row_count, 2, True)
+		# 		portfolio_num += 1
+		# 		row_count += 1
+
+		# 		for stock in account.stock_list:
+		# 			#if row_count == 0:
+		# 			#	self.screen_grid.SetColLabelValue(col_count, str(attribute))
+		# 			stock_data = return_stock_by_symbol(stock.symbol)
+
+		# 			self.grid.SetCellValue(row_count, 3, stock.symbol)
+		# 			try:
+		# 				self.grid.SetCellValue(row_count, 5, stock_data.Name)
+		# 			except Exception, exception:
+		# 				print line_number(), exception
+		# 			self.grid.SetCellValue(row_count, 9, stock.quantity)
+		# 			try:
+		# 				self.grid.SetCellValue(row_count, 10, stock_data.LastTradePriceOnly)
+		# 			except Exception, exception:
+		# 				print line_number(), exception
+		# 			self.grid.SetCellValue(row_count, 15, str(float(stock.quantity.replace(",","")) * float(stock_data.LastTradePriceOnly)))
+		# 			row_count += 1
+		# 	except Exception, exception:
+		# 		print line_number(), exception, "\nAn account appears to not be loaded with a .csv, but this isn't a problem."
+		# self.grid.AutoSizeColumns()
+
+	def updateGrid(self, event):
 		pass
 
 class PortfolioPage(Tab):
@@ -1988,8 +2368,8 @@ class PortfolioAccountTab(Tab):
 		change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(518,0), size=(-1,-1))
 		change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, change_number_of_portfolios_button) 
 
-		print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
-		print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button) 
+		#print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
+		#print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button) 
 
 		self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
 		self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
