@@ -1653,12 +1653,18 @@ class SalePrepPage(Tab):
 					continue
 				elif column_num == 7:
 					not_empty = self.grid.GetCellValue(row_num, column_num)
+					error = self.grid.GetCellValue(row_num, column_num - 1) # error column is one less than stock column
+					if error != "Error":
+						error = None
 					#print not_empty
-					if not_empty:
+					if not_empty and not error:
 						ticker = str(self.grid.GetCellValue(row_num, 3))
 						number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, 7))
 						sell_tuple = (ticker, number_of_shares_to_sell)
 						sell_tuple_list.append(sell_tuple)
+					elif error:
+						print "ERROR: Could not save sell list. There are errors in quantity syntax."
+						return
 
 		for i in sell_tuple_list:
 			print i
@@ -2013,8 +2019,10 @@ class TradePage(Tab):
 				self.relevant_portfolios_list.append(account)
 				relevant_portfolio_name_list.append(PORTFOLIO_NAMES[(id_number - 1)])
 
-
 			num_rows = len(SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1])
+			global DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
+			num_rows += DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
+
 		except Exception, exception:
 			print line_number(), exception
 			num_rows = 0
@@ -2065,7 +2073,7 @@ class TradePage(Tab):
 
 			total_asset_cell = [0, this_column_number, "Total asset value ="]
 			approximate_surplus_cash_cell = [3, this_column_number, "Approximate surplus cash from sale ="]
-			percent_total_cash_cell = [6, this_column_number, "%% Total Cash"]
+			percent_total_cash_cell = [6, this_column_number, "%% Total Cash After Sale"]
 			portfolio_cash_available_cell = [9, this_column_number, "Portfolio Cash Available ="]
 			num_stocks_to_look_cell = [12, this_column_number, "# of stocks to look at at for 3%% of portfolio each."]
 			approximate_to_spend_cell = [15, this_column_number, "Approximate to spend on each (3%) stock."]
@@ -2169,8 +2177,7 @@ class TradePage(Tab):
 
 			# Column 0-2 data:
 			this_column_number = 0
-			global DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
-			default_rows = DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
+			default_rows = DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS # called globally above
 			counter = 0
 			for stock_tuple in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
 				ticker = stock_tuple[0]
@@ -2226,10 +2233,53 @@ class TradePage(Tab):
 			surplus_cash_cell = [approximate_surplus_cash_row, this_column_number, ("$" + str(value_of_all_stock_to_sell))]
 			spreadsheet_cell_list.append(surplus_cash_cell)
 
-			## percent of total cash
+			## percent of portfolio that is cash after sale
+			percent_cash_row = 7
+			
+			total_cash = 0.00
+			for account in self.relevant_portfolios_list:
+				total_cash += float(account.availble_cash.replace("$",""))
+			total_cash += value_of_all_stock_to_sell
+			if total_cash != 0:
+				percent_cash = total_cash / total_asset_value
+				percent_cash = round(percent_cash * 100)
+				percent_cash = str(percent_cash) + "%"
+			else:
+				percent_cash = "Null"
+
+			percent_cash_cell = [percent_cash_row, this_column_number, percent_cash]
+			spreadsheet_cell_list.append(percent_cash_cell)
+
+			## portfolio cash available after sale
+			cash_after_sale_row = 10
+
+			total_cash_after_sale = total_cash # from above
+			total_cash_after_sale = "$" + str(total_cash_after_sale)
+
+			total_cash_after_sale_cell = [cash_after_sale_row, this_column_number, total_cash_after_sale]
+			spreadsheet_cell_list.append(total_cash_after_sale_cell)
+
+			## Number of stocks to purchase at 3% each
+			stocks_at_three_percent_row = 13
+
+			three_percent_of_all_assets = 0.03 * total_asset_value # from above
+			number_of_stocks_at_3_percent = total_cash / three_percent_of_all_assets # total_cash defined above
+			number_of_stocks_at_3_percent = int(math.floor(number_of_stocks_at_3_percent)) # always round down
+
+			stocks_at_three_percent_cell = [stocks_at_three_percent_row, this_column_number, str(number_of_stocks_at_3_percent)]
+			spreadsheet_cell_list.append(stocks_at_three_percent_cell)
+
+			## Approximate to spend on each stock at 3%
+			three_percent_of_all_assets_row = 16
+
+			three_persent_in_dollars = "$" + "%.2f" % three_percent_of_all_assets # that %.2f rounds float two decimal places
+			three_percent_of_all_assets_cell = [three_percent_of_all_assets_row, this_column_number, three_persent_in_dollars]
+			spreadsheet_cell_list.append(three_percent_of_all_assets_cell)
+
 
 		# Finally, set cell values in list:
 		for cell in spreadsheet_cell_list:
+			print cell
 			self.grid.SetCellValue(cell[0],cell[1],cell[2])
 
 
