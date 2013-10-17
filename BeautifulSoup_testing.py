@@ -1,8 +1,6 @@
-import urllib2, time, datetime
+import urllib2, time, datetime, threading
 from BeautifulSoup import BeautifulSoup
-
-ticker = "GOOG"
-
+import cPickle as pickle
 
 
 class StockFullData(object):
@@ -11,8 +9,47 @@ class StockFullData(object):
 		self.epoch = float(time.time())
 		self.created_epoch = float(time.time())
 		self.updated = datetime.datetime.now()
+		# individual data sheets last update
+		self.last_balance_sheet_update = 0
+		self.last_income_statement_update = 0
+		self.last_cash_flow_update = 0
+
+
+try:
+	full_data_stock_list = open('all_full_data_stocks.pk', 'rb')
+except Exception, e:
+	print e
+	full_data_stock_list = open('all_full_data_stocks.pk', 'wb')
+	full_data_stock_list = []
+	with open('all_full_data_stocks.pk', 'wb') as output:
+		pickle.dump(full_data_stock_list, output, pickle.HIGHEST_PROTOCOL)
+	full_data_stock_list = open('all_full_data_stocks.pk', 'rb')
+GLOBAL_FULL_DATA_STOCK_LIST = pickle.load(full_data_stock_list)
+full_data_stock_list.close()
+
+ticker_list = ["GOOG","AAPL","MSFT","YHOO"]
+
+
+def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
+	ticker_list = list_of_ticker_symbols
+
+	for i in range(len(ticker_list)):
+		# 2 second sleep per scrape
+		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
+		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
+		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
+		timer_1.start()
+		timer_2.start()
+		timer_3.start()
 
 def yahoo_annual_cash_flow_scrape(ticker):
+
+	stock = return_existing_StockFullData(ticker)
+	if stock:
+		if not stock.last_cash_flow_update < float(time.time()) - (60 * 60 * 24): # if data is more than a day old
+			print "Cash flow data for %s is up to date." % ticker
+			return
+
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
@@ -136,10 +173,14 @@ def yahoo_annual_cash_flow_scrape(ticker):
 					85	-
 					86	-
 						''']
-
-
-
 def yahoo_annual_income_statement_scrape(ticker):
+
+	stock = return_existing_StockFullData(ticker)
+	if stock:
+		if not stock.last_income_statement_update < float(time.time()) - (60 * 60 * 24): # if data is more than a day old
+			print "Income statement data for %s is up to date." % ticker
+			return
+
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
@@ -273,9 +314,14 @@ def yahoo_annual_income_statement_scrape(ticker):
 							95	-
 							96	-
 								''']
-
-
 def yahoo_annual_balance_sheet_scrape(ticker):
+
+	stock = return_existing_StockFullData(ticker)
+	if stock:
+		if not stock.last_balance_sheet_update < float(time.time()) - (60 * 60 * 24): # if data is more than a day old
+			print "Balance sheet data for %s is up to date." % ticker
+			return
+
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
@@ -459,13 +505,20 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 							''']
 	
 
-def return_existing_StockFullData(ticker):
-	pass
+def return_existing_StockFullData(ticker_symbol):
+	global GLOBAL_FULL_DATA_STOCK_LIST
+	for stock in GLOBAL_FULL_DATA_STOCK_LIST:
+		if stock.symbol == ticker_symbol:
+			return stock
+	#if the function does not return a stock
+	return None
 
 def create_or_update_StockFullData(ticker, data_list, data_type):
 	stock = return_existing_StockFullData(ticker)
 	if not stock:
 		stock = StockFullData(ticker)
+		GLOBAL_FULL_DATA_STOCK_LIST.append(stock)
+
 
 	# yahoo balance sheet loop
 	cash_flow_data_positions = [1,6,10,14,18,22,26,31,35,39,44,48,52,56,60,64,69,74,79,83]
@@ -475,10 +528,13 @@ def create_or_update_StockFullData(ticker, data_list, data_type):
 	data_positions = []
 	if data_type == "Cash_Flow":
 		data_positions = cash_flow_data_positions
+		stock.last_cash_flow_update = float(time.time())
 	elif data_type == "Balance_Sheet":
 		data_positions = balance_sheet_data_positions
+		stock.last_balance_sheet_update = float(time.time())
 	elif data_type == "Income_Statement":
 		data_positions = income_statement_data_postitions
+		stock.last_income_statement_update = float(time.time())
 	else:
 		print "no data type selected"
 		return
@@ -507,18 +563,17 @@ def create_or_update_StockFullData(ticker, data_list, data_type):
 	for attribute in dir(stock):
 		if not attribute.startswith("_"):
 			print ticker+"."+attribute+":" , getattr(stock, attribute)
-	return stock
+	
+	with open('all_full_data_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_FULL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 
 
 def strip_string_whitespace(some_string):
 	stripped_string = " ".join(some_string.split())
 	return stripped_string
 
-#stock = yahoo_annual_income_statement_scrape(ticker)
-stock = yahoo_annual_cash_flow_scrape(ticker)
-#stock = yahoo_annual_balance_sheet_scrape(ticker)
 
-
+scrape_balance_sheet_income_statement_and_cash_flow(ticker_list)
 
 
 
