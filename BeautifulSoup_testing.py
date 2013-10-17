@@ -12,6 +12,133 @@ class StockFullData(object):
 		self.created_epoch = float(time.time())
 		self.updated = datetime.datetime.now()
 
+def yahoo_annual_cash_flow_scrape(ticker):
+	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	table = soup.find("table", { "class" : "yfnc_tabledata1" })
+
+	data_list = []
+
+
+	for cell in table.findAll("td"):
+		text = cell.find(text=True)
+		if text:
+			text = strip_string_whitespace(text)
+			text.replace(u'\xa0', u' ')
+			#if text == "Period Ending":
+			#	dates = table.findAll("th")
+			#	for date in dates:
+			#		print date
+		if text:
+			print text
+			data_list.append(str(text))
+	#print data_list
+	for cell in table.findAll("strong"):
+		text = cell.find(text=True)
+		if text:
+			text = strip_string_whitespace(text)
+			text.replace(u'\xa0', u' ')
+			#if text == "Period Ending":
+			#	dates = table.findAll("th")
+			#	for date in dates:
+			#		print date
+		if text:
+			print text
+			data_list.append(str(text))
+
+	create_or_update_StockFullData(ticker, data_list, "Cash_Flow")
+
+	cash_flow_layout = 	['''
+					0	Period Ending
+					1	Period Ending
+					2	-
+					3	-
+					4	-
+					5	Operating Activities, Cash Flows Provided By or Used In
+					6	Depreciation
+					7	-
+					8	-
+					9	-
+					10	Adjustments To Net Income
+					11	-
+					12	-
+					13	-
+					14	Changes In Accounts Receivables
+					15	-
+					16	-
+					17	-
+					18	Changes In Liabilities
+					19	-
+					20	-
+					21	-
+					22	Changes In Inventories
+					23	-
+					24	-
+					25	-
+					26	Changes In Other Operating Activities
+					27	-
+					28	-
+					29	-
+					30	Investing Activities, Cash Flows Provided By or Used In
+					31	Capital Expenditures
+					32	-
+					33	-
+					34	-
+					35	Investments
+					36	-
+					37	-
+					38	-
+					39	Other Cash flows from Investing Activities
+					40	-
+					41	-
+					42	-
+					43	Financing Activities, Cash Flows Provided By or Used In
+					44	Dividends Paid
+					45	-
+					46	-
+					47	-
+					48	Sale Purchase of Stock
+					49	-
+					50	-
+					51	-
+					52	Net Borrowings
+					53	-
+					54	-
+					55	-
+					56	Other Cash Flows from Financing Activities
+					57	-
+					58	-
+					59	-
+					60	Effect Of Exchange Rate Changes
+					61	-
+					62	-
+					63	-
+					64	Net Income
+					65	-
+					66	-
+					67	-
+					68	Operating Activities, Cash Flows Provided By or Used In
+					69	Total Cash Flow From Operating Activities
+					70	-
+					71	-
+					72	-
+					73	Investing Activities, Cash Flows Provided By or Used In
+					74	Total Cash Flows From Investing Activities
+					75	-
+					76	-
+					77	-
+					78	Financing Activities, Cash Flows Provided By or Used In
+					79	Total Cash Flows From Financing Activities
+					80	-
+					81	-
+					82	-
+					83	Change In Cash and Cash Equivalents
+					84	-
+					85	-
+					86	-
+						''']
+
+
+
 def yahoo_annual_income_statement_scrape(ticker):
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
@@ -45,6 +172,109 @@ def yahoo_annual_income_statement_scrape(ticker):
 			print text
 			data_list.append(str(text))
 
+	create_or_update_StockFullData(ticker, data_list, "Income_Statement")
+
+	income_statment_layout = 	['''
+							0	Period Ending
+							1	Period Ending
+							2	Cost of Revenue
+							3	-
+							4	-
+							5	-
+							6	Operating Expenses
+							7	Research Development
+							8	-
+							9	-
+							10	-
+							11	Selling General and Administrative
+							12	-
+							13	-
+							14	-
+							15	Non Recurring
+							16	-
+							17	-
+							18	-
+							19	Others
+							20	-
+							21	-
+							22	-
+							23	Total Operating Expenses
+							24	-
+							25	-
+							26	-
+							27	Income from Continuing Operations
+							28	Total Other Income/Expenses Net
+							29	-
+							30	-
+							31	-
+							32	Earnings Before Interest And Taxes
+							33	-
+							34	-
+							35	-
+							36	Interest Expense
+							37	-
+							38	-
+							39	-
+							40	Income Before Tax
+							41	-
+							42	-
+							43	-
+							44	Income Tax Expense
+							45	-
+							46	-
+							47	-
+							48	Minority Interest
+							49	-
+							50	-
+							51	-
+							52	Net Income From Continuing Ops
+							53	-
+							54	-
+							55	-
+							56	Non-recurring Events
+							57	Discontinued Operations
+							58	-
+							59	-
+							60	-
+							61	Extraordinary Items
+							62	-
+							63	-
+							64	-
+							65	Effect Of Accounting Changes
+							66	-
+							67	-
+							68	-
+							69	Other Items
+							70	-
+							71	-
+							72	-
+							73	Preferred Stock And Other Adjustments
+							74	-
+							75	-
+							76	-
+							77	Total Revenue
+							78	-
+							79	-
+							80	-
+							81	Gross Profit
+							82	-
+							83	-
+							84	-
+							85	Operating Income or Loss
+							86	-
+							87	-
+							88	-
+							89	Net Income
+							90	-
+							91	-
+							92	-
+							93	Net Income Applicable To Common Shares
+							94	-
+							95	-
+							96	-
+								''']
+
+
 def yahoo_annual_balance_sheet_scrape(ticker):
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
@@ -70,6 +300,8 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 		if text:
 			print text
 			data_list.append(str(text))
+
+	create_or_update_StockFullData(ticker, data_list, "Balance_Sheet")
 
 	balance_sheet_layout = 	['''
 							0	Period Ending
@@ -225,19 +457,41 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 							150	-
 							151	-
 							''']
+	
 
-	stock = StockFullData(ticker)
+def return_existing_StockFullData(ticker):
+	pass
+
+def create_or_update_StockFullData(ticker, data_list, data_type):
+	stock = return_existing_StockFullData(ticker)
+	if not stock:
+		stock = StockFullData(ticker)
 
 	# yahoo balance sheet loop
+	cash_flow_data_positions = [1,6,10,14,18,22,26,31,35,39,44,48,52,56,60,64,69,74,79,83]
+	income_statement_data_postitions = [2,7,11,15,19,23,28,32,36,40,44,48,52,57,61,65,69,73,77,81,85,89,93]
+	balance_sheet_data_positions = [1,8,12,16,20,24,28,32,36,40,44,48,52,59,63,67,71,75,79,83,87,93,97,101,105,109,113,117,121,126,130,135,139,144,148]
+	
+	data_positions = []
+	if data_type == "Cash_Flow":
+		data_positions = cash_flow_data_positions
+	elif data_type == "Balance_Sheet":
+		data_positions = balance_sheet_data_positions
+	elif data_type == "Income_Statement":
+		data_positions = income_statement_data_postitions
+	else:
+		print "no data type selected"
+		return
+
 	for i in range(len(data_list)):
-		if i in [1, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 59, 63, 67, 71, 75, 79, 83, 87, 93, 97, 101, 105, 109, 113, 117, 121,
-				126, 130, 135, 139, 144, 148
-				]:
+		if i in data_positions:
 			# attribute
 			attribute = str(data_list[i])
 			attribute = attribute.replace(" ","_")
 			attribute = attribute.replace("/","_")
 			attribute = attribute.replace("'","")
+			if attribute == "Period_Ending":
+				attribute = attribute + "_For_" + data_type
 			attribute_data_list = []
 			for j in range(3):
 				data = data_list[i+j+1]
@@ -261,7 +515,8 @@ def strip_string_whitespace(some_string):
 	return stripped_string
 
 #stock = yahoo_annual_income_statement_scrape(ticker)
-stock = yahoo_annual_balance_sheet_scrape(ticker)
+stock = yahoo_annual_cash_flow_scrape(ticker)
+#stock = yahoo_annual_balance_sheet_scrape(ticker)
 
 
 
