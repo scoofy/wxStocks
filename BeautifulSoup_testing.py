@@ -1,9 +1,7 @@
 import urllib2, time, datetime, threading
 from BeautifulSoup import BeautifulSoup
 import cPickle as pickle
-
-
-class StockFullData(object):
+class StockAnnualData(object):
 	def __init__(self, symbol):
 		self.symbol = symbol
 		self.epoch = float(time.time())
@@ -13,40 +11,48 @@ class StockFullData(object):
 		self.last_balance_sheet_update = 0
 		self.last_income_statement_update = 0
 		self.last_cash_flow_update = 0
-
-
 try:
-	full_data_stock_list = open('all_full_data_stocks.pk', 'rb')
+	annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
 except Exception, e:
 	print e
-	full_data_stock_list = open('all_full_data_stocks.pk', 'wb')
-	full_data_stock_list = []
-	with open('all_full_data_stocks.pk', 'wb') as output:
-		pickle.dump(full_data_stock_list, output, pickle.HIGHEST_PROTOCOL)
-	full_data_stock_list = open('all_full_data_stocks.pk', 'rb')
-GLOBAL_FULL_DATA_STOCK_LIST = pickle.load(full_data_stock_list)
-full_data_stock_list.close()
-
-ticker_list = ["GOOG","AAPL","MSFT","YHOO"]
-
-
+	annual_data_stock_list = open('all_annual_data_stocks.pk', 'wb')
+	annual_data_stock_list = []
+	with open('all_annual_data_stocks.pk', 'wb') as output:
+		pickle.dump(annual_data_stock_list, output, pickle.HIGHEST_PROTOCOL)
+	annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
+GLOBAL_ANNUAL_DATA_STOCK_LIST = pickle.load(annual_data_stock_list)
+annual_data_stock_list.close()
+ticker_list = ["GOOG","AAPL","MSFT","YHOO","MMM","AAWW","C"]
 def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
+	one_day = (60 * 60 * 24)
+	yesterdays_epoch = float(time.time()) - one_day
 	ticker_list = list_of_ticker_symbols
+	edited_ticker_list = []
+	for ticker in ticker_list:
+		stock = return_existing_StockAnnualData(ticker)
+		if stock:
+			if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
+				print "%s is up to date (no need to update)" % ticker
+				continue # if all are up to date skip ahead, and don't append ticker
+		edited_ticker_list.append(ticker)
+		print edited_ticker_list
+	ticker_list = edited_ticker_list
 
 	for i in range(len(ticker_list)):
 		# 2 second sleep per scrape
+		# timer = count * 6 + position of data needed, function, ticker
 		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
 		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
 		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
 		timer_1.start()
 		timer_2.start()
 		timer_3.start()
-
 def yahoo_annual_cash_flow_scrape(ticker):
 
-	stock = return_existing_StockFullData(ticker)
+	stock = return_existing_StockAnnualData(ticker)
 	if stock:
-		if not stock.last_cash_flow_update < float(time.time()) - (60 * 60 * 24): # if data is more than a day old
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
 			print "Cash flow data for %s is up to date." % ticker
 			return
 
@@ -82,7 +88,7 @@ def yahoo_annual_cash_flow_scrape(ticker):
 			print text
 			data_list.append(str(text))
 
-	create_or_update_StockFullData(ticker, data_list, "Cash_Flow")
+	create_or_update_StockAnnualData(ticker, data_list, "Cash_Flow")
 
 	cash_flow_layout = 	['''
 					0	Period Ending
@@ -175,9 +181,10 @@ def yahoo_annual_cash_flow_scrape(ticker):
 						''']
 def yahoo_annual_income_statement_scrape(ticker):
 
-	stock = return_existing_StockFullData(ticker)
+	stock = return_existing_StockAnnualData(ticker)
 	if stock:
-		if not stock.last_income_statement_update < float(time.time()) - (60 * 60 * 24): # if data is more than a day old
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_income_statement_update > yesterdays_epoch: # if data is more than a day old
 			print "Income statement data for %s is up to date." % ticker
 			return
 
@@ -213,7 +220,7 @@ def yahoo_annual_income_statement_scrape(ticker):
 			print text
 			data_list.append(str(text))
 
-	create_or_update_StockFullData(ticker, data_list, "Income_Statement")
+	create_or_update_StockAnnualData(ticker, data_list, "Income_Statement")
 
 	income_statment_layout = 	['''
 							0	Period Ending
@@ -316,9 +323,10 @@ def yahoo_annual_income_statement_scrape(ticker):
 								''']
 def yahoo_annual_balance_sheet_scrape(ticker):
 
-	stock = return_existing_StockFullData(ticker)
+	stock = return_existing_StockAnnualData(ticker)
 	if stock:
-		if not stock.last_balance_sheet_update < float(time.time()) - (60 * 60 * 24): # if data is more than a day old
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
 			print "Balance sheet data for %s is up to date." % ticker
 			return
 
@@ -347,7 +355,7 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 			print text
 			data_list.append(str(text))
 
-	create_or_update_StockFullData(ticker, data_list, "Balance_Sheet")
+	create_or_update_StockAnnualData(ticker, data_list, "Balance_Sheet")
 
 	balance_sheet_layout = 	['''
 							0	Period Ending
@@ -502,22 +510,19 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 							149	-
 							150	-
 							151	-
-							''']
-	
-
-def return_existing_StockFullData(ticker_symbol):
-	global GLOBAL_FULL_DATA_STOCK_LIST
-	for stock in GLOBAL_FULL_DATA_STOCK_LIST:
+							''']	
+def return_existing_StockAnnualData(ticker_symbol):
+	global GLOBAL_ANNUAL_DATA_STOCK_LIST
+	for stock in GLOBAL_ANNUAL_DATA_STOCK_LIST:
 		if stock.symbol == ticker_symbol:
 			return stock
 	#if the function does not return a stock
 	return None
-
-def create_or_update_StockFullData(ticker, data_list, data_type):
-	stock = return_existing_StockFullData(ticker)
+def create_or_update_StockAnnualData(ticker, data_list, data_type):
+	stock = return_existing_StockAnnualData(ticker)
 	if not stock:
-		stock = StockFullData(ticker)
-		GLOBAL_FULL_DATA_STOCK_LIST.append(stock)
+		stock = StockAnnualData(ticker)
+		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
 
 
 	# yahoo balance sheet loop
@@ -564,18 +569,9 @@ def create_or_update_StockFullData(ticker, data_list, data_type):
 		if not attribute.startswith("_"):
 			print ticker+"."+attribute+":" , getattr(stock, attribute)
 	
-	with open('all_full_data_stocks.pk', 'wb') as output:
-		pickle.dump(GLOBAL_FULL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-
-
+	with open('all_annual_data_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 def strip_string_whitespace(some_string):
 	stripped_string = " ".join(some_string.split())
 	return stripped_string
-
-
 scrape_balance_sheet_income_statement_and_cash_flow(ticker_list)
-
-
-
-
-
