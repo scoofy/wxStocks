@@ -77,6 +77,9 @@ def neffCf3Year(Stock): #?????
 	pass
 
 # Stock Annual Date Scraping Functions
+# ---- unfortunately after scraping many stocks, these scraping functions need to be overhauled
+# ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
+# ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
 def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
 	one_day = (60 * 60 * 24)
 	yesterdays_epoch = float(time.time()) - one_day
@@ -1864,7 +1867,7 @@ class RankPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 
-		self.full_ticker_list = []
+		self.full_ticker_list = [] # this should hold all tickers in any spreadsheet displayed
 		self.sorted_full_ticker_list = []
 
 
@@ -1891,6 +1894,8 @@ class RankPage(Tab):
 		load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
 		load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
 
+		update_annual_data_button = wx.Button(self, label="update annual data", pos=(5,30), size=(-1,-1))
+		update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
 
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
@@ -1940,6 +1945,11 @@ class RankPage(Tab):
 
 		
 		self.screen_grid = None
+
+	def update_annual_data(self, event):
+		scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
+		if self.full_ticker_list:
+			self.spreadSheetFill(self.full_ticker_list)
 
 	def clearGrid(self, event):
 		confirm = wx.MessageDialog(None, 
@@ -2079,14 +2089,23 @@ class RankPage(Tab):
 	def spreadSheetFill(self, ticker_list):
 		global GLOBAL_STOCK_LIST
 		stock_list = []
+		annual_data_list  = []
 		for ticker in ticker_list:
 			stock_absent = True
+			annual_data_absent = True
 			for stock in GLOBAL_STOCK_LIST:
 				if str(ticker) == str(stock.symbol):
 					stock_list.append(stock)
 					stock_absent = False
+			for annual_data in GLOBAL_ANNUAL_DATA_STOCK_LIST:
+				if str(ticker) == str(annual_data.symbol):
+					annual_data_list.append(annual_data)
+					annual_data_absent = False
+
 			if stock_absent:
 				logging.error('Ticker "%s" does not appear to be in the GLOBAL_STOCK_LIST' % ticker)
+			if annual_data_absent:
+				logging.error('There does not appear to be annual data for "%s," you should update annual data' % ticker)
 
 		self.full_attribute_list = [] # Reset root attribute list
 		attribute_list = []
@@ -2099,8 +2118,14 @@ class RankPage(Tab):
 				if not attribute.startswith('_'):
 					if attribute not in self.irrelevant_attributes:
 						num_attributes += 1
+			for annual_data in annual_data_list:
+				if str(stock.symbol) == str(annual_data.symbol):
+					for attrubute in dir(annual_data):
+						if not attribute.startswith('_'):
+							if attribute not in self.irrelevant_attributes:
+								num_attributes += 1
 			if num_columns < num_attributes:
-				num_columns = num_attributes
+				num_columns = num_attributes								
 		self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,60))
 
 		self.screen_grid.CreateGrid(num_rows, num_columns)
@@ -2111,10 +2136,20 @@ class RankPage(Tab):
 			for attribute in dir(stock):
 				if not attribute.startswith('_'):
 					if attribute not in self.irrelevant_attributes:
-						attribute_list.append(str(attribute))
-						if str(attribute) not in self.full_attribute_list:
-							self.full_attribute_list.append(str(attribute)) # Reset root attribute list
-			break
+						if attribute not in attribute_list:
+							attribute_list.append(str(attribute))
+							if str(attribute) not in self.full_attribute_list:
+								self.full_attribute_list.append(str(attribute)) # Reset root attribute list
+			for annual_data in annual_data_list:
+				if str(stock.symbol) == str(annual_data.symbol):
+					for attribute in dir(annual_data):
+						if not attribute.startswith('_'):
+							if attribute not in self.irrelevant_attributes:
+								if attribute not in attribute_list:
+									attribute_list.append(str(attribute))
+									if str(attribute) not in self.full_attribute_list:
+										self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
+					break
 		#for i in self.full_attribute_list:
 		#	print line_number(), i
 		if not attribute_list:
@@ -2127,23 +2162,30 @@ class RankPage(Tab):
 		#print line_number(), attribute_list
 
 		row_count = 0
-		col_count = 0
-
 		for stock in stock_list:
+			col_count = 0
+			stock_annual_data = return_existing_StockAnnualData(str(stock.symbol))
 			for attribute in attribute_list:
 				#if not attribute.startswith('_'):
 				if row_count == 0:
 					self.screen_grid.SetColLabelValue(col_count, str(attribute))
+					print str(attribute)
 				try:
 					self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
 					if str(stock.symbol) in self.held_ticker_list:
 						self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
 				except Exception, exception:
-					pass
+					try:
+						self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
+						if str(stock.symbol) in self.held_ticker_list:
+							self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+					except:
+						print "No %s attribute for %s" % (str(attribute), str(stock.symbol))
+						pass
 					#print line_number(), exception
 				col_count += 1
 			row_count += 1
-			col_count = 0
+		print attribute_list
 		self.screen_grid.AutoSizeColumns()
 
 		try:
