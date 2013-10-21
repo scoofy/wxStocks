@@ -20,6 +20,7 @@ class StockAnnualData(object):
 		self.last_balance_sheet_update = 0
 		self.last_income_statement_update = 0
 		self.last_cash_flow_update = 0
+		self.periods = ["", "", ""]
 
 # Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
 def neff5Year(Stock):
@@ -92,8 +93,8 @@ def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
 				print "%s is up to date (no need to update)" % ticker
 				continue # if all are up to date skip ahead, and don't append ticker
 		edited_ticker_list.append(ticker)
-		print edited_ticker_list
 	ticker_list = edited_ticker_list
+	print "updating:", ticker_list
 
 	for i in range(len(ticker_list)):
 		# 2 second sleep per scrape
@@ -118,7 +119,6 @@ def yahoo_annual_cash_flow_scrape(ticker):
 
 	data_list = []
 
-
 	for cell in table.findAll("td"):
 		text = cell.find(text=True)
 		if text:
@@ -129,8 +129,12 @@ def yahoo_annual_cash_flow_scrape(ticker):
 			#	for date in dates:
 			#		print date
 		if text:
-			print text
+			#print text
 			data_list.append(str(text))
+
+	#print ticker,":",len(data_list)
+	#print "---------------------------------------------------------------------"
+
 	#print data_list
 	for cell in table.findAll("strong"):
 		text = cell.find(text=True)
@@ -142,7 +146,7 @@ def yahoo_annual_cash_flow_scrape(ticker):
 			#	for date in dates:
 			#		print date
 		if text:
-			print text
+			#print text
 			data_list.append(str(text))
 
 	create_or_update_StockAnnualData(ticker, data_list, "Cash_Flow")
@@ -261,8 +265,12 @@ def yahoo_annual_income_statement_scrape(ticker):
 			#	for date in dates:
 			#		print date
 		if text:
-			print text
+			#print text
 			data_list.append(str(text))
+
+	#print ticker,":",len(data_list)
+	#print "---------------------------------------------------------------------"
+
 	#print data_list
 	for cell in table.findAll("strong"):
 		text = cell.find(text=True)
@@ -274,7 +282,7 @@ def yahoo_annual_income_statement_scrape(ticker):
 			#	for date in dates:
 			#		print date
 		if text:
-			print text
+			#print text
 			data_list.append(str(text))
 
 	create_or_update_StockAnnualData(ticker, data_list, "Income_Statement")
@@ -396,8 +404,12 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 		text = strip_string_whitespace(cell.findNext(text=True))
 		text.replace(u'\xa0', u' ')
 		if text:
-			print text
+			#print text
 			data_list.append(str(text))
+
+	#print ticker,":",len(data_list)
+	#print "---------------------------------------------------------------------"
+
 	#print data_list
 	for cell in table.findAll("strong"):
 		text = cell.find(text=True)
@@ -409,7 +421,7 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 			#	for date in dates:
 			#		print date
 		if text:
-			print text
+			#print text
 			data_list.append(str(text))
 
 	create_or_update_StockAnnualData(ticker, data_list, "Balance_Sheet")
@@ -576,6 +588,12 @@ def return_existing_StockAnnualData(ticker_symbol):
 	#if the function does not return a stock
 	return None
 def create_or_update_StockAnnualData(ticker, data_list, data_type):
+	#print data_type
+	#print len(data_list)
+	#print "--------------"
+
+	# ?????????????????????????
+
 	stock = return_existing_StockAnnualData(ticker)
 	if not stock:
 		stock = StockAnnualData(ticker)
@@ -583,10 +601,50 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 
 
 	# yahoo balance sheet loop
+	default_amount_of_data = 3
 	cash_flow_data_positions = [1,6,10,14,18,22,26,31,35,39,44,48,52,56,60,64,69,74,79,83]
 	income_statement_data_postitions = [2,7,11,15,19,23,28,32,36,40,44,48,52,57,61,65,69,73,77,81,85,89,93]
 	balance_sheet_data_positions = [1,8,12,16,20,24,28,32,36,40,44,48,52,59,63,67,71,75,79,83,87,93,97,101,105,109,113,117,121,126,130,135,139,144,148]
-	
+	# unless data list format is irregular
+	# What i'm doing here is complicated, if there are only two units of data
+	# in each data position i need to adjust the position of the list from which to grab
+	# the data. This is actually a fairly simple iteration. 
+	# If the data is different by 1 unit of data per section
+	# the adjustment is to change the position by 1, for each section.
+	# This creates a compounding adjustment, increasing by 1 unit each time,
+	# made simple by increasing the adjustment variable each pass.
+	#print "len(data_list) =", len(data_list), data_list
+	if data_type == "Balance_Sheet" and len(data_list) == 117:#96:
+		print "adjusting for 2 years worth of Balance_Sheet data"
+		default_amount_of_data = 2
+		adjusted_balance_sheet_data_positions = []
+		adjustment_variable = 0
+		for i in balance_sheet_data_positions:
+			adjusted_balance_sheet_data_positions.append(i - adjustment_variable)
+			adjustment_variable += 1
+		balance_sheet_data_positions = adjusted_balance_sheet_data_positions
+		#print balance_sheet_data_positions
+	elif data_type == "Income_Statement" and len(data_list) == 74:#59:
+		print "adjusting for 2 years worth of Income_Statement data"
+		default_amount_of_data = 2
+		adjusted_income_statement_data_positions = []
+		adjustment_variable = 0
+		for i in income_statement_data_postitions:
+			adjusted_income_statement_data_positions.append(i - adjustment_variable)
+			adjustment_variable += 1
+		income_statement_data_postitions = adjusted_income_statement_data_positions
+		#print income_statement_data_postitions
+	elif data_type == "Cash_Flow" and len(data_list) == 67:
+		print "adjusting for 2 years worth of Cash_Flow data"
+		default_amount_of_data = 2
+		adjusted_cash_flow_data_positions = []
+		adjustment_variable = 0
+		for i in cash_flow_data_positions:
+			adjusted_cash_flow_data_positions.append(i - adjustment_variable)
+			adjustment_variable += 1
+		cash_flow_data_positions = adjusted_cash_flow_data_positions
+		#print cash_flow_data_positions
+
 	data_positions = []
 	if data_type == "Cash_Flow":
 		data_positions = cash_flow_data_positions
@@ -601,26 +659,56 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 		print "no data type selected"
 		return
 
+	# First, define period
+	if stock:
+		for i in range(len(data_list)):
+			if i in data_positions:
+				attribute = str(data_list[i])					
+				attribute = attribute.replace(" ","_")
+				attribute = attribute.replace("/","_")
+				attribute = attribute.replace("'","")
+				if attribute == "Period_Ending":
+					for j in range(default_amount_of_data):
+						data = data_list[i+j+1]
+						#print data
+						data = data[-4:]
+						#print data
+						stock.periods[j] = data
+	########
+
 	for i in range(len(data_list)):
 		if i in data_positions:
 			# attribute
 			attribute = str(data_list[i])
+			
+			#print attribute
+			
 			attribute = attribute.replace(" ","_")
 			attribute = attribute.replace("/","_")
 			attribute = attribute.replace("'","")
 			if attribute == "Period_Ending":
 				attribute = attribute + "_For_" + data_type
 			attribute_data_list = []
-			for j in range(3):
+			#print "default amount of data =", default_amount_of_data
+			for j in range(default_amount_of_data):
 				data = data_list[i+j+1]
 				data = data.replace(",","")
+
+				#print data
+
 				#try:
 				#	data = int(data)
 				#except:
 				#	# data is not a number
 				#	pass
 				attribute_data_list.append(data)
-			setattr(stock, attribute, attribute_data_list)
+			
+			year_fail_list = ["last_year", "2_years_ago", "3_years_ago"]
+			for k in range(default_amount_of_data):
+				year = stock.periods[k]
+				if not year:
+					year = year_fail_list[k]
+				setattr(stock, attribute+"_"+year, attribute_data_list[k])
 
 	for attribute in dir(stock):
 		if not attribute.startswith("_"):
