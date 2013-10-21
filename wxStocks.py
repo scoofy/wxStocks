@@ -94,7 +94,8 @@ def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
 				continue # if all are up to date skip ahead, and don't append ticker
 		edited_ticker_list.append(ticker)
 	ticker_list = edited_ticker_list
-	print "updating:", ticker_list
+	if ticker_list:
+		print "updating:", ticker_list
 
 	for i in range(len(ticker_list)):
 		# 2 second sleep per scrape
@@ -703,12 +704,15 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 				#	pass
 				attribute_data_list.append(data)
 			
-			year_fail_list = ["last_year", "2_years_ago", "3_years_ago"]
+			year_fail_list = ["", "20XX", "20YY"]
 			for k in range(default_amount_of_data):
-				year = stock.periods[k]
-				if not year:
-					year = year_fail_list[k]
-				setattr(stock, attribute+"_"+year, attribute_data_list[k])
+				year = ""
+				if k != 0:
+					year = stock.periods[k]
+					if not year:
+						year = year_fail_list[k]
+					year = "_" + year
+				setattr(stock, attribute + year, attribute_data_list[k])
 
 	for attribute in dir(stock):
 		if not attribute.startswith("_"):
@@ -2233,10 +2237,11 @@ class RankPage(Tab):
 					for attribute in dir(annual_data):
 						if not attribute.startswith('_'):
 							if attribute not in self.irrelevant_attributes:
-								if attribute not in attribute_list:
-									attribute_list.append(str(attribute))
-									if str(attribute) not in self.full_attribute_list:
-										self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
+								if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+									if attribute not in attribute_list:
+										attribute_list.append(str(attribute))
+										if str(attribute) not in self.full_attribute_list:
+											self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
 					break
 		#for i in self.full_attribute_list:
 		#	print line_number(), i
@@ -2257,23 +2262,36 @@ class RankPage(Tab):
 				#if not attribute.startswith('_'):
 				if row_count == 0:
 					self.screen_grid.SetColLabelValue(col_count, str(attribute))
-					print str(attribute)
+					#print str(attribute)
 				try:
 					self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
 					if str(stock.symbol) in self.held_ticker_list:
 						self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+					if str(getattr(stock, attribute)).startswith("(") or str(getattr(stock, attribute)).startswith("-"):
+						self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
 				except Exception, exception:
 					try:
 						self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
 						if str(stock.symbol) in self.held_ticker_list:
 							self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+						if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
+							self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
 					except:
-						print "No %s attribute for %s" % (str(attribute), str(stock.symbol))
+						#print "No %s attribute for %s" % (str(attribute), str(stock.symbol))
 						pass
 					#print line_number(), exception
+				# try:
+				# 	if str(getattr(stock, attribute)) in ["N/A", "-", "None"]:
+				# 		self.screen_grid.SetCellValue(row_count, col_count, "")
+				# except:
+				# 	try:
+				# 		if str(getattr(stock_annual_data, attribute)) in ["N/A", "-", "None"]:
+				# 			self.screen_grid.SetCellValue(row_count, col_count, "")
+				# 	except Exception, exception:
+				# 		pass
 				col_count += 1
 			row_count += 1
-		print attribute_list
+		#print attribute_list
 		self.screen_grid.AutoSizeColumns()
 
 		try:
