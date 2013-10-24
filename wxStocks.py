@@ -49,7 +49,7 @@ def neff_TTM_historical(Stock): #incomplete
 
 	pe_ttm = "blah this needs to be figured out"
 	pass
-def marginPercentRank(Stock): #incomplete
+def marginPercentRank(Stock, stock_list): #incomplete
 	'''
 	"Percent" Rank of Net Margin where Highest Margin = 100%% and Lowest = 0%
 
@@ -57,7 +57,7 @@ def marginPercentRank(Stock): #incomplete
 	If you are ranking 500 different companies, then [Total Count of Numbers Ranked] = 500
 	'''
 	pass
-def roePercentRank(Stock): #incomplete
+def roePercentRank(Stock, stock_list): #incomplete
 	'''
 	%% Rank of Return on Equity.
 	Bigger is better.
