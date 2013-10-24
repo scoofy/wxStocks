@@ -23,19 +23,81 @@ class StockAnnualData(object):
 		self.periods = ["", "", ""]
 
 # Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
-def neff5Year(Stock):
+def neff_5_Year_future_estimate(Stock): #incomplete
+	'''
+	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
+	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
+	'''
+	dividend_yield = float(Stock.DividendYield)
+	pass # need to find 5 year eps growth %
+def neff_TTM_historical(Stock): #incomplete
+	'''
+	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
+	In this formula you can see that I gave triple weight to dividends.  
+	I thought that over the short run (TTM) dividends represent stability and "Dividends don't lie".
+	-- Robert Schoolfield
+	'''
+	annual_data = return_existing_StockAnnualData(Stock.symbol)
+	if not annual_data:
+		print "You must update annual data for %s" % Stock.symbol
+		return
+	dividend_yield = float(Stock.DividendYield)
+
+	income_from_continuing_operations = annual_data.Net_Income_From_Continuing_Ops
+	weighted_avg_common_shares = "???"
+	eps_from_contiuning_operations = income_from_continuing_operations/weighted_avg_common_shares
+
+	pe_ttm = "blah this needs to be figured out"
 	pass
-def neffTTM(Stock):
+def marginPercentRank(Stock): #incomplete
+	'''
+	"Percent" Rank of Net Margin where Highest Margin = 100%% and Lowest = 0%
+
+	"Percent" Rank = ([Numerical Rank]/[Total Count of Numbers Ranked]) x 100
+	If you are ranking 500 different companies, then [Total Count of Numbers Ranked] = 500
+	'''
 	pass
-def marginPercentRank(Stock):
-	pass
-def roePercentRank(Stock):
+def roePercentRank(Stock): #incomplete
+	'''
+	%% Rank of Return on Equity.
+	Bigger is better.
+	'''
 	pass
 def roePercentDev(Stock):
+	'''
+	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
+
+	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]  
+	This determines how "smooth" the graph is of ROE for the three different years.  
+	Less than one is "smooth" while greater than one is "not smooth".
+	It also determines if the average ROE over the three years is significantly greater than zero. 
+	'''
 	pass
-def kGrowth(Stock):
+def price_to_book_growth(Stock):
+	'''
+	= Price Growth(over last 3 fiscal years)/Book Value Growth(over last 3 fiscal years)
+	= (Price(Y1)/Price(Y3)) / (Book Value(Y1)/Book Value(Y3))
+	= (Price(Y1)/Price(Y3)) x (Book Value(Y3)/Book Value(Y1))
+	
+	This is a ratio that Warren Buffet likes, so I thought I would throw it in.  
+	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.  
+	He likes it around 1.
+	'''
 	pass
-def percent2Range(Stock):
+def kGrowth(Stock): # incomplete, no definition yet
+	pass
+def price_to_range(Stock):
+	'''
+	= Price to (52 Week Price Range) 
+	= ([Current Price] - [52 wk Low Price]) / ([52 wk High Price] - [52 wk Low Price])
+
+	If the current price is close to its 52 wk Low Price, then Prc2Rng is close to zero.
+	If the current price is close to its 52 wk High Price, then Prc2Rng is close to one.
+	If the current price is half way between its 52 wk High Price and its 52 wk Low Price, 
+	then Prc2Rng is close to 0.5.
+
+	I like to have it greater than 0.2.
+	'''
 	pass
 def percentage_held_by_insiders(Stock):
 	try:
@@ -45,7 +107,7 @@ def percentage_held_by_insiders(Stock):
 	except Exception, exception:
 		print line_number(), exception
 		return None
-def percentage_held_by_institutions(Stock):
+def percentage_held_by_institutions(Stock): # this may no be necessary
 	try:
 		if Stock.PercentageHeldbyInstitutions:
 			percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
@@ -62,25 +124,51 @@ def current_ratio(Stock):
 		print line_number(), exception
 		return None
 def longTermDebtToEquity(Stock):
-	debt_to_equity = float(Stock.TotalDebtEquity_mrq)
-	liabilities = float(Stock.TotalDebt_mrq)
-	equity = (1.00/debt_to_equity) * liabilities
-	assets = equity - liabilities
-	current_ratio = float(Stock.CurrentRatio_mrq)
-	assets_to_liabilities = assets / liabilities
-	lt_assets_to_lt_liabilities = assets_to_liabilities - current_ratio
-	lt_fraction_denomintor_factor = 1/lt_assets_to_lt_liabilities
-	lt_assets = lt_fraction_denomintor *  lt_assets_to_lt_liabilities
-	# shit... i don't think it'll work
-def neffEvEBIT(Stock): #?????
+	annual_data = return_existing_StockAnnualData(Stock)
+	long_term_debt = annual_data.Long_Term_Debt
+	equity = annual_data.Total_Stockholder_Equity
+	if long_term_debt == "-":
+		long_term_debt = 0.00
+	else:
+		long_term_debt = float(long_term_debt)
+	if equity == "-":
+		print 'Cannot divide by zero'
+		return "None"
+	else:
+		equity = float(equity)
+	return float(long_term_debt/equity)
+def neffEvEBIT(Stock):
+	'''
+	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
+	With a double weight on Dividends.  
+	(Data reported by database for Enterprise Value and EBIT are not per share, but it doesn't matter because:
+	[Enterprise Value/EBIT] = [Enterprise Value per share]/[EBIT per share]
+	i.e. # of shares cancels in the ratio.  
+	Also:
+	[EBIT growth %] = [EBIT per share growth %] 
+	are dimensionless ratios (written as percents).
+	
+	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years) 
+	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1) 
+	to the first fiscal year (Y2) before the most recent fiscal year(Y1).  
+	Why I didn't use Y1 I can't remember. The exact name of 
+	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100  
+	(The 100 makes it a percentage value.)
+
+	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])
+	'''
 	pass
-def neffCf3Year(Stock): #?????
+def neffCf3Year(Stock):
+	'''
+	(3 year Historical) Neff ratio where Earnings/Share is replaced by CashFlow/Share.
+	'''
 	pass
 
 # Stock Annual Date Scraping Functions
 # ---- unfortunately after scraping many stocks, these scraping functions need to be overhauled
 # ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
 # ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
+## --- Much has been improved, but i still need to do a re-write it for single year data.
 def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
 	one_day = (60 * 60 * 24)
 	yesterdays_epoch = float(time.time()) - one_day
@@ -2202,6 +2290,7 @@ class RankPage(Tab):
 		self.full_attribute_list = [] # Reset root attribute list
 		attribute_list = []
 
+
 		num_rows = len(stock_list)
 		num_columns = 0
 		for stock in stock_list:
@@ -2212,12 +2301,14 @@ class RankPage(Tab):
 						num_attributes += 1
 			for annual_data in annual_data_list:
 				if str(stock.symbol) == str(annual_data.symbol):
-					for attrubute in dir(annual_data):
+					for attribute in dir(annual_data):
 						if not attribute.startswith('_'):
 							if attribute not in self.irrelevant_attributes:
-								num_attributes += 1
+								if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+									if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
+										num_attributes += 1
 			if num_columns < num_attributes:
-				num_columns = num_attributes								
+				num_columns = num_attributes
 		self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,60))
 
 		self.screen_grid.CreateGrid(num_rows, num_columns)
