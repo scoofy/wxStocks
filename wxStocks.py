@@ -204,39 +204,20 @@ def yahoo_annual_cash_flow_scrape(ticker):
 			return
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	factor = 0
+	thousands = soup.body.findAll(text= "All numbers in thousands")
+	if thousands:
+		factor = 1000
+
+	if not factor:
+		print "Error: no factor... in need of review"
+
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
 	data_list = []
 
-	for cell in table.findAll("td"):
-		text = cell.find(text=True)
-		if text:
-			text = strip_string_whitespace(text)
-			text.replace(u'\xa0', u' ')
-			#if text == "Period Ending":
-			#	dates = table.findAll("th")
-			#	for date in dates:
-			#		print date
-		if text:
-			#print text
-			data_list.append(str(text))
-
-	#print ticker,":",len(data_list)
-	#print "---------------------------------------------------------------------"
-
-	#print data_list
-	for cell in table.findAll("strong"):
-		text = cell.find(text=True)
-		if text:
-			text = strip_string_whitespace(text)
-			text.replace(u'\xa0', u' ')
-			#if text == "Period Ending":
-			#	dates = table.findAll("th")
-			#	for date in dates:
-			#		print date
-		if text:
-			#print text
-			data_list.append(str(text))
+	find_all_data_in_table(table, "td", data_list, factor)
+	find_all_data_in_table(table, "strong", data_list, factor)
 
 	create_or_update_StockAnnualData(ticker, data_list, "Cash_Flow")
 
@@ -339,40 +320,18 @@ def yahoo_annual_income_statement_scrape(ticker):
 			return
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	factor = 0
+	thousands = soup.body.findAll(text= "All numbers in thousands")
+	if thousands:
+		factor = 1000
+
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
 	data_list = []
 
 
-	for cell in table.findAll("td"):
-		text = cell.find(text=True)
-		if text:
-			text = strip_string_whitespace(text)
-			text.replace(u'\xa0', u' ')
-			#if text == "Period Ending":
-			#	dates = table.findAll("th")
-			#	for date in dates:
-			#		print date
-		if text:
-			#print text
-			data_list.append(str(text))
-
-	#print ticker,":",len(data_list)
-	#print "---------------------------------------------------------------------"
-
-	#print data_list
-	for cell in table.findAll("strong"):
-		text = cell.find(text=True)
-		if text:
-			text = strip_string_whitespace(text)
-			text.replace(u'\xa0', u' ')
-			#if text == "Period Ending":
-			#	dates = table.findAll("th")
-			#	for date in dates:
-			#		print date
-		if text:
-			#print text
-			data_list.append(str(text))
+	find_all_data_in_table(table, "td", data_list, factor)
+	find_all_data_in_table(table, "strong", data_list, factor)
 
 	create_or_update_StockAnnualData(ticker, data_list, "Income_Statement")
 
@@ -485,190 +444,198 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 			return
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	factor = 0
+	thousands = soup.body.findAll(text= "All numbers in thousands")
+	if thousands:
+		factor = 1000
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
 	data_list = []
-	#for row in table.findAll("tr"):
-	for cell in table.findAll("td"):#row.findAll("td"):
-		text = strip_string_whitespace(cell.findNext(text=True))
-		text.replace(u'\xa0', u' ')
-		if text:
-			#print text
-			data_list.append(str(text))
 
-	#print ticker,":",len(data_list)
-	#print "---------------------------------------------------------------------"
-
-	#print data_list
-	for cell in table.findAll("strong"):
-		text = cell.find(text=True)
-		if text:
-			text = strip_string_whitespace(text)
-			text.replace(u'\xa0', u' ')
-			#if text == "Period Ending":
-			#	dates = table.findAll("th")
-			#	for date in dates:
-			#		print date
-		if text:
-			#print text
-			data_list.append(str(text))
+	find_all_data_in_table(table, "td", data_list, factor)
+	find_all_data_in_table(table, "strong", data_list, factor)
 
 	create_or_update_StockAnnualData(ticker, data_list, "Balance_Sheet")
 
 	balance_sheet_layout = 	['''
 							0	Period Ending
 							1	Period Ending
-							2	-
-							3	-
-							4	-
+							2	Mar 31 2013
+							3	Mar 31 2012
+							4	Mar 31 2011
 							5	Assets
-							6	Assets
-							7	Current Assets
-							8	Cash And Cash Equivalents
-							9	-
-							10	-
-							11	-
-							12	Short Term Investments
-							13	-
-							14	-
-							15	-
-							16	Net Receivables
-							17	-
-							18	-
-							19	-
-							20	Inventory
+							6	Current Assets
+							7	Cash And Cash Equivalents
+							8	4059000000
+							9	4047000000
+							10	3767000000
+							11	Short Term Investments
+							12	320000000
+							13	74000000
+							14	32000000
+							15	Net Receivables
+							16	1754000000
+							17	1524000000
+							18	1322000000
+							19	Inventory
+							20	-
 							21	-
 							22	-
-							23	-
-							24	Other Current Assets
-							25	-
-							26	-
-							27	-
-							28	Long Term Investments
-							29	-
-							30	-
-							31	-
-							32	Property Plant and Equipment
-							33	-
-							34	-
-							35	-
-							36	Goodwill
-							37	-
-							38	-
-							39	-
-							40	Intangible Assets
-							41	-
-							42	-
-							43	-
-							44	Accumulated Amortization
+							23	Other Current Assets
+							24	391000000
+							25	300000000
+							26	206000000
+							27	Long Term Investments
+							28	72000000
+							29	2000000
+							30	5000000
+							31	Property Plant and Equipment
+							32	1191000000
+							33	1063000000
+							34	1086000000
+							35	Goodwill
+							36	364000000
+							37	195000000
+							38	185000000
+							39	Intangible Assets
+							40	68000000
+							41	34000000
+							42	11000000
+							43	Accumulated Amortization
+							44	-
 							45	-
 							46	-
-							47	-
-							48	Other Assets
-							49	-
-							50	-
-							51	-
-							52	Deferred Long Term Asset Charges
-							53	-
-							54	-
-							55	-
-							56	Liabilities
-							57	Liabilities
-							58	Current Liabilities
-							59	Accounts Payable
-							60	-
-							61	-
+							47	Other Assets
+							48	245000000
+							49	236000000
+							50	326000000
+							51	Deferred Long Term Asset Charges
+							52	94000000
+							53	62000000
+							54	85000000
+							55	Liabilities
+							56	Current Liabilities
+							57	Accounts Payable
+							58	393000000
+							59	310000000
+							60	224000000
+							61	Short/Current Long Term Debt
 							62	-
-							63	Short/Current Long Term Debt
+							63	9000000
 							64	-
-							65	-
-							66	-
-							67	Other Current Liabilities
-							68	-
-							69	-
+							65	Other Current Liabilities
+							66	765000000
+							67	618000000
+							68	592000000
+							69	Long Term Debt
 							70	-
-							71	Long Term Debt
+							71	-
 							72	-
-							73	-
-							74	-
-							75	Other Liabilities
-							76	-
-							77	-
-							78	-
-							79	Deferred Long Term Liability Charges
+							73	Other Liabilities
+							74	27000000
+							75	22000000
+							76	72000000
+							77	Deferred Long Term Liability Charges
+							78	23000000
+							79	2000000
 							80	-
-							81	-
+							81	Minority Interest
 							82	-
-							83	Minority Interest
+							83	-
 							84	-
-							85	-
+							85	Negative Goodwill
 							86	-
-							87	Negative Goodwill
+							87	-
 							88	-
-							89	-
-							90	-
-							91	Stockholders' Equity
-							92	Stockholders' Equity
-							93	Misc Stocks Options Warrants
-							94	-
+							89	Stockholders' Equity
+							90	Misc Stocks Options Warrants
+							91	-
+							92	-
+							93	-
+							94	Redeemable Preferred Stock
 							95	-
 							96	-
-							97	Redeemable Preferred Stock
-							98	-
+							97	-
+							98	Preferred Stock
 							99	-
 							100	-
-							101	Preferred Stock
-							102	-
-							103	-
-							104	-
-							105	Common Stock
-							106	-
-							107	-
-							108	-
-							109	Retained Earnings
-							110	-
+							101	-
+							102	Common Stock
+							103	64000000
+							104	64000000
+							105	64000000
+							106	Retained Earnings
+							107	7666000000
+							108	6509000000
+							109	5294000000
+							110	Treasury Stock
 							111	-
 							112	-
-							113	Treasury Stock
-							114	-
+							113	-
+							114	Capital Surplus
 							115	-
 							116	-
-							117	Capital Surplus
-							118	-
-							119	-
-							120	-
-							121	Other Stockholder Equity
-							122	-
-							123	-
-							124	-
-							125	Assets
-							126	Total Current Assets
-							127	-
-							128	-
-							129	-
-							130	Total Assets
-							131	-
-							132	-
-							133	-
-							134	Liabilities
-							135	Total Current Liabilities
-							136	-
-							137	-
-							138	-
-							139	Total Liabilities
-							140	-
-							141	-
+							117	-
+							118	Other Stockholder Equity
+							119	-399000000
+							120	3000000
+							121	764000000
+							122	Assets
+							123	Total Current Assets
+							124	6505000000
+							125	5945000000
+							126	5312000000
+							127	Total Assets
+							128	8539000000
+							129	7537000000
+							130	7010000000
+							131	Liabilities
+							132	Total Current Liabilities
+							133	1158000000
+							134	937000000
+							135	816000000
+							136	Total Liabilities
+							137	1208000000
+							138	961000000
+							139	888000000
+							140	Stockholders' Equity
+							141	Total Stockholder Equity
 							142	-
-							143	Stockholders' Equity
-							144	Total Stockholder Equity
-							145	-
+							143	-
+							144	-
+							145	Net Tangible Assets
 							146	-
 							147	-
-							148	Net Tangible Assets
-							149	-
-							150	-
-							151	-
+							148	-
 							''']	
+def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor):
+	for cell in table.findAll(str_to_find):
+		text = cell.find(text=True)
+		if text:
+			text = strip_string_whitespace(text)
+			text = text.replace(u'\xa0', u' ')
+			text = str(text)
+			text = text.replace(',', "")
+			if text:
+				if text[0] == "(":
+					text_list = list(text)
+					text_list[0] = "-"
+					text_list[-1] = ""
+					text = "".join(text_list)
+			if is_number(text):
+				text_float = float(text) * table_factor
+				if relevant_float(text_float):
+					text = str(text_float)
+				else:
+					text = str(int(text_float))
+
+			#if text == "Period Ending":
+			#	dates = table.findAll("th")
+			#	for date in dates:
+			#		print date
+		if text:
+			#print text
+			data_list_to_append_to.append(str(text))
 def return_existing_StockAnnualData(ticker_symbol):
 	global GLOBAL_ANNUAL_DATA_STOCK_LIST
 	for stock in GLOBAL_ANNUAL_DATA_STOCK_LIST:
@@ -677,9 +644,10 @@ def return_existing_StockAnnualData(ticker_symbol):
 	#if the function does not return a stock
 	return None
 def create_or_update_StockAnnualData(ticker, data_list, data_type):
-	#print data_type
-	#print len(data_list)
-	#print "--------------"
+	print "--------------"
+	print data_type
+	print len(data_list)
+	#print data_list
 
 	# ?????????????????????????
 
@@ -693,7 +661,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 	default_amount_of_data = 3
 	cash_flow_data_positions = [1,6,10,14,18,22,26,31,35,39,44,48,52,56,60,64,69,74,79,83]
 	income_statement_data_postitions = [2,7,11,15,19,23,28,32,36,40,44,48,52,57,61,65,69,73,77,81,85,89,93]
-	balance_sheet_data_positions = [1,8,12,16,20,24,28,32,36,40,44,48,52,59,63,67,71,75,79,83,87,93,97,101,105,109,113,117,121,126,130,135,139,144,148]
+	balance_sheet_data_positions = [1,7,11,15,19,23,27,31,35,39,43,47,51,57,61,65,69,73,77,81,85,90,94,98,102,106,110,114,118,123,127,132,136,141,145]
 	# unless data list format is irregular
 	# What i'm doing here is complicated, if there are only two units of data
 	# in each data position i need to adjust the position of the list from which to grab
@@ -739,6 +707,8 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 		data_positions = cash_flow_data_positions
 		stock.last_cash_flow_update = float(time.time())
 	elif data_type == "Balance_Sheet":
+		for i in data_list:
+			print i
 		data_positions = balance_sheet_data_positions
 		stock.last_balance_sheet_update = float(time.time())
 	elif data_type == "Income_Statement":
@@ -4163,7 +4133,15 @@ def return_stock_by_symbol(ticker_symbol):
 			return stock
 	#if the function does not return a stock
 	return None
-
+def is_number(some_string):
+	try:
+		float(some_string)
+		return True
+	except Exception, exception:
+		# print exception
+		return False
+def relevant_float(some_float):
+	return (some_float - int(some_float)) != 0
 
 app = None
 def main():
