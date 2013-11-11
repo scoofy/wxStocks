@@ -44,19 +44,54 @@ def neff_TTM_historical(Stock): #incomplete
 	dividend_yield = float(Stock.DividendYield)
 
 	income_from_continuing_operations = annual_data.Net_Income_From_Continuing_Ops
-	weighted_avg_common_shares = "???"
+	weighted_avg_common_shares = "???" #This is fairly easily calculable using quarterly data, but that requires another scrape
+	# GOOG: http://finance.yahoo.com/q/bs?s=GOOG
 	eps_from_contiuning_operations = income_from_continuing_operations/weighted_avg_common_shares
 
-	pe_ttm = "blah this needs to be figured out"
+	pe_ttm = Stock.TrailingPE_ttm
 	pass
-def marginPercentRank(Stock, stock_list): #incomplete
+def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to deal with error cases
 	'''
 	"Percent" Rank of Net Margin where Highest Margin = 100%% and Lowest = 0%
 
 	"Percent" Rank = ([Numerical Rank]/[Total Count of Numbers Ranked]) x 100
 	If you are ranking 500 different companies, then [Total Count of Numbers Ranked] = 500
 	'''
-	pass
+	num_of_stocks = len(stock_list)
+	sort_list = []
+	for this_stock in stock_list:
+		try:
+			margin = this_stock.ProfitMargin_ttm
+			symbol = this_stock.symbol
+			if margin[-1] == "%":
+				margin = margin[:-1]
+				margin = float(margin)
+				sort_list.append([margin, symbol])
+			else:
+				print line_number(), "Format of profit margin unknown"
+		except Exception, exception:
+			# There needs to be a case here for stocks that fail... ideally there should be none though
+			print line_number(), exception, "Stock appears to have no ProfitMargin_ttm attribute."
+	stock_list.sort(key = lambda x: x[0], reverse=False) # Highest ranking ends last, i.e. closer to 100%
+
+	if len(stock_list) != len(sort_list):
+		print "Error: Some Stocks not included in margin rank function"
+		return
+
+	position = None
+	count = 1 # Need to use ordinal numbering
+	for some_tuple in sort_list:
+		if Stock.symbol == some_tuple[1]:
+			position = count
+
+	if not position:
+		print "Error: Something went wrong in margin rank function, no position for", Stock.symbol
+		return
+
+	position = float(position)
+	rank = (position/num_of_stocks) * 100
+	return rank
+
 def roePercentRank(Stock, stock_list): #incomplete
 	'''
 	%% Rank of Return on Equity.
