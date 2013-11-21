@@ -1,4 +1,5 @@
-import wx, sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2
+import wx, numpy
+import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2
 import cPickle as pickle
 from pyql import pyql
 from wx.lib import sheet
@@ -22,798 +23,7 @@ class StockAnnualData(object):
 		self.last_cash_flow_update = 0
 		self.periods = ["", "", ""]
 
-# Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
-def neff_5_Year_future_estimate(Stock): #incomplete
-	'''
-	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
-	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
-	'''
-	dividend_yield = float(Stock.DividendYield)
-	pass # need to find 5 year eps growth %
-def neff_TTM_historical(Stock): #incomplete
-	'''
-	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
-	In this formula you can see that I gave triple weight to dividends.  
-	I thought that over the short run (TTM) dividends represent stability and "Dividends don't lie".
-	-- Robert Schoolfield
-	'''
-	annual_data = return_existing_StockAnnualData(Stock.symbol)
-	if not annual_data:
-		print "You must update annual data for %s" % Stock.symbol
-		return
-	dividend_yield = float(Stock.DividendYield)
 
-	income_from_continuing_operations = annual_data.Net_Income_From_Continuing_Ops
-	weighted_avg_common_shares = "???" #This is fairly easily calculable using quarterly data, but that requires another scrape
-	# GOOG: http://finance.yahoo.com/q/bs?s=GOOG
-	eps_from_contiuning_operations = income_from_continuing_operations/weighted_avg_common_shares
-
-	pe_ttm = Stock.TrailingPE_ttm
-	pass
-def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to deal with error cases
-	'''
-	"Percent" Rank of Net Margin where Highest Margin = 100%% and Lowest = 0%
-
-	"Percent" Rank = ([Numerical Rank]/[Total Count of Numbers Ranked]) x 100
-	If you are ranking 500 different companies, then [Total Count of Numbers Ranked] = 500
-	'''
-	num_of_stocks = len(stock_list)
-	sort_list = []
-	for this_stock in stock_list:
-		try:
-			margin = this_stock.ProfitMargin_ttm
-			symbol = this_stock.symbol
-			if margin[-1] == "%":
-				margin = margin[:-1]
-				margin = float(margin)
-				sort_list.append([margin, symbol])
-			else:
-				print line_number(), "Format of profit margin unknown"
-		except Exception, exception:
-			# There needs to be a case here for stocks that fail... ideally there should be none though
-			print line_number(), exception, "Stock appears to have no ProfitMargin_ttm attribute."
-	stock_list.sort(key = lambda x: x[0], reverse=False) # Highest ranking ends last, i.e. closer to 100%
-
-	if len(stock_list) != len(sort_list):
-		print "Error: Some Stocks not included in margin rank function"
-		return
-
-	position = None
-	count = 1 # Need to use ordinal numbering
-	for some_tuple in sort_list:
-		if Stock.symbol == some_tuple[1]:
-			position = count
-
-	if not position:
-		print "Error: Something went wrong in margin rank function, no position for", Stock.symbol
-		return
-
-	position = float(position)
-	rank = (position/num_of_stocks) * 100
-	return rank
-
-def roePercentRank(Stock, stock_list): #incomplete
-	'''
-	%% Rank of Return on Equity.
-	Bigger is better.
-	'''
-	pass
-def roePercentDev(Stock):
-	'''
-	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
-
-	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]  
-	This determines how "smooth" the graph is of ROE for the three different years.  
-	Less than one is "smooth" while greater than one is "not smooth".
-	It also determines if the average ROE over the three years is significantly greater than zero. 
-	'''
-	pass
-def price_to_book_growth(Stock):
-	'''
-	= Price Growth(over last 3 fiscal years)/Book Value Growth(over last 3 fiscal years)
-	= (Price(Y1)/Price(Y3)) / (Book Value(Y1)/Book Value(Y3))
-	= (Price(Y1)/Price(Y3)) x (Book Value(Y3)/Book Value(Y1))
-	
-	This is a ratio that Warren Buffet likes, so I thought I would throw it in.  
-	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.  
-	He likes it around 1.
-	'''
-	pass
-def kGrowth(Stock): # incomplete, no definition yet
-	pass
-def price_to_range(Stock):
-	'''
-	= Price to (52 Week Price Range) 
-	= ([Current Price] - [52 wk Low Price]) / ([52 wk High Price] - [52 wk Low Price])
-
-	If the current price is close to its 52 wk Low Price, then Prc2Rng is close to zero.
-	If the current price is close to its 52 wk High Price, then Prc2Rng is close to one.
-	If the current price is half way between its 52 wk High Price and its 52 wk Low Price, 
-	then Prc2Rng is close to 0.5.
-
-	I like to have it greater than 0.2.
-	'''
-	pass
-def percentage_held_by_insiders(Stock):
-	try:
-		if Stock.PercentageHeldbyInsiders:
-			percentage_held_by_insiders = float(Stock.PercentageHeldbyInsiders)
-			return percentage_held_by_insiders
-	except Exception, exception:
-		print line_number(), exception
-		return None
-def percentage_held_by_institutions(Stock): # this may no be necessary
-	try:
-		if Stock.PercentageHeldbyInstitutions:
-			percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
-			return percentage_held_by_institutions
-	except Exception, exception:
-		print line_number(), exception
-		return None
-def current_ratio(Stock):
-	try:
-		if Stock.CurrentRatio_mrq:
-			current_ratio = float(Stock.CurrentRatio_mrq)
-			return current_ratio
-	except Exception, exception:
-		print line_number(), exception
-		return None
-def longTermDebtToEquity(Stock):
-	annual_data = return_existing_StockAnnualData(Stock)
-	long_term_debt = annual_data.Long_Term_Debt
-	equity = annual_data.Total_Stockholder_Equity
-	if long_term_debt == "-":
-		long_term_debt = 0.00
-	else:
-		long_term_debt = float(long_term_debt)
-	if equity == "-":
-		print 'Cannot divide by zero'
-		return "None"
-	else:
-		equity = float(equity)
-	return float(long_term_debt/equity)
-def neffEvEBIT(Stock):
-	'''
-	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
-	With a double weight on Dividends.  
-	(Data reported by database for Enterprise Value and EBIT are not per share, but it doesn't matter because:
-	[Enterprise Value/EBIT] = [Enterprise Value per share]/[EBIT per share]
-	i.e. # of shares cancels in the ratio.  
-	Also:
-	[EBIT growth %] = [EBIT per share growth %] 
-	are dimensionless ratios (written as percents).
-	
-	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years) 
-	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1) 
-	to the first fiscal year (Y2) before the most recent fiscal year(Y1).  
-	Why I didn't use Y1 I can't remember. The exact name of 
-	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100  
-	(The 100 makes it a percentage value.)
-
-	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])
-	'''
-	pass
-def neffCf3Year(Stock):
-	'''
-	(3 year Historical) Neff ratio where Earnings/Share is replaced by CashFlow/Share.
-	'''
-	pass
-
-# Stock Annual Date Scraping Functions
-# ---- unfortunately after scraping many stocks, these scraping functions need to be overhauled
-# ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
-# ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
-## --- Much has been improved, but i still need to do a re-write it for single year data.
-def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
-	one_day = (60 * 60 * 24)
-	yesterdays_epoch = float(time.time()) - one_day
-	ticker_list = list_of_ticker_symbols
-	edited_ticker_list = []
-	for ticker in ticker_list:
-		stock = return_existing_StockAnnualData(ticker)
-		if stock:
-			if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
-				print "%s is up to date (no need to update)" % ticker
-				continue # if all are up to date skip ahead, and don't append ticker
-		edited_ticker_list.append(ticker)
-	ticker_list = edited_ticker_list
-	if ticker_list:
-		print "updating:", ticker_list
-
-	for i in range(len(ticker_list)):
-		# 2 second sleep per scrape
-		# timer = count * 6 + position of data needed, function, ticker
-		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
-		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
-		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
-		timer_1.start()
-		timer_2.start()
-		timer_3.start()
-def yahoo_annual_cash_flow_scrape(ticker):
-
-	stock = return_existing_StockAnnualData(ticker)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
-			print "Cash flow data for %s is up to date." % ticker
-			return
-
-	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
-	factor = 0
-	thousands = soup.body.findAll(text= "All numbers in thousands")
-	if thousands:
-		factor = 1000
-
-	if not factor:
-		print "Error: no factor... in need of review"
-
-	table = soup.find("table", { "class" : "yfnc_tabledata1" })
-
-	data_list = []
-
-	find_all_data_in_table(table, "td", data_list, factor)
-	find_all_data_in_table(table, "strong", data_list, factor)
-
-	create_or_update_StockAnnualData(ticker, data_list, "Cash_Flow")
-
-	cash_flow_layout = 	['''
-					0	Period Ending
-					1	Period Ending
-					2	-
-					3	-
-					4	-
-					5	Operating Activities, Cash Flows Provided By or Used In
-					6	Depreciation
-					7	-
-					8	-
-					9	-
-					10	Adjustments To Net Income
-					11	-
-					12	-
-					13	-
-					14	Changes In Accounts Receivables
-					15	-
-					16	-
-					17	-
-					18	Changes In Liabilities
-					19	-
-					20	-
-					21	-
-					22	Changes In Inventories
-					23	-
-					24	-
-					25	-
-					26	Changes In Other Operating Activities
-					27	-
-					28	-
-					29	-
-					30	Investing Activities, Cash Flows Provided By or Used In
-					31	Capital Expenditures
-					32	-
-					33	-
-					34	-
-					35	Investments
-					36	-
-					37	-
-					38	-
-					39	Other Cash flows from Investing Activities
-					40	-
-					41	-
-					42	-
-					43	Financing Activities, Cash Flows Provided By or Used In
-					44	Dividends Paid
-					45	-
-					46	-
-					47	-
-					48	Sale Purchase of Stock
-					49	-
-					50	-
-					51	-
-					52	Net Borrowings
-					53	-
-					54	-
-					55	-
-					56	Other Cash Flows from Financing Activities
-					57	-
-					58	-
-					59	-
-					60	Effect Of Exchange Rate Changes
-					61	-
-					62	-
-					63	-
-					64	Net Income
-					65	-
-					66	-
-					67	-
-					68	Operating Activities, Cash Flows Provided By or Used In
-					69	Total Cash Flow From Operating Activities
-					70	-
-					71	-
-					72	-
-					73	Investing Activities, Cash Flows Provided By or Used In
-					74	Total Cash Flows From Investing Activities
-					75	-
-					76	-
-					77	-
-					78	Financing Activities, Cash Flows Provided By or Used In
-					79	Total Cash Flows From Financing Activities
-					80	-
-					81	-
-					82	-
-					83	Change In Cash and Cash Equivalents
-					84	-
-					85	-
-					86	-
-						''']
-def yahoo_annual_income_statement_scrape(ticker):
-
-	stock = return_existing_StockAnnualData(ticker)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		if stock.last_income_statement_update > yesterdays_epoch: # if data is more than a day old
-			print "Income statement data for %s is up to date." % ticker
-			return
-
-	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
-	factor = 0
-	thousands = soup.body.findAll(text= "All numbers in thousands")
-	if thousands:
-		factor = 1000
-
-	table = soup.find("table", { "class" : "yfnc_tabledata1" })
-
-	data_list = []
-
-
-	find_all_data_in_table(table, "td", data_list, factor)
-	find_all_data_in_table(table, "strong", data_list, factor)
-
-	create_or_update_StockAnnualData(ticker, data_list, "Income_Statement")
-
-	income_statment_layout = 	['''
-							0	Period Ending
-							1	Period Ending
-							2	Cost of Revenue
-							3	-
-							4	-
-							5	-
-							6	Operating Expenses
-							7	Research Development
-							8	-
-							9	-
-							10	-
-							11	Selling General and Administrative
-							12	-
-							13	-
-							14	-
-							15	Non Recurring
-							16	-
-							17	-
-							18	-
-							19	Others
-							20	-
-							21	-
-							22	-
-							23	Total Operating Expenses
-							24	-
-							25	-
-							26	-
-							27	Income from Continuing Operations
-							28	Total Other Income/Expenses Net
-							29	-
-							30	-
-							31	-
-							32	Earnings Before Interest And Taxes
-							33	-
-							34	-
-							35	-
-							36	Interest Expense
-							37	-
-							38	-
-							39	-
-							40	Income Before Tax
-							41	-
-							42	-
-							43	-
-							44	Income Tax Expense
-							45	-
-							46	-
-							47	-
-							48	Minority Interest
-							49	-
-							50	-
-							51	-
-							52	Net Income From Continuing Ops
-							53	-
-							54	-
-							55	-
-							56	Non-recurring Events
-							57	Discontinued Operations
-							58	-
-							59	-
-							60	-
-							61	Extraordinary Items
-							62	-
-							63	-
-							64	-
-							65	Effect Of Accounting Changes
-							66	-
-							67	-
-							68	-
-							69	Other Items
-							70	-
-							71	-
-							72	-
-							73	Preferred Stock And Other Adjustments
-							74	-
-							75	-
-							76	-
-							77	Total Revenue
-							78	-
-							79	-
-							80	-
-							81	Gross Profit
-							82	-
-							83	-
-							84	-
-							85	Operating Income or Loss
-							86	-
-							87	-
-							88	-
-							89	Net Income
-							90	-
-							91	-
-							92	-
-							93	Net Income Applicable To Common Shares
-							94	-
-							95	-
-							96	-
-								''']
-def yahoo_annual_balance_sheet_scrape(ticker):
-
-	stock = return_existing_StockAnnualData(ticker)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		if stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
-			print "Balance sheet data for %s is up to date." % ticker
-			return
-
-	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
-	factor = 0
-	thousands = soup.body.findAll(text= "All numbers in thousands")
-	if thousands:
-		factor = 1000
-	table = soup.find("table", { "class" : "yfnc_tabledata1" })
-
-	data_list = []
-
-	find_all_data_in_table(table, "td", data_list, factor)
-	find_all_data_in_table(table, "strong", data_list, factor)
-
-	create_or_update_StockAnnualData(ticker, data_list, "Balance_Sheet")
-
-	balance_sheet_layout = 	['''
-							0	Period Ending
-							1	Period Ending
-							2	Mar 31 2013
-							3	Mar 31 2012
-							4	Mar 31 2011
-							5	Assets
-							6	Current Assets
-							7	Cash And Cash Equivalents
-							8	4059000000
-							9	4047000000
-							10	3767000000
-							11	Short Term Investments
-							12	320000000
-							13	74000000
-							14	32000000
-							15	Net Receivables
-							16	1754000000
-							17	1524000000
-							18	1322000000
-							19	Inventory
-							20	-
-							21	-
-							22	-
-							23	Other Current Assets
-							24	391000000
-							25	300000000
-							26	206000000
-							27	Long Term Investments
-							28	72000000
-							29	2000000
-							30	5000000
-							31	Property Plant and Equipment
-							32	1191000000
-							33	1063000000
-							34	1086000000
-							35	Goodwill
-							36	364000000
-							37	195000000
-							38	185000000
-							39	Intangible Assets
-							40	68000000
-							41	34000000
-							42	11000000
-							43	Accumulated Amortization
-							44	-
-							45	-
-							46	-
-							47	Other Assets
-							48	245000000
-							49	236000000
-							50	326000000
-							51	Deferred Long Term Asset Charges
-							52	94000000
-							53	62000000
-							54	85000000
-							55	Liabilities
-							56	Current Liabilities
-							57	Accounts Payable
-							58	393000000
-							59	310000000
-							60	224000000
-							61	Short/Current Long Term Debt
-							62	-
-							63	9000000
-							64	-
-							65	Other Current Liabilities
-							66	765000000
-							67	618000000
-							68	592000000
-							69	Long Term Debt
-							70	-
-							71	-
-							72	-
-							73	Other Liabilities
-							74	27000000
-							75	22000000
-							76	72000000
-							77	Deferred Long Term Liability Charges
-							78	23000000
-							79	2000000
-							80	-
-							81	Minority Interest
-							82	-
-							83	-
-							84	-
-							85	Negative Goodwill
-							86	-
-							87	-
-							88	-
-							89	Stockholders' Equity
-							90	Misc Stocks Options Warrants
-							91	-
-							92	-
-							93	-
-							94	Redeemable Preferred Stock
-							95	-
-							96	-
-							97	-
-							98	Preferred Stock
-							99	-
-							100	-
-							101	-
-							102	Common Stock
-							103	64000000
-							104	64000000
-							105	64000000
-							106	Retained Earnings
-							107	7666000000
-							108	6509000000
-							109	5294000000
-							110	Treasury Stock
-							111	-
-							112	-
-							113	-
-							114	Capital Surplus
-							115	-
-							116	-
-							117	-
-							118	Other Stockholder Equity
-							119	-399000000
-							120	3000000
-							121	764000000
-							122	Assets
-							123	Total Current Assets
-							124	6505000000
-							125	5945000000
-							126	5312000000
-							127	Total Assets
-							128	8539000000
-							129	7537000000
-							130	7010000000
-							131	Liabilities
-							132	Total Current Liabilities
-							133	1158000000
-							134	937000000
-							135	816000000
-							136	Total Liabilities
-							137	1208000000
-							138	961000000
-							139	888000000
-							140	Stockholders' Equity
-							141	Total Stockholder Equity
-							142	-
-							143	-
-							144	-
-							145	Net Tangible Assets
-							146	-
-							147	-
-							148	-
-							''']	
-def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor):
-	for cell in table.findAll(str_to_find):
-		text = cell.find(text=True)
-		if text:
-			text = strip_string_whitespace(text)
-			text = text.replace(u'\xa0', u' ')
-			text = str(text)
-			text = text.replace(',', "")
-			if text:
-				if text[0] == "(":
-					text_list = list(text)
-					text_list[0] = "-"
-					text_list[-1] = ""
-					text = "".join(text_list)
-			if is_number(text):
-				text_float = float(text) * table_factor
-				if relevant_float(text_float):
-					text = str(text_float)
-				else:
-					text = str(int(text_float))
-
-			#if text == "Period Ending":
-			#	dates = table.findAll("th")
-			#	for date in dates:
-			#		print date
-		if text:
-			#print text
-			data_list_to_append_to.append(str(text))
-def return_existing_StockAnnualData(ticker_symbol):
-	global GLOBAL_ANNUAL_DATA_STOCK_LIST
-	for stock in GLOBAL_ANNUAL_DATA_STOCK_LIST:
-		if stock.symbol == ticker_symbol:
-			return stock
-	#if the function does not return a stock
-	return None
-def create_or_update_StockAnnualData(ticker, data_list, data_type):
-	print "--------------"
-	print data_type
-	print len(data_list)
-	#print data_list
-
-	# ?????????????????????????
-
-	stock = return_existing_StockAnnualData(ticker)
-	if not stock:
-		stock = StockAnnualData(ticker)
-		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
-
-
-	# yahoo balance sheet loop
-	default_amount_of_data = 3
-	cash_flow_data_positions = [1,6,10,14,18,22,26,31,35,39,44,48,52,56,60,64,69,74,79,83]
-	income_statement_data_postitions = [2,7,11,15,19,23,28,32,36,40,44,48,52,57,61,65,69,73,77,81,85,89,93]
-	balance_sheet_data_positions = [1,7,11,15,19,23,27,31,35,39,43,47,51,57,61,65,69,73,77,81,85,90,94,98,102,106,110,114,118,123,127,132,136,141,145]
-	# unless data list format is irregular
-	# What i'm doing here is complicated, if there are only two units of data
-	# in each data position i need to adjust the position of the list from which to grab
-	# the data. This is actually a fairly simple iteration. 
-	# If the data is different by 1 unit of data per section
-	# the adjustment is to change the position by 1, for each section.
-	# This creates a compounding adjustment, increasing by 1 unit each time,
-	# made simple by increasing the adjustment variable each pass.
-	#print "len(data_list) =", len(data_list), data_list
-	if data_type == "Balance_Sheet" and len(data_list) == 117:#96:
-		print "adjusting for 2 years worth of Balance_Sheet data"
-		default_amount_of_data = 2
-		adjusted_balance_sheet_data_positions = []
-		adjustment_variable = 0
-		for i in balance_sheet_data_positions:
-			adjusted_balance_sheet_data_positions.append(i - adjustment_variable)
-			adjustment_variable += 1
-		balance_sheet_data_positions = adjusted_balance_sheet_data_positions
-		#print balance_sheet_data_positions
-	elif data_type == "Income_Statement" and len(data_list) == 74:#59:
-		print "adjusting for 2 years worth of Income_Statement data"
-		default_amount_of_data = 2
-		adjusted_income_statement_data_positions = []
-		adjustment_variable = 0
-		for i in income_statement_data_postitions:
-			adjusted_income_statement_data_positions.append(i - adjustment_variable)
-			adjustment_variable += 1
-		income_statement_data_postitions = adjusted_income_statement_data_positions
-		#print income_statement_data_postitions
-	elif data_type == "Cash_Flow" and len(data_list) == 67:
-		print "adjusting for 2 years worth of Cash_Flow data"
-		default_amount_of_data = 2
-		adjusted_cash_flow_data_positions = []
-		adjustment_variable = 0
-		for i in cash_flow_data_positions:
-			adjusted_cash_flow_data_positions.append(i - adjustment_variable)
-			adjustment_variable += 1
-		cash_flow_data_positions = adjusted_cash_flow_data_positions
-		#print cash_flow_data_positions
-
-	data_positions = []
-	if data_type == "Cash_Flow":
-		data_positions = cash_flow_data_positions
-		stock.last_cash_flow_update = float(time.time())
-	elif data_type == "Balance_Sheet":
-		for i in data_list:
-			print i
-		data_positions = balance_sheet_data_positions
-		stock.last_balance_sheet_update = float(time.time())
-	elif data_type == "Income_Statement":
-		data_positions = income_statement_data_postitions
-		stock.last_income_statement_update = float(time.time())
-	else:
-		print "no data type selected"
-		return
-
-	# First, define period
-	if stock:
-		for i in range(len(data_list)):
-			if i in data_positions:
-				attribute = str(data_list[i])					
-				attribute = attribute.replace(" ","_")
-				attribute = attribute.replace("/","_")
-				attribute = attribute.replace("'","")
-				if attribute == "Period_Ending":
-					for j in range(default_amount_of_data):
-						data = data_list[i+j+1]
-						#print data
-						data = data[-4:]
-						#print data
-						stock.periods[j] = data
-	########
-
-	for i in range(len(data_list)):
-		if i in data_positions:
-			# attribute
-			attribute = str(data_list[i])
-			
-			#print attribute
-			
-			attribute = attribute.replace(" ","_")
-			attribute = attribute.replace("/","_")
-			attribute = attribute.replace("'","")
-			if attribute == "Period_Ending":
-				attribute = attribute + "_For_" + data_type
-			attribute_data_list = []
-			#print "default amount of data =", default_amount_of_data
-			for j in range(default_amount_of_data):
-				data = data_list[i+j+1]
-				data = data.replace(",","")
-
-				#print data
-
-				#try:
-				#	data = int(data)
-				#except:
-				#	# data is not a number
-				#	pass
-				attribute_data_list.append(data)
-			
-			year_fail_list = ["", "20XX", "20YY"]
-			for k in range(default_amount_of_data):
-				year = ""
-				if k != 0:
-					year = stock.periods[k]
-					if not year:
-						year = year_fail_list[k]
-					year = "_" + year
-				setattr(stock, attribute + year, attribute_data_list[k])
-
-	for attribute in dir(stock):
-		if not attribute.startswith("_"):
-			print ticker+"."+attribute+":" , getattr(stock, attribute)
-	
-	with open('all_annual_data_stocks.pk', 'wb') as output:
-		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-###
 
 class HeldStock(object):
 	def __init__(self, symbol, quantity, security_type):
@@ -2333,7 +1543,7 @@ class RankPage(Tab):
 					for attribute in dir(annual_data):
 						if not attribute.startswith('_'):
 							if attribute not in self.irrelevant_attributes:
-								if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+								if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
 									if attribute not in attribute_list:
 										attribute_list.append(str(attribute))
 										if str(attribute) not in self.full_attribute_list:
@@ -4177,6 +3387,842 @@ def is_number(some_string):
 		return False
 def relevant_float(some_float):
 	return (some_float - int(some_float)) != 0
+
+
+
+example_stock = Stock("GOOG")
+# Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
+def neff_5_Year_future_estimate(Stock): #incomplete
+	'''
+	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
+	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
+	'''
+	dividend_yield = float(Stock.DividendYield)
+	pass # need to find 5 year eps growth %
+def neff_TTM_historical(Stock): #incomplete
+	'''
+	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
+	In this formula you can see that I gave triple weight to dividends.  
+	I thought that over the short run (TTM) dividends represent stability and "Dividends don't lie".
+	-- Robert Schoolfield
+	'''
+	annual_data = return_existing_StockAnnualData(Stock.symbol)
+	if not annual_data:
+		print "You must update annual data for %s" % Stock.symbol
+		return
+	dividend_yield = float(Stock.DividendYield)
+
+	income_from_continuing_operations = annual_data.Net_Income_From_Continuing_Ops
+	weighted_avg_common_shares = "???" #This is fairly easily calculable using quarterly data, but that requires another scrape
+	# GOOG: http://finance.yahoo.com/q/bs?s=GOOG
+	eps_from_contiuning_operations = income_from_continuing_operations/weighted_avg_common_shares
+
+	pe_ttm = Stock.TrailingPE_ttm
+	pass
+def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to deal with error cases
+	'''
+	"Percent" Rank of Net Margin where Highest Margin = 100%% and Lowest = 0%
+
+	"Percent" Rank = ([Numerical Rank]/[Total Count of Numbers Ranked]) x 100
+	If you are ranking 500 different companies, then [Total Count of Numbers Ranked] = 500
+	'''
+	num_of_stocks = len(stock_list)
+	sort_list = []
+	for this_stock in stock_list:
+		try:
+			margin = this_stock.ProfitMargin_ttm
+			symbol = this_stock.symbol
+			if margin[-1] == "%":
+				margin = margin[:-1]
+				margin = float(margin)
+				sort_list.append([margin, symbol])
+			else:
+				print line_number(), "Format of profit margin unknown"
+		except Exception, exception:
+			# There needs to be a case here for stocks that fail... ideally there should be none though
+			print line_number(), exception, "Stock appears to have no ProfitMargin_ttm attribute."
+	stock_list.sort(key = lambda x: x[0], reverse=False) # Highest ranking ends last, i.e. closer to 100%
+
+	if len(stock_list) != len(sort_list):
+		print "Error: Some Stocks not included in margin rank function"
+		return
+
+	position = None
+	count = 1 # Need to use ordinal numbering
+	for some_tuple in sort_list:
+		if Stock.symbol == some_tuple[1]:
+			position = count
+
+	if not position:
+		print "Error: Something went wrong in margin rank function, no position for", Stock.symbol
+		return
+
+	position = float(position)
+	rank = (position/num_of_stocks) * 100
+	return rank
+
+def roePercentRank(Stock, stock_list): #incomplete
+	'''
+	%% Rank of Return on Equity.
+	Bigger is better.
+	'''
+	pass
+def roePercentDev(Stock):
+	'''
+	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
+
+	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]  
+	This determines how "smooth" the graph is of ROE for the three different years.  
+	Less than one is "smooth" while greater than one is "not smooth".
+	It also determines if the average ROE over the three years is significantly greater than zero. 
+	'''
+	# ROE = Net Income / Shareholder's Equity
+	annual_data = return_existing_StockAnnualData(Stock.symbol)
+	if not annual_data:
+		print "Error: there is no annual data for %s" % Stock.symbol
+		return
+
+
+	net_income_Y1 = float(annual_data.Net_Income)
+	shareholder_equity_Y1 = float(annual_data.Total_Stockholder_Equity)
+	roe_Y1 = net_income_Y1 / shareholder_equity_Y1
+
+	net_income_Y2 = float(annual_data.Net_Income_t1y)
+	shareholder_equity_Y2 = float(annual_data.Total_Stockholder_Equity_t1y)
+	roe_Y2 = net_income_Y1 / shareholder_equity_Y2
+
+	net_income_Y3 = float(annual_data.Net_Income_t2y)
+	shareholder_equity_Y3 = float(annual_data.Total_Stockholder_Equity_t2y)
+	roe_Y3 = net_income_Y3 / shareholder_equity_Y3
+
+	roe_data = [roe_Y1, roe_Y2, roe_Y3]
+
+	roe_mean = numpy.mean(roe_data)
+	roe_standard_deviation = numpy.std(roe_data)
+
+	roe_percent_deviation = roe_standard_deviation / roe_mean
+	return roe_percent_deviation
+	
+def price_to_book_growth(Stock):
+	'''
+	= Price Growth(over last 3 fiscal years)/Book Value Growth(over last 3 fiscal years)
+	= (Price(Y1)/Price(Y3)) / (Book Value(Y1)/Book Value(Y3))
+	= (Price(Y1)/Price(Y3)) x (Book Value(Y3)/Book Value(Y1))
+	
+	This is a ratio that Warren Buffet likes, so I thought I would throw it in.  
+	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.  
+	He likes it around 1.
+	'''
+	pass
+def kGrowth(Stock): # incomplete, no definition yet
+	pass
+def price_to_range(Stock):
+	'''
+	= Price to (52 Week Price Range) 
+	= ([Current Price] - [52 wk Low Price]) / ([52 wk High Price] - [52 wk Low Price])
+
+	If the current price is close to its 52 wk Low Price, then Prc2Rng is close to zero.
+	If the current price is close to its 52 wk High Price, then Prc2Rng is close to one.
+	If the current price is half way between its 52 wk High Price and its 52 wk Low Price, 
+	then Prc2Rng is close to 0.5.
+
+	I like to have it greater than 0.2.
+	'''
+	pass
+def percentage_held_by_insiders(Stock):
+	try:
+		if Stock.PercentageHeldbyInsiders:
+			percentage_held_by_insiders = float(Stock.PercentageHeldbyInsiders)
+			return percentage_held_by_insiders
+	except Exception, exception:
+		print line_number(), exception
+		return None
+def percentage_held_by_institutions(Stock): # this may no be necessary
+	try:
+		if Stock.PercentageHeldbyInstitutions:
+			percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
+			return percentage_held_by_institutions
+	except Exception, exception:
+		print line_number(), exception
+		return None
+def current_ratio(Stock):
+	try:
+		if Stock.CurrentRatio_mrq:
+			current_ratio = float(Stock.CurrentRatio_mrq)
+			return current_ratio
+	except Exception, exception:
+		print line_number(), exception
+		return None
+def longTermDebtToEquity(Stock):
+	annual_data = return_existing_StockAnnualData(Stock)
+	long_term_debt = annual_data.Long_Term_Debt
+	equity = annual_data.Total_Stockholder_Equity
+	if long_term_debt == "-":
+		long_term_debt = 0.00
+	else:
+		long_term_debt = float(long_term_debt)
+	if equity == "-":
+		print 'Cannot divide by zero'
+		return "None"
+	else:
+		equity = float(equity)
+	return float(long_term_debt/equity)
+def neffEvEBIT(Stock):
+	'''
+	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
+	With a double weight on Dividends.  
+	(Data reported by database for Enterprise Value and EBIT are not per share, but it doesn't matter because:
+	[Enterprise Value/EBIT] = [Enterprise Value per share]/[EBIT per share]
+	i.e. # of shares cancels in the ratio.  
+	Also:
+	[EBIT growth %] = [EBIT per share growth %] 
+	are dimensionless ratios (written as percents).
+	
+	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years) 
+	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1) 
+	to the first fiscal year (Y2) before the most recent fiscal year(Y1).  
+	Why I didn't use Y1 I can't remember. The exact name of 
+	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100  
+	(The 100 makes it a percentage value.)
+
+	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])
+	'''
+	pass
+def neffCf3Year(Stock):
+	'''
+	(3 year Historical) Neff ratio where Earnings/Share is replaced by CashFlow/Share.
+	'''
+	pass
+
+# Stock Annual Date Scraping Functions
+# ---- unfortunately after scraping many stocks, these scraping functions need to be overhauled
+# ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
+# ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
+## --- Much has been improved, but i still need to do a re-write it for single year data.
+def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
+	one_day = (60 * 60 * 24)
+	yesterdays_epoch = float(time.time()) - one_day
+	ticker_list = list_of_ticker_symbols
+	edited_ticker_list = []
+	for ticker in ticker_list:
+		stock = return_existing_StockAnnualData(ticker)
+		if stock:
+			if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
+				print "%s is up to date (no need to update)" % ticker
+				continue # if all are up to date skip ahead, and don't append ticker
+		edited_ticker_list.append(ticker)
+	ticker_list = edited_ticker_list
+	if ticker_list:
+		print "updating:", ticker_list
+
+	for i in range(len(ticker_list)):
+		# 2 second sleep per scrape
+		# timer = count * 6 + position of data needed, function, ticker
+		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
+		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
+		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
+		timer_1.start()
+		timer_2.start()
+		timer_3.start()
+def yahoo_annual_cash_flow_scrape(ticker):
+
+	stock = return_existing_StockAnnualData(ticker)
+	if stock:
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
+			print "Cash flow data for %s is up to date." % ticker
+			return
+
+	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	factor = 0
+	thousands = soup.body.findAll(text= "All numbers in thousands")
+	if thousands:
+		factor = 1000
+
+	if not factor:
+		print "Error: no factor... in need of review"
+
+	table = soup.find("table", { "class" : "yfnc_tabledata1" })
+
+	data_list = []
+
+	find_all_data_in_table(table, "td", data_list, factor)
+	find_all_data_in_table(table, "strong", data_list, factor)
+
+	create_or_update_StockAnnualData(ticker, data_list, "Cash_Flow")
+
+	cash_flow_layout = 	['''
+					0	Period Ending
+					1	Period Ending
+					2	-
+					3	-
+					4	-
+					5	Operating Activities, Cash Flows Provided By or Used In
+					6	Depreciation
+					7	-
+					8	-
+					9	-
+					10	Adjustments To Net Income
+					11	-
+					12	-
+					13	-
+					14	Changes In Accounts Receivables
+					15	-
+					16	-
+					17	-
+					18	Changes In Liabilities
+					19	-
+					20	-
+					21	-
+					22	Changes In Inventories
+					23	-
+					24	-
+					25	-
+					26	Changes In Other Operating Activities
+					27	-
+					28	-
+					29	-
+					30	Investing Activities, Cash Flows Provided By or Used In
+					31	Capital Expenditures
+					32	-
+					33	-
+					34	-
+					35	Investments
+					36	-
+					37	-
+					38	-
+					39	Other Cash flows from Investing Activities
+					40	-
+					41	-
+					42	-
+					43	Financing Activities, Cash Flows Provided By or Used In
+					44	Dividends Paid
+					45	-
+					46	-
+					47	-
+					48	Sale Purchase of Stock
+					49	-
+					50	-
+					51	-
+					52	Net Borrowings
+					53	-
+					54	-
+					55	-
+					56	Other Cash Flows from Financing Activities
+					57	-
+					58	-
+					59	-
+					60	Effect Of Exchange Rate Changes
+					61	-
+					62	-
+					63	-
+					64	Net Income
+					65	-
+					66	-
+					67	-
+					68	Operating Activities, Cash Flows Provided By or Used In
+					69	Total Cash Flow From Operating Activities
+					70	-
+					71	-
+					72	-
+					73	Investing Activities, Cash Flows Provided By or Used In
+					74	Total Cash Flows From Investing Activities
+					75	-
+					76	-
+					77	-
+					78	Financing Activities, Cash Flows Provided By or Used In
+					79	Total Cash Flows From Financing Activities
+					80	-
+					81	-
+					82	-
+					83	Change In Cash and Cash Equivalents
+					84	-
+					85	-
+					86	-
+						''']
+def yahoo_annual_income_statement_scrape(ticker):
+
+	stock = return_existing_StockAnnualData(ticker)
+	if stock:
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_income_statement_update > yesterdays_epoch: # if data is more than a day old
+			print "Income statement data for %s is up to date." % ticker
+			return
+
+	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	factor = 0
+	thousands = soup.body.findAll(text= "All numbers in thousands")
+	if thousands:
+		factor = 1000
+
+	table = soup.find("table", { "class" : "yfnc_tabledata1" })
+
+	data_list = []
+
+
+	find_all_data_in_table(table, "td", data_list, factor)
+	find_all_data_in_table(table, "strong", data_list, factor)
+
+	create_or_update_StockAnnualData(ticker, data_list, "Income_Statement")
+
+	income_statment_layout = 	['''
+							0	Period Ending
+							1	Period Ending
+							2	Cost of Revenue
+							3	-
+							4	-
+							5	-
+							6	Operating Expenses
+							7	Research Development
+							8	-
+							9	-
+							10	-
+							11	Selling General and Administrative
+							12	-
+							13	-
+							14	-
+							15	Non Recurring
+							16	-
+							17	-
+							18	-
+							19	Others
+							20	-
+							21	-
+							22	-
+							23	Total Operating Expenses
+							24	-
+							25	-
+							26	-
+							27	Income from Continuing Operations
+							28	Total Other Income/Expenses Net
+							29	-
+							30	-
+							31	-
+							32	Earnings Before Interest And Taxes
+							33	-
+							34	-
+							35	-
+							36	Interest Expense
+							37	-
+							38	-
+							39	-
+							40	Income Before Tax
+							41	-
+							42	-
+							43	-
+							44	Income Tax Expense
+							45	-
+							46	-
+							47	-
+							48	Minority Interest
+							49	-
+							50	-
+							51	-
+							52	Net Income From Continuing Ops
+							53	-
+							54	-
+							55	-
+							56	Non-recurring Events
+							57	Discontinued Operations
+							58	-
+							59	-
+							60	-
+							61	Extraordinary Items
+							62	-
+							63	-
+							64	-
+							65	Effect Of Accounting Changes
+							66	-
+							67	-
+							68	-
+							69	Other Items
+							70	-
+							71	-
+							72	-
+							73	Preferred Stock And Other Adjustments
+							74	-
+							75	-
+							76	-
+							77	Total Revenue
+							78	-
+							79	-
+							80	-
+							81	Gross Profit
+							82	-
+							83	-
+							84	-
+							85	Operating Income or Loss
+							86	-
+							87	-
+							88	-
+							89	Net Income
+							90	-
+							91	-
+							92	-
+							93	Net Income Applicable To Common Shares
+							94	-
+							95	-
+							96	-
+								''']
+def yahoo_annual_balance_sheet_scrape(ticker):
+
+	stock = return_existing_StockAnnualData(ticker)
+	if stock:
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
+			print "Balance sheet data for %s is up to date." % ticker
+			return
+
+	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+	factor = 0
+	thousands = soup.body.findAll(text= "All numbers in thousands")
+	if thousands:
+		factor = 1000
+	table = soup.find("table", { "class" : "yfnc_tabledata1" })
+
+	data_list = []
+
+	find_all_data_in_table(table, "td", data_list, factor)
+	find_all_data_in_table(table, "strong", data_list, factor)
+
+	create_or_update_StockAnnualData(ticker, data_list, "Balance_Sheet")
+
+	balance_sheet_layout = 	['''
+							0	Period Ending
+							1	Period Ending
+							2	Mar 31 2013
+							3	Mar 31 2012
+							4	Mar 31 2011
+							5	Assets
+							6	Current Assets
+							7	Cash And Cash Equivalents
+							8	4059000000
+							9	4047000000
+							10	3767000000
+							11	Short Term Investments
+							12	320000000
+							13	74000000
+							14	32000000
+							15	Net Receivables
+							16	1754000000
+							17	1524000000
+							18	1322000000
+							19	Inventory
+							20	-
+							21	-
+							22	-
+							23	Other Current Assets
+							24	391000000
+							25	300000000
+							26	206000000
+							27	Long Term Investments
+							28	72000000
+							29	2000000
+							30	5000000
+							31	Property Plant and Equipment
+							32	1191000000
+							33	1063000000
+							34	1086000000
+							35	Goodwill
+							36	364000000
+							37	195000000
+							38	185000000
+							39	Intangible Assets
+							40	68000000
+							41	34000000
+							42	11000000
+							43	Accumulated Amortization
+							44	-
+							45	-
+							46	-
+							47	Other Assets
+							48	245000000
+							49	236000000
+							50	326000000
+							51	Deferred Long Term Asset Charges
+							52	94000000
+							53	62000000
+							54	85000000
+							55	Liabilities
+							56	Current Liabilities
+							57	Accounts Payable
+							58	393000000
+							59	310000000
+							60	224000000
+							61	Short/Current Long Term Debt
+							62	-
+							63	9000000
+							64	-
+							65	Other Current Liabilities
+							66	765000000
+							67	618000000
+							68	592000000
+							69	Long Term Debt
+							70	-
+							71	-
+							72	-
+							73	Other Liabilities
+							74	27000000
+							75	22000000
+							76	72000000
+							77	Deferred Long Term Liability Charges
+							78	23000000
+							79	2000000
+							80	-
+							81	Minority Interest
+							82	-
+							83	-
+							84	-
+							85	Negative Goodwill
+							86	-
+							87	-
+							88	-
+							89	Stockholders' Equity
+							90	Misc Stocks Options Warrants
+							91	-
+							92	-
+							93	-
+							94	Redeemable Preferred Stock
+							95	-
+							96	-
+							97	-
+							98	Preferred Stock
+							99	-
+							100	-
+							101	-
+							102	Common Stock
+							103	64000000
+							104	64000000
+							105	64000000
+							106	Retained Earnings
+							107	7666000000
+							108	6509000000
+							109	5294000000
+							110	Treasury Stock
+							111	-
+							112	-
+							113	-
+							114	Capital Surplus
+							115	-
+							116	-
+							117	-
+							118	Other Stockholder Equity
+							119	-399000000
+							120	3000000
+							121	764000000
+							122	Assets
+							123	Total Current Assets
+							124	6505000000
+							125	5945000000
+							126	5312000000
+							127	Total Assets
+							128	8539000000
+							129	7537000000
+							130	7010000000
+							131	Liabilities
+							132	Total Current Liabilities
+							133	1158000000
+							134	937000000
+							135	816000000
+							136	Total Liabilities
+							137	1208000000
+							138	961000000
+							139	888000000
+							140	Stockholders' Equity
+							141	Total Stockholder Equity
+							142	-
+							143	-
+							144	-
+							145	Net Tangible Assets
+							146	-
+							147	-
+							148	-
+							''']	
+def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor):
+	for cell in table.findAll(str_to_find):
+		text = cell.find(text=True)
+		if text:
+			text = strip_string_whitespace(text)
+			text = text.replace(u'\xa0', u' ')
+			text = str(text)
+			text = text.replace(',', "")
+			if text:
+				if text[0] == "(":
+					text_list = list(text)
+					text_list[0] = "-"
+					text_list[-1] = ""
+					text = "".join(text_list)
+			if is_number(text):
+				text_float = float(text) * table_factor
+				if relevant_float(text_float):
+					text = str(text_float)
+				else:
+					text = str(int(text_float))
+
+			#if text == "Period Ending":
+			#	dates = table.findAll("th")
+			#	for date in dates:
+			#		print date
+		if text:
+			#print text
+			data_list_to_append_to.append(str(text))
+def return_existing_StockAnnualData(ticker_symbol):
+	global GLOBAL_ANNUAL_DATA_STOCK_LIST
+	for stock in GLOBAL_ANNUAL_DATA_STOCK_LIST:
+		if stock.symbol == ticker_symbol:
+			return stock
+	#if the function does not return a stock
+	return None
+def create_or_update_StockAnnualData(ticker, data_list, data_type):
+	print "--------------"
+	print data_type
+	print len(data_list)
+	#print data_list
+
+	# ?????????????????????????
+
+	stock = return_existing_StockAnnualData(ticker)
+	if not stock:
+		stock = StockAnnualData(ticker)
+		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
+
+
+	# yahoo balance sheet loop
+	default_amount_of_data = 3
+	cash_flow_data_positions = [1,6,10,14,18,22,26,31,35,39,44,48,52,56,60,64,69,74,79,83]
+	income_statement_data_postitions = [2,7,11,15,19,23,28,32,36,40,44,48,52,57,61,65,69,73,77,81,85,89,93]
+	balance_sheet_data_positions = [1,7,11,15,19,23,27,31,35,39,43,47,51,57,61,65,69,73,77,81,85,90,94,98,102,106,110,114,118,123,127,132,136,141,145]
+	# unless data list format is irregular
+	# What i'm doing here is complicated, if there are only two units of data
+	# in each data position i need to adjust the position of the list from which to grab
+	# the data. This is actually a fairly simple iteration. 
+	# If the data is different by 1 unit of data per section
+	# the adjustment is to change the position by 1, for each section.
+	# This creates a compounding adjustment, increasing by 1 unit each time,
+	# made simple by increasing the adjustment variable each pass.
+	#print "len(data_list) =", len(data_list), data_list
+	if data_type == "Balance_Sheet" and len(data_list) == 117:#96:
+		print "adjusting for 2 years worth of Balance_Sheet data"
+		default_amount_of_data = 2
+		adjusted_balance_sheet_data_positions = []
+		adjustment_variable = 0
+		for i in balance_sheet_data_positions:
+			adjusted_balance_sheet_data_positions.append(i - adjustment_variable)
+			adjustment_variable += 1
+		balance_sheet_data_positions = adjusted_balance_sheet_data_positions
+		#print balance_sheet_data_positions
+	elif data_type == "Income_Statement" and len(data_list) == 74:#59:
+		print "adjusting for 2 years worth of Income_Statement data"
+		default_amount_of_data = 2
+		adjusted_income_statement_data_positions = []
+		adjustment_variable = 0
+		for i in income_statement_data_postitions:
+			adjusted_income_statement_data_positions.append(i - adjustment_variable)
+			adjustment_variable += 1
+		income_statement_data_postitions = adjusted_income_statement_data_positions
+		#print income_statement_data_postitions
+	elif data_type == "Cash_Flow" and len(data_list) == 67:
+		print "adjusting for 2 years worth of Cash_Flow data"
+		default_amount_of_data = 2
+		adjusted_cash_flow_data_positions = []
+		adjustment_variable = 0
+		for i in cash_flow_data_positions:
+			adjusted_cash_flow_data_positions.append(i - adjustment_variable)
+			adjustment_variable += 1
+		cash_flow_data_positions = adjusted_cash_flow_data_positions
+		#print cash_flow_data_positions
+
+	data_positions = []
+	if data_type == "Cash_Flow":
+		data_positions = cash_flow_data_positions
+		stock.last_cash_flow_update = float(time.time())
+	elif data_type == "Balance_Sheet":
+		for i in data_list:
+			print i
+		data_positions = balance_sheet_data_positions
+		stock.last_balance_sheet_update = float(time.time())
+	elif data_type == "Income_Statement":
+		data_positions = income_statement_data_postitions
+		stock.last_income_statement_update = float(time.time())
+	else:
+		print "no data type selected"
+		return
+
+	# First, define period
+	if stock:
+		for i in range(len(data_list)):
+			if i in data_positions:
+				attribute = str(data_list[i])					
+				attribute = attribute.replace(" ","_")
+				attribute = attribute.replace("/","_")
+				attribute = attribute.replace("'","")
+				if attribute == "Period_Ending":
+					for j in range(default_amount_of_data):
+						data = data_list[i+j+1]
+						#print data
+						data = data[-4:]
+						#print data
+						stock.periods[j] = data
+	########
+
+	for i in range(len(data_list)):
+		if i in data_positions:
+			# attribute
+			attribute = str(data_list[i])
+			
+			#print attribute
+			
+			attribute = attribute.replace(" ","_")
+			attribute = attribute.replace("/","_")
+			attribute = attribute.replace("'","")
+			if attribute == "Period_Ending":
+				attribute = attribute + "_For_" + data_type
+			attribute_data_list = []
+			#print "default amount of data =", default_amount_of_data
+			for j in range(default_amount_of_data):
+				data = data_list[i+j+1]
+				data = data.replace(",","")
+
+				#print data
+
+				#try:
+				#	data = int(data)
+				#except:
+				#	# data is not a number
+				#	pass
+				attribute_data_list.append(data)
+			
+			### "year fail list" ### no longer relevant
+			# year_fail_list = ["", "20XX", "20YY"]
+
+			for k in range(default_amount_of_data):
+				year_list = ["", "_t1y", "_t2y"]
+				year = year_list[k]
+
+				setattr(stock, attribute + year, attribute_data_list[k])
+				
+				### I abandoned the method of years below, 
+				### it seemed stupid in retrospect to put the years on the object.attributes
+				
+				# year = ""
+				# if k != 0:
+				# 	year = stock.periods[k]
+				# 	if not year:
+				# 		year = year_fail_list[k]
+				# 	year = "_" + year
+				# setattr(stock, attribute + year, attribute_data_list[k])
+
+
+	for attribute in dir(stock):
+		if not attribute.startswith("_"):
+			print ticker+"."+attribute+":" , getattr(stock, attribute)
+	
+	with open('all_annual_data_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+###
+
+# print roePercentDev(example_stock)
+
 
 app = None
 def main():
