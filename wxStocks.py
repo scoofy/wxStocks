@@ -3461,12 +3461,50 @@ def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to d
 	rank = (position/num_of_stocks) * 100
 	return rank
 
-def roePercentRank(Stock, stock_list): #incomplete
+def roePercentRank(Stock, stock_list): #done!
 	'''
 	%% Rank of Return on Equity.
 	Bigger is better.
 	'''
-	pass
+	total_number_of_stocks_in_list = len(stock_list)
+	ticker_roe_tuple_list = [] # this is because i need to convert roe strings into floats
+	no_roe_list = [] # this will tell me below, if the stock should be counted as tied for 1st percentile
+	for i in stock_list:
+		try:
+			i.ReturnonEquity_ttm
+			if i.ReturnonEquity_ttm[-1] == "%":
+				roe_float = float(i.ReturnonEquity_ttm[:-1])
+				ticker_roe_tuple_list.append((i.symbol, roe_float))
+			else:
+				ticker_roe_tuple_list.append((i.symbol, None)) # this should automatically sort to the back of the list
+				no_roe_list.append(i.symbol)
+
+		except Exception, exception:
+			#print exception
+			ticker_roe_tuple_list.append((i.symbol, None)) # this should automatically sort to the back of the list
+			no_roe_list.append(i.symbol)
+	ticker_roe_tuple_list.sort(key = lambda x: x[1])
+
+	#print ticker_roe_tuple_list
+	position = None
+	for i in ticker_roe_tuple_list:
+		#checking the ticker against the desired stock to find percentile
+		if Stock.symbol == i[0]:
+			position = ticker_roe_tuple_list.index(i)
+			position += 1 # This is necessary to prevent dividing by zero cases, also for the calculation
+	# check and see if Stock was actually in the stock list
+	if position is not None: 
+		percentile = float(position)/float(total_number_of_stocks_in_list)
+		if Stock.symbol in no_roe_list:
+			percentile = 0.00 # tied for lowest possible percentile
+		print "total number of stocks =", total_number_of_stocks_in_list
+		print "%s's position =" % Stock.symbol, position
+		print "percentile =", percentile
+		return percentile
+	else:
+		logging.error("roePercentRank: Stock was not in stock_list")
+		return None
+
 def roePercentDev(Stock):
 	'''
 	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
