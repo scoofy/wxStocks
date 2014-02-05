@@ -22,8 +22,14 @@ class StockAnnualData(object):
 		self.last_income_statement_update = 0
 		self.last_cash_flow_update = 0
 		self.periods = ["", "", ""]
+class StockAnalystEstimates(object):
+	def __init__(self, symbol):
+		self.symbol = symbol
+		self.epoch = float(time.time())
+		self.created_epoch = float(time.time())
+		self.updated = datetime.datetime.now()
 
-
+		self.last_analyst_estimate_estimates_update = 0
 
 class HeldStock(object):
 	def __init__(self, symbol, quantity, security_type):
@@ -78,6 +84,18 @@ except Exception, e:
 	annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
 GLOBAL_ANNUAL_DATA_STOCK_LIST = pickle.load(annual_data_stock_list)
 annual_data_stock_list.close()
+
+try:
+	analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'rb')
+except Exception, e:
+	print e
+	analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'wb')
+	analyst_estimates_stock_list = []
+	with open('all_analyst_estimates_stocks.pk', 'wb') as output:
+		pickle.dump(analyst_estimates_stock_list, output, pickle.HIGHEST_PROTOCOL)
+	analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'rb')
+GLOBAL_ANALYST_ESTIMATES_STOCK_LIST = pickle.load(analyst_estimates_stock_list)
+analyst_estimates_stock_list.close()
 
 SCRAPE_CHUNK_LENGTH = 50
 SCRAPE_SLEEP_TIME = 18
@@ -1289,8 +1307,11 @@ class RankPage(Tab):
 		load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
 		load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
 
-		update_annual_data_button = wx.Button(self, label="update annual data", pos=(5,30), size=(-1,-1))
-		update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
+		update_annual_data_button = wx.Button(self, label="update annual data", pos=(5,5), size=(-1,-1))
+		update_annual_data_button.Bind(wx.EVT_BUTTON, self.updateAnnualData, update_annual_data_button)
+
+		update_analyst_estimates_button = wx.Button(self, label="update analysts estimates", pos=(5,30), size=(-1,-1))
+		update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.updateAnalystEstimates, update_analyst_estimates_button)
 
 		try:
 			existing_screen_names_file = open('screen_names.pk', 'rb')
@@ -1341,11 +1362,31 @@ class RankPage(Tab):
 		
 		self.screen_grid = None
 
-	def update_annual_data(self, event):
+	def createSpreadSheet(self, ticker_list):
+		held_ticker_list = self.held_ticker_list
+		self.screen_grid = create_spread_sheet(self, ticker_list, held_ticker_list = held_ticker_list)
+		try:
+			self.sort_drop_down.Destroy()
+			self.sort_drop_down = wx.ComboBox(self, 
+											 pos=(520, 31), 
+											 choices = full_attribute_list,
+											 style = wx.TE_READONLY
+											 )
+		except Exception, exception:
+			pass
+			#print line_number(), exception
+		self.clear_button.Show()
+		self.sort_button.Show()
+		self.sort_drop_down.Show()
+
+	def updateAnnualData(self, event):
 		scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
 		if self.full_ticker_list:
 			self.spreadSheetFill(self.full_ticker_list)
-
+	def updateAnalystEstimates(self, event):
+		scrape_analyst_estimates(self.full_ticker_list)
+		if self.full_ticker_list:
+			self.spreadSheetFill(self.full_ticker_list)
 	def clearGrid(self, event):
 		confirm = wx.MessageDialog(None, 
 								   "You are about to clear this grid.", 
@@ -1370,7 +1411,6 @@ class RankPage(Tab):
 		self.clear_button.Hide()
 		self.sort_button.Hide()
 		self.sort_drop_down.Hide()
-
 	def refreshScreens(self, event):
 		self.drop_down.Hide()
 		self.drop_down.Destroy()
@@ -1438,7 +1478,9 @@ class RankPage(Tab):
 		except Exception, exception:
 			print line_number(), exception
 
-		self.spreadSheetFill(self.full_ticker_list)
+		#self.spreadSheetFill(self.full_ticker_list)
+		self.createSpreadSheet(self.full_ticker_list)
+
 	def loadAccount(self, event):
 		selected_account_name = self.accounts_drop_down.GetValue()
 		tuple_not_found = True
@@ -1480,14 +1522,18 @@ class RankPage(Tab):
 		except Exception, exception:
 			print line_number(), exception
 
-		self.spreadSheetFill(self.full_ticker_list)
+		#self.spreadSheetFill(self.full_ticker_list)
+		self.createSpreadSheet(self.full_ticker_list)
+
 	def spreadSheetFill(self, ticker_list):
 		global GLOBAL_STOCK_LIST
 		stock_list = []
 		annual_data_list  = []
+		analyst_estimate_list = []
 		for ticker in ticker_list:
 			stock_absent = True
 			annual_data_absent = True
+			analyst_estimate_data_absent = True
 			for stock in GLOBAL_STOCK_LIST:
 				if str(ticker) == str(stock.symbol):
 					stock_list.append(stock)
@@ -1496,11 +1542,17 @@ class RankPage(Tab):
 				if str(ticker) == str(annual_data.symbol):
 					annual_data_list.append(annual_data)
 					annual_data_absent = False
+			for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
+				if str(ticker) == str(analyst_estimate_data.symbol):
+					analyst_estimate_list.append(analyst_estimate_data)
+					analyst_estimate_data_absent = False
 
 			if stock_absent:
 				logging.error('Ticker "%s" does not appear to be in the GLOBAL_STOCK_LIST' % ticker)
 			if annual_data_absent:
 				logging.error('There does not appear to be annual data for "%s," you should update annual data' % ticker)
+			if analyst_estimate_data_absent:
+				logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
 
 		self.full_attribute_list = [] # Reset root attribute list
 		attribute_list = []
@@ -1522,6 +1574,12 @@ class RankPage(Tab):
 								if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
 									if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
 										num_attributes += 1
+			for estimate_data in analyst_estimate_list:
+				if str(stock.symbol) == str(estimate_data.symbol):
+					for attribute in dir(estimate_data):
+						if not attribute.startswith('_'):
+							if attribute not in self.irrelevant_attributes:
+								num_attributes += 1
 			if num_columns < num_attributes:
 				num_columns = num_attributes
 		self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,60))
@@ -1549,6 +1607,17 @@ class RankPage(Tab):
 										if str(attribute) not in self.full_attribute_list:
 											self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
 					break
+			for estimate_data in analyst_estimate_list:
+				if str(stock.symbol) == str(estimate_data.symbol):
+					for attribute in dir(estimate_data):
+						if not attribute.startswith('_'):
+							if attribute not in self.irrelevant_attributes:
+								if attribute not in attribute_list:
+									attribute_list.append(str(attribute))
+									if str(attribute) not in self.full_attribute_list:
+										self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
+					break
+
 		#for i in self.full_attribute_list:
 		#	print line_number(), i
 		if not attribute_list:
@@ -1564,6 +1633,7 @@ class RankPage(Tab):
 		for stock in stock_list:
 			col_count = 0
 			stock_annual_data = return_existing_StockAnnualData(str(stock.symbol))
+			stock_analyst_estimate = return_existing_StockAnalystEstimates(str(stock.symbol))
 			for attribute in attribute_list:
 				#if not attribute.startswith('_'):
 				if row_count == 0:
@@ -1583,8 +1653,15 @@ class RankPage(Tab):
 						if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
 							self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
 					except:
-						#print "No %s attribute for %s" % (str(attribute), str(stock.symbol))
-						pass
+						try:
+							self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_analyst_estimate, attribute)))
+							if str(stock.symbol) in self.held_ticker_list:
+								self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+							if str(getattr(stock_analyst_estimate, attribute)).startswith("(") or (str(getattr(stock_analyst_estimate, attribute)).startswith("-") and len(str(getattr(stock_analyst_estimate, attribute))) > 0):
+								self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+						except Exception, exception:
+							print exception
+							print line_number()
 					#print line_number(), exception
 				# try:
 				# 	if str(getattr(stock, attribute)) in ["N/A", "-", "None"]:
@@ -3605,7 +3682,7 @@ def longTermDebtToEquity(Stock):
 	else:
 		equity = float(equity)
 	return float(long_term_debt/equity)
-def neffEvEBIT(Stock):
+def neffEvEBIT(Stock): #incomplete
 	'''
 	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
 	With a double weight on Dividends.  
@@ -3626,13 +3703,13 @@ def neffEvEBIT(Stock):
 	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])
 	'''
 	pass
-def neffCf3Year(Stock):
+def neffCf3Year(Stock): #incomplete
 	'''
 	(3 year Historical) Neff ratio where Earnings/Share is replaced by CashFlow/Share.
 	'''
 	pass
 
-# Stock Annual Date Scraping Functions
+# Stock Annual Data Scraping Functions
 # ---- unfortunately after scraping many stocks, these scraping functions need to be overhauled
 # ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
 # ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
@@ -4076,7 +4153,7 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 							147	-
 							148	-
 							''']	
-def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor):
+def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor=1):
 	for cell in table.findAll(str_to_find):
 		text = cell.find(text=True)
 		if text:
@@ -4258,8 +4335,524 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 	with open('all_annual_data_stocks.pk', 'wb') as output:
 		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 ###
+# Stock Analyst Estimates Scraping Functions
+def return_existing_StockAnalystEstimates(ticker_symbol):
+	global GLOBAL_ANALYST_ESTIMATES_STOCK_LIST
+	for stock in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
+		if stock.symbol == ticker_symbol:
+			return stock
+	#if the function does not return a stock
+	return None
+def yahoo_analyst_estimates_scrape(ticker):
+	stock = return_existing_StockAnalystEstimates(ticker)
+	if not stock:
+		stock = StockAnalystEstimates(ticker)
+		GLOBAL_ANALYST_ESTIMATES_STOCK_LIST.append(stock)
+
+	if stock:
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		if stock.last_analyst_estimate_estimates_update > yesterdays_epoch: # if data is more than a day old
+			print "Analyst estimate data for %s is up to date." % ticker
+			#return
+
+	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+
+	data_list = []
+	date_list = [None, None, None, None]
+
+	table = soup.findAll("table", { "class" : "yfnc_tableout1" })
+
+	print "table:", len(table), "rows"
+	count = 0
+	for i in table:
+		rows = i.findChildren('tr')
+		print "rows:", len(rows), "columns"
+		for row in rows:
+			cells = row.findChildren(['strong','th','td','br'])
+			# print len(cells)
+			# if len(cells) > 20:
+			# 	# this is very probably a duplicate chunk
+			# 	continue
+			# 	pass
+			# print "cells:", len(cells)
+
+			# cells_copy = []
+			# for i in cells:
+			# 	if str(i) == "<br />":
+			# 		continue
+			# 	else:
+			# 		cells_copy.append(i)
+			# cells = cells_copy
+			# #for i in cells:
+			# #	print i, "\n"
+			# print len(cells), "\n"
+
+			for cell in cells:
+				if len(cell.contents) == 3: #this is specifically to capture the quarter dates
+					date_period = cell.contents[0]
+					date_period = date_period.replace(" ","_")
+					date_period = date_period.replace("/","_")
+					date_period = date_period.replace(".","")
+					date_period = date_period.replace("'","")
+					date_period = str(date_period)
+
+					date_value = cell.contents[2]
+					date_value = date_value.replace(" ","_")
+					date_value = date_value.replace("/","_")
+					date_value = date_value.replace(".","")
+					date_value = date_value.replace("'","")
+					date_value = str(date_value)
+
+					#print count, "|", date_period, "|", date_value
+					count += 1
+					data = date_period
+					date_data = date_value
+					
+					date_position = None
+					if date_period == "Current_Qtr":
+						date_position = 0
+					elif date_period == "Next_Qtr":
+						date_position = 1
+					elif date_period == "Current_Year":
+						date_position = 2
+					elif date_period == "Next_Year":
+						date_position = 3
+					
+					if date_position is not None:
+						if date_list[date_position] is None:
+							date_list[date_position] = date_data
+							#print date_list
+						elif date_list[date_position] != date_value:
+							print "Error"
+							return
+
+
+				elif cell.string is not None:
+					value = cell.string 
+					#print count, "|", value
+					count += 1
+					data = str(value)
+
+				else:
+					#print cell
+					children = cell.findChildren()
+					for child in children:
+						value = child.string
+						if value is not None:
+							#print count, "|", value
+							count += 1
+							data = str(value)
+						else:
+							pass 
+							# print count, "|", child
+							# count += 1
+				if data:
+					if data not in ["Current_Qtr", "Next_Qtr", "Current_Year", "Next_Year"]:
+						data_list.append(data)
+					data = None
+	
+	standard_analyst_scrape_positions = [1, ]
+	heading_positions = [
+							1,  # Earnings Est
+							28, # Revenue Est
+							60, # Earnings History
+							86, # EPS Trends
+							113,# EPS Revisions 
+							135 # Growth Est
+						]
+	subheading_positions = [
+							2, 7, 12, 17, 22, # Earnings Est
+							29, 34, 39, 44, 49, 54, # Revenue Est
+							65, 70, 75, 80, # Earnings History
+							87, 92, 97, 102, 107, # EPS Trends
+							114, 119, 124, 129, # EPS Revisions
+							# this is where the special non-date related subheadings start
+							140, 145, 150, 155, 160, 165, 170, 175, # Growth Est
+							]
+
+	heading = None
+	subheading = None
+	date_period_list = ["Current_Qtr", "Next_Qtr", "Current_Year", "Next_Year"]
+	date_period_list_position = 0
+
+	earnings_history_date_locations = [heading_positions[2]+1, heading_positions[2]+2, heading_positions[2]+3, heading_positions[2]+4]
+	earnings_history_dates = ["12_months_ago", "9_months_ago", "6_months_ago", "3_months_ago"]
+	earnings_history_date_position = 0
+
+	growth_estimate_reference_locations = [heading_positions[-1]+1, heading_positions[-1]+2, heading_positions[-1]+3, heading_positions[-1]+4]
+	growth_estimate_references = ["Stock", "Industry", "Sector", "S&P_500"]
+	growth_estimate_reference_position = 0
+
+	headings = ["Earnings Est", "Revenue Est", "EPS Trends", "EPS Revisions", "Earnings History","Growth Est"]
+	subheadings = [
+					"Avg. Estimate",
+					"No. of Analysts",
+					"Low Estimate",
+					"High Estimate",
+					"Year Ago EPS",
+					"Avg. Estimate",
+					"No. of Analysts",
+					"Low Estimate",
+					"High Estimate",
+					"Year Ago Sales",
+					"Sales Growth (year/est)",
+
+					"Sales Growth (year over est)", # needed for edited subheading
+
+					"EPS Est",
+					"EPS Actual",
+					"Difference",
+					"Surprise %",
+					"Current Estimate",
+					"7 Days Ago",
+					"30 Days Ago",
+					"60 Days Ago",
+					"90 Days Ago",
+					"Up Last 7 Days",
+					"Up Last 30 Days",
+					"Down Last 30 Days",
+					"Down Last 90 Days",
+					"Current Qtr.", 
+					"Next Qtr.", 
+					"This Year", 
+					"Next Year", 
+					"Past 5 Years (per annum)", 
+					"Next 5 Years (per annum)", 
+					"Price/Earnings (avg. for comparison categories)", 
+					"PEG Ratio (avg. for comparison categories)",
+					]
+
+	next_position_is_heading = False
+	next_position_is_subheading = False
+	data_countdown = 0
+
+	count = 0 # 0th will always be skipped
+	for i in data_list:
+		do_print = True
+
+		if str(i) in headings and next_position_is_heading == False:
+			next_position_is_heading = True
+
+		elif str(i) in headings and next_position_is_heading == True:
+			heading = i
+			next_position_is_subheading = True
+			next_position_is_heading = False
+
+		elif next_position_is_subheading == True:
+			subheading = i
+			data_countdown = 4
+			next_position_is_subheading = False
+
+		elif data_countdown > 0:
+			if str(subheading) not in subheadings:
+				print "%d > %s > %s" % (count, subheading, i)
+				subheading = None
+				next_position_is_subheading = True
+				continue
+			if heading in ["Earnings Est", "Revenue Est", "EPS Trends", "EPS Revisions"]:
+				if subheading == "Sales Growth (year/est)":
+					subheading = "Sales Growth (year over est)"
+				stock_attribute_name = str(heading) + "_" + str(subheading) + "_" + str(date_period_list[date_period_list_position % 4])
+				date_period_list_position += 1
+
+			elif heading in ["Earnings History"]:
+				if count not in earnings_history_date_locations:
+					stock_attribute_name = str(heading) + "_" + str(subheading) + "_" + str(earnings_history_dates[earnings_history_date_position % 4])
+					earnings_history_date_position += 1
+				else:
+					print 
+
+			elif heading in ["Growth Est"]:
+				if count not in growth_estimate_reference_locations:
+					stock_attribute_name = str(heading) + "_" + str(subheading) + "_" + str(growth_estimate_references[growth_estimate_reference_position % 4])
+					growth_estimate_reference_position += 1
+
+			stock_attribute_name = stock_attribute_name.replace(" ","_")
+			stock_attribute_name = stock_attribute_name.replace("/","_")
+			stock_attribute_name = stock_attribute_name.replace(".","")
+			stock_attribute_name = stock_attribute_name.replace("'","")
+			stock_attribute_name = stock_attribute_name.replace("%","Pct")
+			stock_attribute_name = stock_attribute_name.replace("(","")
+			stock_attribute_name = stock_attribute_name.replace(")","")
+
+			setattr(stock, stock_attribute_name, i)
+
+			print "%d > %s.%s = %s" % (count, stock.symbol, stock_attribute_name, i)
+			do_print = False
+
+			data_countdown -= 1
+			if data_countdown == 0 and next_position_is_subheading != True:
+				subheading = None
+				next_position_is_subheading = True
+
+		if do_print == True:
+			print count, "|", i
+		count += 1
+		skip_position = False
+
+	with open('all_analyst_estimates_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_ANALYST_ESTIMATES_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+###
+def scrape_analyst_estimates(list_of_ticker_symbols):
+	one_day = (60 * 60 * 24)
+	yesterdays_epoch = float(time.time()) - one_day
+	ticker_list = list_of_ticker_symbols
+	edited_ticker_list = []
+	for ticker in ticker_list:
+		stock = return_existing_StockAnalystEstimates(ticker)
+		if stock:
+			if stock.last_analyst_estimate_estimates_update > yesterdays_epoch: # if data is more than a day old
+				print "%s is up to date (no need to update)" % ticker
+				continue # if all are up to date skip ahead, and don't append ticker
+		edited_ticker_list.append(ticker)
+	ticker_list = edited_ticker_list
+	if ticker_list:
+		print "updating:", ticker_list
+
+	for i in range(len(ticker_list)):
+		# 2 second sleep per scrape
+		# timer = count * 2, function, ticker
+		timer_1 = threading.Timer((i * 2), yahoo_analyst_estimates_scrape, [ticker_list[i]])
+		timer_1.start()
 
 # print roePercentDev(example_stock)
+
+def create_spread_sheet(wxWindow, 
+                        ticker_list,
+                        held_ticker_list = [],
+						include_basic_stock_data = True, 
+                        include_annual_data = True, 
+                        include_analyst_estimates = True, 
+                        height = 637, width = 980, 
+                        position = (0,60),
+                        enable_editing = False,
+                        ):
+	
+	global GLOBAL_STOCK_LIST
+	global IRRELEVANT_ATTRIBUTES
+	irrelevant_attributes = IRRELEVANT_ATTRIBUTES
+
+	all_lists = []
+
+	basic_data_list = []
+	if include_basic_stock_data:
+		all_lists.append(basic_data_list)
+
+	annual_data_list  = []
+	if include_annual_data:
+		all_lists.append(annual_data_list)
+	
+	analyst_estimate_list = []
+	if include_analyst_estimates:
+		all_lists.append(analyst_estimate_list)
+
+	for ticker in ticker_list:
+
+		if include_basic_stock_data:
+			stock_absent = True
+			for stock in GLOBAL_STOCK_LIST:
+				if str(ticker) == str(stock.symbol):
+					basic_data_list.append(stock)
+					stock_absent = False
+			if stock_absent:
+				logging.error('Ticker "%s" does not appear to be in the GLOBAL_STOCK_LIST' % ticker)
+
+		if include_annual_data:
+			annual_data_absent = True
+			for annual_data in GLOBAL_ANNUAL_DATA_STOCK_LIST:
+				if str(ticker) == str(annual_data.symbol):
+					annual_data_list.append(annual_data)
+					annual_data_absent = False
+			if annual_data_absent:
+				logging.error('There does not appear to be annual data for "%s," you should update annual data' % ticker)
+		
+		if include_analyst_estimates:
+			analyst_estimate_data_absent = True
+			for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
+				if str(ticker) == str(analyst_estimate_data.symbol):
+					analyst_estimate_list.append(analyst_estimate_data)
+					analyst_estimate_data_absent = False
+			if analyst_estimate_data_absent:
+				logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
+
+	full_attribute_list = [] # not sure if this is necessary
+	attribute_list = []
+
+	num_rows = len(ticker_list)
+	num_columns = 0
+	# Here we make columns for each attribute to be included
+	for this_list in all_lists:
+		for stock in this_list:
+			num_attributes = 0
+			if include_basic_stock_data:
+				for basic_data in basic_data_list:
+					if str(stock.symbol) == str(basic_data.symbol):
+						for attribute in dir(basic_data):
+							if not attribute.startswith('_'):
+								if attribute not in irrelevant_attributes:
+									num_attributes += 1
+									if attribute not in attribute_list:
+										attribute_list.append(str(attribute))
+										
+										# if str(attribute) not in full_attribute_list:
+										#	full_attribute_list.append(str(attribute))
+
+			if include_annual_data:
+				for annual_data in annual_data_list:
+					if str(stock.symbol) == str(annual_data.symbol):
+						for attribute in dir(annual_data):
+							if not attribute.startswith('_'):
+								if attribute not in irrelevant_attributes:
+									if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+										if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
+											num_attributes += 1
+											if attribute not in attribute_list:
+												attribute_list.append(str(attribute))
+			
+			if include_analyst_estimates:
+				for estimate_data in analyst_estimate_list:
+					if str(stock.symbol) == str(estimate_data.symbol):
+						for attribute in dir(estimate_data):
+							if not attribute.startswith('_'):
+								if attribute not in irrelevant_attributes:
+									num_attributes += 1
+									if attribute not in attribute_list:
+										attribute_list.append(str(attribute))
+
+			##### Model if adding new data type #####
+			#
+			# if include_data_type:
+			# 	for data in data_type:
+			# 		if str(stock.symbol) == str(data_type.symbol):
+			# 			for attribute in dir(data_type):
+			# 				if not attribute.startswith('_'):
+			# 					if attribute not in irrelevant_attributes:
+			# 						num_attributes += 1
+			# 						if attribute not in attribute_list:
+			# 							attribute_list.append(str(attribute))
+
+		if num_columns < num_attributes:
+			num_columns = num_attributes
+
+	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+
+	screen_grid.CreateGrid(num_rows, num_columns)
+	screen_grid.EnableEditing(enable_editing)
+
+	if not attribute_list:
+		logging.warning('attribute list empty')
+		return
+	attribute_list.sort()
+	# adjust list order for important terms
+	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+	attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
+
+	# fill in grid
+	row_count = 0
+	for ticker in ticker_list:
+		col_count = 0
+
+		basic_stock_data = None
+		if include_basic_stock_data:
+			basic_stock_data = return_stock_by_symbol(ticker)
+		stock_annual_data = None
+		if include_annual_data:
+			stock_annual_data = return_existing_StockAnnualData(ticker)
+		stock_analyst_data = None
+		if include_analyst_estimates:
+			stock_analyst_estimate = return_existing_StockAnalystEstimates(ticker)
+
+		no_stock = True
+		if basic_stock_data or stock_annual_data or stock_analyst_data:
+			no_stock = False
+		
+
+
+		for attribute in attribute_list:
+			# set attributes to be labels if it's the first run through
+			if row_count == 0:
+				screen_grid.SetColLabelValue(col_count, str(attribute))
+
+			if no_stock:
+				# If there is no data on the ticker, just place the ticker in the first position
+				screen_grid.SetCellValue(row_count, 0, ticker)
+				break
+
+			try:
+				# Try to add basic data value
+				screen_grid.SetCellValue(row_count, col_count, str(getattr(basic_stock_data, attribute)))
+
+				# Add color if relevant
+				if str(ticker) in held_ticker_list:
+					screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+				# Change text red if value is negative
+				if str(getattr(basic_stock_data, attribute)).startswith("(") or str(getattr(basic_stock_data, attribute)).startswith("-"):
+					screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+			except Exception, exception:
+				# This will fail if we are not dealing with a basic data attribute
+				try:
+					# Try to add an annual data value
+					screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
+					
+					# Add color if relevant
+					if str(ticker) in held_ticker_list:
+						screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+
+					# Change text red if value is negative
+					if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
+						screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+				except:
+					# This will fail if we are not dealing with an annual data attribute
+					try:
+						screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_analyst_estimate, attribute)))
+						
+						# Add color if relevant
+						if str(ticker) in held_ticker_list:
+							screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+						
+						# Change text red if value is negative
+						if str(getattr(stock_analyst_estimate, attribute)).startswith("(") or (str(getattr(stock_analyst_estimate, attribute)).startswith("-") and len(str(getattr(stock_analyst_estimate, attribute))) > 0):
+							screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+					except Exception, exception:
+						print exception
+						print line_number()
+
+						### model to add new data type ###
+
+						# # This will fail if we are not dealing with a PREVIOUS_DATA_TYPE attribute
+						# try:
+						# 	screen_grid.SetCellValue(row_count, col_count, str(getattr(data_type, attribute)))
+							
+						# 	# Add color if relevant
+						# 	if str(ticker) in held_ticker_list:
+						# 		screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+							
+						# 	# Change text red if value is negative
+						# 	if str(getattr(data_type, attribute)).startswith("(") or (str(getattr(data_type, attribute)).startswith("-") and len(str(getattr(data_type, attribute))) > 0):
+						# 		screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+						# except Exception, exception:
+						# 	# etc...
+			col_count += 1
+		row_count += 1
+
+	screen_grid.AutoSizeColumns()
+
+	return screen_grid
+	
+	### this may need to come after
+	try:
+		self.sort_drop_down.Destroy()
+		self.sort_drop_down = wx.ComboBox(self, 
+										 pos=(520, 31), 
+										 choices = full_attribute_list,
+										 style = wx.TE_READONLY
+										 )
+	except Exception, exception:
+		pass
+		#print line_number(), exception
+	self.clear_button.Show()
+	self.sort_button.Show()
+	self.sort_drop_down.Show()
 
 
 app = None
