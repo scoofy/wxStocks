@@ -3468,6 +3468,70 @@ def relevant_float(some_float):
 
 
 example_stock = Stock("GOOG")
+
+def neff_ratio_5y(Stock):
+	# Neff is total return/PE. Source: http://www.forbes.com/2010/06/01/tupperware-cvs-astrazeneca-intelligent-investing-neff-value.html
+	# Total return is defined as: EPS growth rate + dividend yield
+	# Now YQL provides his data:
+	##	PEG 5 year = PE/EPS Growth 5 Year
+	##	Yield = Dividend Yield
+	##	PE = PE
+	####
+	## Therefore
+	# Neff 5 year = (1 / PEG 5 year) + (Yield / PE)
+	# thus:
+	try:
+		peg5 = Stock.PEGRatio_5_yr_expected
+		dividend_yield = Stock.DividendYield
+		pe = Stock.PERatio
+		print "PEG =", peg5
+		print "type =", type(peg5)
+		print "Yield =", dividend_yield
+		print "type =", type(dividend_yield)
+		print "PE =", pe
+		print "type =", type(pe)
+
+	except Exception, exception:
+		print exception
+		print line_number(), "%s is missing required data" % Stock.symbol
+		return None
+
+	if peg5 is None or str(peg5) == "N/A":
+		peg5 = None
+	else:
+		peg5 = float(peg5)
+
+	if dividend_yield == "None" or dividend_yield is None:
+		dividend_yield = 0.00
+	else:
+		dividend_yield = float(dividend_yield)
+
+	if pe is None:
+		pass
+	else:
+		pe = float(pe)
+
+
+	print "PEG =", peg5
+	print "type =", type(peg5)
+	print "Yield =", dividend_yield 
+	print "type =", type(dividend_yield)
+	print "PE =", pe
+	print "type =", type(pe)
+
+	if peg5 and pe:
+		neff5 = (1 / peg5) + (dividend_yield / pe)
+	else:
+		neff5 = None
+
+	print "Neff 5 year =", neff5
+	return neff5
+
+	#neff_5_year = 
+the_stock = return_stock_by_symbol("GOOG")
+neff_ratio_5y(the_stock)
+
+
 # Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
 def neff_5_Year_future_estimate(Stock): #incomplete
 	'''
@@ -3740,7 +3804,6 @@ def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
 		timer_2.start()
 		timer_3.start()
 def yahoo_annual_cash_flow_scrape(ticker):
-
 	stock = return_existing_StockAnnualData(ticker)
 	if stock:
 		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
@@ -3856,7 +3919,6 @@ def yahoo_annual_cash_flow_scrape(ticker):
 					86	-
 						''']
 def yahoo_annual_income_statement_scrape(ticker):
-
 	stock = return_existing_StockAnnualData(ticker)
 	if stock:
 		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
@@ -3980,7 +4042,6 @@ def yahoo_annual_income_statement_scrape(ticker):
 							96	-
 								''']
 def yahoo_annual_balance_sheet_scrape(ticker):
-
 	stock = return_existing_StockAnnualData(ticker)
 	if stock:
 		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
