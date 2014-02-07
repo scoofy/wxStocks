@@ -294,6 +294,9 @@ class MainFrame(wx.Frame):
 		self.portfolio_page = PortfolioPage(notebook)
 		notebook.AddPage(self.portfolio_page, "Portfolio")
 
+		self.stock_data_page = StockDataPage(notebook)
+		notebook.AddPage(self.stock_data_page, "Ticker Data")
+
 		# finally, put the notebook in a sizer for the panel to manage
 		# the layout
 
@@ -3228,6 +3231,30 @@ class PortfolioAccountTab(Tab):
 		self.account_obj = None
 		PORTFOLIO_OBJECTS_LIST[(int(self.portfolio_id) - 1)] = self.account_obj
 
+class StockDataPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+
+		rank_page_text = wx.StaticText(self, -1, 
+							 "Data for stock:", 
+							 (10,10)
+							 )
+		self.ticker_input = wx.TextCtrl(self, -1, 
+		                           "ticker",
+		                           (110, 8)
+		                           )
+		load_screen_button = wx.Button(self, 
+		                                  label="look up", 
+		                                  pos=(210,5), 
+		                                  size=(-1,-1)
+		                                  )
+		load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
+	def createOneStockSpreadSheet(self, event):
+		ticker = self.ticker_input.GetValue()
+		if str(ticker) == "ticker":
+			return
+		self.screen_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper())
+
 ####################### Screening functions #######################
 def screen_pe_less_than_10():
 	global GLOBAL_STOCK_LIST
@@ -3469,7 +3496,7 @@ def relevant_float(some_float):
 
 example_stock = Stock("GOOG")
 
-def neff_ratio_5y(Stock):
+def neff_ratio_5y(Stock): # requires only primary scrape
 	# Neff is total return/PE. Source: http://www.forbes.com/2010/06/01/tupperware-cvs-astrazeneca-intelligent-investing-neff-value.html
 	# Total return is defined as: EPS growth rate + dividend yield
 	# Now YQL provides his data:
@@ -3533,13 +3560,12 @@ neff_ratio_5y(the_stock)
 
 
 # Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
-def neff_5_Year_future_estimate(Stock): #incomplete
+def neff_5_Year_future_estimate(Stock): # done!
 	'''
 	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
 	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
 	'''
-	dividend_yield = float(Stock.DividendYield)
-	pass # need to find 5 year eps growth %
+	return neff_ratio_5y(Stock)
 def neff_TTM_historical(Stock): #incomplete
 	'''
 	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
@@ -3645,8 +3671,7 @@ def roePercentRank(Stock, stock_list): #done!
 	else:
 		logging.error("roePercentRank: Stock was not in stock_list")
 		return None
-
-def roePercentDev(Stock):
+def roePercentDev(Stock): #done!
 	'''
 	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
 
@@ -4396,6 +4421,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 	with open('all_annual_data_stocks.pk', 'wb') as output:
 		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 ###
+
 # Stock Analyst Estimates Scraping Functions
 def return_existing_StockAnalystEstimates(ticker_symbol):
 	global GLOBAL_ANALYST_ESTIMATES_STOCK_LIST
@@ -4653,7 +4679,6 @@ def yahoo_analyst_estimates_scrape(ticker):
 
 	with open('all_analyst_estimates_stocks.pk', 'wb') as output:
 		pickle.dump(GLOBAL_ANALYST_ESTIMATES_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-###
 def scrape_analyst_estimates(list_of_ticker_symbols):
 	one_day = (60 * 60 * 24)
 	yesterdays_epoch = float(time.time()) - one_day
@@ -4675,9 +4700,9 @@ def scrape_analyst_estimates(list_of_ticker_symbols):
 		# timer = count * 2, function, ticker
 		timer_1 = threading.Timer((i * 2), yahoo_analyst_estimates_scrape, [ticker_list[i]])
 		timer_1.start()
+###
 
-# print roePercentDev(example_stock)
-
+############# Spreadsheet Functions ###############
 def create_spread_sheet(wxWindow, 
                         ticker_list,
                         held_ticker_list = [],
@@ -4803,7 +4828,7 @@ def create_spread_sheet(wxWindow,
 	if not attribute_list:
 		logging.warning('attribute list empty')
 		return
-	attribute_list.sort()
+	attribute_list.sort(key = lambda x: x.lower())
 	# adjust list order for important terms
 	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 	attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
@@ -4914,6 +4939,159 @@ def create_spread_sheet(wxWindow,
 	self.clear_button.Show()
 	self.sort_button.Show()
 	self.sort_drop_down.Show()
+def create_spread_sheet_for_one_stock(wxWindow, 
+                        ticker,
+						include_basic_stock_data = True, 
+                        include_annual_data = True, 
+                        include_analyst_estimates = True, 
+                        height = 637, width = 980, 
+                        position = (0,60),
+                        enable_editing = False,
+                        ):
+	basic_data = None
+	annual_data = None
+	analyst_estimates = None
+
+	data_list = []
+
+	if include_basic_stock_data:
+		basic_data = return_stock_by_symbol(ticker)
+		if basic_data:
+			data_list.append(basic_data)
+
+	if include_annual_data:
+		annual_data = return_existing_StockAnnualData(ticker)
+		if annual_data:
+			data_list.append(annual_data)
+
+	if include_analyst_estimates:
+		analyst_estimates = return_existing_StockAnalystEstimates(ticker)
+		if analyst_estimates:
+			data_list.append(analyst_estimates)
+
+	if include_basic_stock_data:
+		if not basic_data:
+			logging.error('Ticker "%s" does not appear to have basic data' % ticker)
+
+	if include_annual_data:
+		if not annual_data:
+			logging.error('There does not appear to be annual data for "%s," you should update annual data' % ticker)
+	
+	if include_analyst_estimates:
+		if not analyst_estimates:
+			logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
+
+	attribute_list = []
+	num_columns = 2 # for this we only need two columns
+	num_rows = 0
+	# Here we make rows for each attribute to be included
+	num_attributes = 0
+	for stock in data_list:
+		if basic_data:
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					if attribute not in attribute_list:
+						num_attributes += 1
+						attribute_list.append(str(attribute))
+					else:
+						print "%s.%s" % (ticker, attribute), "is a duplicate"
+
+		elif annual_data:
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					if attribute not in attribute_list:
+						num_attributes += 1
+						attribute_list.append(str(attribute))
+					else:
+						print "%s.%s" % (ticker, attribute), "is a duplicate"
+		
+		elif analyst_estimates:
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					if attribute not in attribute_list:
+						num_attributes += 1
+						attribute_list.append(str(attribute))
+					else:
+						print "%s.%s" % (ticker, attribute), "is a duplicate"
+
+		if num_rows < num_attributes:
+			num_rows = num_attributes
+
+	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+
+	screen_grid.CreateGrid(num_rows, num_columns)
+	screen_grid.EnableEditing(enable_editing)
+
+	if not attribute_list:
+		logging.warning('attribute list empty')
+		return
+	attribute_list.sort(key = lambda x: x.lower())
+	# adjust list order for important terms
+	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+	attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
+
+	# fill in grid
+	col_count = 1 # data will go on the second row
+	row_count = 0
+	for attribute in attribute_list:
+		# set attributes to be labels if it's the first run through
+		if row_count == 0:
+			screen_grid.SetColLabelValue(0, "attribute")
+			screen_grid.SetColLabelValue(1, "data")
+
+		try:
+			# Add attribute name
+			screen_grid.SetCellValue(row_count, col_count-1, str(attribute))
+
+			# Try to add basic data value
+			screen_grid.SetCellValue(row_count, col_count, str(getattr(basic_data, attribute)))
+
+			# Change text red if value is negative
+			if str(getattr(basic_data, attribute)).startswith("(") or str(getattr(basic_data, attribute)).startswith("-"):
+				screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+
+		except Exception, exception:
+			# This will fail if we are not dealing with a basic data attribute
+			try:
+				# Try to add an annual data value
+				screen_grid.SetCellValue(row_count, col_count, str(getattr(annual_data, attribute)))
+				
+				# Change text red if value is negative
+				if str(getattr(annual_data, attribute)).startswith("(") or (str(getattr(annual_data, attribute)).startswith("-") and len(str(getattr(annual_data, attribute))) > 1):
+					screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+			except:
+				# This will fail if we are not dealing with an annual data attribute
+				try:
+					screen_grid.SetCellValue(row_count, col_count, str(getattr(analyst_estimates, attribute)))
+
+					# Change text red if value is negative
+					if str(getattr(analyst_estimates, attribute)).startswith("(") or (str(getattr(analyst_estimates, attribute)).startswith("-") and len(str(getattr(analyst_estimates, attribute))) > 0):
+						screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+				except Exception, exception:
+					print exception
+					print line_number()
+
+					### model to add new data type ###
+
+					# # This will fail if we are not dealing with a PREVIOUS_DATA_TYPE attribute
+					# try:
+					# 	screen_grid.SetCellValue(row_count, col_count, str(getattr(data_type, attribute)))
+						
+					# 	# Add color if relevant
+					# 	if str(ticker) in held_ticker_list:
+					# 		screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+						
+					# 	# Change text red if value is negative
+					# 	if str(getattr(data_type, attribute)).startswith("(") or (str(getattr(data_type, attribute)).startswith("-") and len(str(getattr(data_type, attribute))) > 0):
+					# 		screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+					# except Exception, exception:
+					# 	# etc...
+		row_count += 1
+
+	screen_grid.AutoSizeColumns()
+
+	return screen_grid
+###################################################
 
 
 app = None
