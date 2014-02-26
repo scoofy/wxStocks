@@ -1,14 +1,14 @@
 import wx, numpy
-import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2
+import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2, json
 import cPickle as pickle
 from pyql import pyql
 from wx.lib import sheet
 from BeautifulSoup import BeautifulSoup
-try:
-    import simplejson as json
-except ImportError, exception:
-	print exception
-	import json
+#try:
+#    import simplejson as json
+#except ImportError, exception:
+#	print exception
+#	import json
 
 class Stock(object):
 	def __init__(self, symbol):
@@ -4540,6 +4540,14 @@ def morningstar_annual_cash_flow_scrape(ticker):
 		for i in range(100): # this may need to be larger
 			label = soup.find("div", {"id":"label_%s%d" % (div_id, count)})
 			if label:
+				try:
+					label["style"]
+					if "display:none;" in str(label["style"]):
+						# I'm not comfortable accepting unshown data right now
+						count+=1
+						continue
+				except:
+					pass
 				name = label.find("div", {"class":"lbl"})
 				try:
 					title = name["title"]
@@ -4580,10 +4588,14 @@ def morningstar_annual_cash_flow_scrape(ticker):
 	for datum in full_data:
 		attribute = datum[0]
 		attribute = attribute.replace(" ","_")
+		attribute = attribute.replace("-","_")
 		attribute = attribute.replace("/","_")
 		attribute = attribute.replace(",","_")
 		attribute = attribute.replace("'","")
 		attribute = attribute.replace("(Gain)_", "")
+		attribute = attribute.replace("(expense)_", "")
+		attribute = attribute.replace("(used_for)", "used_for")
+		attribute = attribute.replace("__","_")
 		
 		data_list = datum[1]
 		trailing_x_year_list = ["", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y"]
@@ -4697,6 +4709,14 @@ def morningstar_annual_income_statement_scrape(ticker):
 		for i in range(100): # this may need to be larger
 			label = soup.find("div", {"id":"label_%s%d" % (div_id, count)})
 			if label:
+				try:
+					label["style"]
+					if "display:none;" in str(label["style"]):
+						# I'm not comfortable accepting unshown data right now
+						count+=1
+						continue
+				except:
+					pass
 				name = label.find("div", {"class":"lbl"})
 				try:
 					title = name["title"]
@@ -4788,6 +4808,7 @@ def morningstar_annual_income_statement_scrape(ticker):
 		attribute = attribute.replace("'","")
 		attribute = attribute.replace("(Gain)_", "")
 		attribute = attribute.replace("(expense)_", "")
+		attribute = attribute.replace("(used_for)", "used_for")
 		attribute = attribute.replace("__","_")
 
 		data_list = datum[1]
@@ -4913,6 +4934,14 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 		for i in range(100): # this may need to be larger
 			label = soup.find("div", {"id":"label_%s%d" % (div_id, count)})
 			if label:
+				try:
+					label["style"]
+					if "display:none;" in str(label["style"]):
+						# I'm not comfortable accepting unshown data right now
+						count+=1
+						continue
+				except:
+					pass
 				name = label.find("div", {"class":"lbl"})
 				try:
 					title = name["title"]
@@ -4991,6 +5020,8 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 		attribute = attribute.replace(",","_")
 		attribute = attribute.replace("'","")
 		attribute = attribute.replace("(Gain)_", "")
+		attribute = attribute.replace("(expense)_", "")
+		attribute = attribute.replace("(used_for)", "used_for")
 		attribute = attribute.replace("__","_")
 
 		data_list = datum[1]
