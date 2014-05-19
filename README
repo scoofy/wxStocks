@@ -1,3 +1,5 @@
+This program comes as is, and probably has some errors in it. This software should not be used as financial advice. Consult a financial advisor before, after, and even while using this software. By using this software you release the author(s) from any liability regarding the use of this software. Please don't sue me. Sorry about the massive disclaimer, but finance programs are fairly litigious business.
+
 wxStocks is a investment analysis program that helps you scrape, screen, sort, and prepare your portfolio for buying and selling equities.
 
 Built using wx as its framework, and pyql as its scraping tool.
