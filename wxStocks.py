@@ -3572,7 +3572,7 @@ def neff_5_Year_future_estimate(Stock): # done!
 	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
 	'''
 	return neff_ratio_5y(Stock)
-def neff_TTM_historical(Stock): #incomplete
+def neff_TTM_historical(Stock, diluted=False): # Maybe done... double check the math (complicate formula)
 	'''
 	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
 	In this formula you can see that I gave triple weight to dividends.  
@@ -3583,15 +3583,86 @@ def neff_TTM_historical(Stock): #incomplete
 	if not annual_data:
 		print "You must update annual data for %s" % Stock.symbol
 		return
-	dividend_yield = float(Stock.DividendYield)
+	try:
+		dividend_yield = float(Stock.DividendYield)/100
+	except Exception, exception:
+		print exception
+		dividend_yield = 0
 
-	income_from_continuing_operations = annual_data.Net_Income_From_Continuing_Ops
-	weighted_avg_common_shares = "???" #This is fairly easily calculable using quarterly data, but that requires another scrape
-	# GOOG: http://finance.yahoo.com/q/bs?s=GOOG
-	eps_from_contiuning_operations = income_from_continuing_operations/weighted_avg_common_shares
+	# Get Eps from continuing operations (Income from continuing - Preferred Dividends)/Weight avg common shares
+	# Step 1: Income from continuing operations
+	try:
+		income_from_continuing_operations = annual_data.Net_income_from_continuing_operations_ttm
+	except Exception, exception:
+		print exception
+		try:
+			income_from_continuing_operations = annual_data.Net_income_from_continuing_ops_ttm
+		except Exception, exception:
+			print exception
+			income_from_continuing_operations = None
+
+	# Step 2: Calculate EPS from continuing operations t1y
+
+	try:
+		income_from_continuing_operations_t1y = annual_data.Net_income_from_continuing_operations_t1y
+	except Exception, exception:
+		print exception
+		try:
+			income_from_continuing_operations_t1y = annual_data.Net_income_from_continuing_ops_t1y
+		except Exception, exception:
+			print exception
+			income_from_continuing_operations_t1y = None
+
+	# Step 3: Preferred Dividends
+	try:
+		preferred_dividend = annual_data.Preferred_dividend_ttm
+		preferred_dividend = float(preferred_dividend)
+	except Exception, exception:
+		print exception
+		preferred_dividend = 0.00
+
+	# Step 4: Preferred Dividends t1y
+	try:
+		preferred_dividend_t1y = annual_data.Preferred_dividend_t1y
+		preferred_dividend_t1y = float(preferred_dividend_t1y)
+	except Exception, exception:
+		print exception
+		preferred_dividend = 0.00
+
+	# Step 5: Weighted average common shares
+	if not diluted:
+		weighted_avg_common_shares_ttm = annual_data.Weighted_average_shares_outstanding_Basic_ttm
+	else:
+		weighted_avg_common_shares_ttm = annual_data.Weighted_average_shares_outstanding_Diluted_ttm
+
+	# Step 6: Weighted average common shares t1y
+	if not diluted:
+		weighted_avg_common_shares_t1y = annual_data.Weighted_average_shares_outstanding_Basic_t1y
+	else:
+		weighted_avg_common_shares_t1y = annual_data.Weighted_average_shares_outstanding_Diluted_t1y
+
+
+	# Step 7: Calculate EPS from continuing operations ttm
+
+	eps_from_contiuning_operations = (income_from_continuing_operations - preferred_dividend)/weighted_avg_common_shares_ttm
+
+	# Step 8: Calculate EPS from continuing operations t1y
+
+	eps_from_contiuning_operations_t1y = (income_from_continuing_operations_t1y - preferred_dividend_t1y)/weighted_avg_common_shares_t1y
+
+	# Step 9: Calculate EPS from continuing operations growth from t1y to ttm:
+
+	eps_from_continuing_growth = ( (eps_from_contiuning_operations - eps_from_contiuning_operations_t1y)/ eps_from_contiuning_operations_t1y ) # note: NOT x 100 (want the decimal)
+
+	numerator = (3 * dividend_yield) + eps_from_continuing_growth
 
 	pe_ttm = Stock.TrailingPE_ttm
-	pass
+	pe_ttm = float(pe_ttm)
+
+	neff_TTM_historical_result = numerator/pe_ttm
+
+	return neff_TTM_historical_result
+
 def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to deal with error cases
 	'''
 	"Percent" Rank of Net Margin where Highest Margin = 100%% and Lowest = 0%
@@ -3763,7 +3834,7 @@ def percentage_held_by_insiders(Stock):
 	except Exception, exception:
 		print line_number(), exception
 		return None
-def percentage_held_by_institutions(Stock): # this may no be necessary
+def percentage_held_by_institutions(Stock): # this may not be necessary
 	try:
 		if Stock.PercentageHeldbyInstitutions:
 			percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
@@ -5706,7 +5777,8 @@ def create_spread_sheet_for_one_stock(wxWindow, ticker, include_basic_stock_data
 
 	return screen_grid
 ###################################################
-
+ge = return_stock_by_symbol("GE")
+print "neff TTM historical:", neff_TTM_historical(ge)
 
 app = None
 def main():
