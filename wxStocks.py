@@ -13,6 +13,7 @@ from BeautifulSoup import BeautifulSoup
 class Stock(object):
 	def __init__(self, symbol):
 		self.symbol = symbol
+		self.ticker = symbol
 		self.epoch = float(time.time())
 		self.created_epoch = float(time.time())
 		self.updated = datetime.datetime.now()
@@ -54,54 +55,55 @@ def line_number():
     line_number = inspect.currentframe().f_back.f_lineno
     line_number_string = "Line %d:" % line_number
     return line_number_string
+# start up try/except clauses below
+if len("load data below") == 15:
+	print "Start!"
+	try:
+		ticker_list = open('ticker.pk', 'rb')
+	except Exception, e:
+		print line_number(), e
+		ticker_list = open('ticker.pk', 'wb')
+		ticker_list = []
+		with open('ticker.pk', 'wb') as output:
+			pickle.dump(ticker_list, output, pickle.HIGHEST_PROTOCOL)
+		ticker_list = open('ticker.pk', 'rb')
+	GLOBAL_TICKER_LIST = pickle.load(ticker_list)
+	ticker_list.close()
+	try:
+		stock_list = open('all_stocks.pk', 'rb')
+	except Exception, e:
+		print line_number(), e
+		stock_list = open('all_stocks.pk', 'wb')
+		stock_list = []
+		with open('all_stocks.pk', 'wb') as output:
+			pickle.dump(stock_list, output, pickle.HIGHEST_PROTOCOL)
+		stock_list = open('all_stocks.pk', 'rb')
+	GLOBAL_STOCK_LIST = pickle.load(stock_list)
+	stock_list.close()
 
-try:
-	ticker_list = open('ticker.pk', 'rb')
-except Exception, e:
-	print line_number(), e
-	ticker_list = open('ticker.pk', 'wb')
-	ticker_list = []
-	with open('ticker.pk', 'wb') as output:
-		pickle.dump(ticker_list, output, pickle.HIGHEST_PROTOCOL)
-	ticker_list = open('ticker.pk', 'rb')
-GLOBAL_TICKER_LIST = pickle.load(ticker_list)
-ticker_list.close()
-try:
-	stock_list = open('all_stocks.pk', 'rb')
-except Exception, e:
-	print line_number(), e
-	stock_list = open('all_stocks.pk', 'wb')
-	stock_list = []
-	with open('all_stocks.pk', 'wb') as output:
-		pickle.dump(stock_list, output, pickle.HIGHEST_PROTOCOL)
-	stock_list = open('all_stocks.pk', 'rb')
-GLOBAL_STOCK_LIST = pickle.load(stock_list)
-stock_list.close()
+	try:
+		annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
+	except Exception, e:
+		print e
+		annual_data_stock_list = open('all_annual_data_stocks.pk', 'wb')
+		annual_data_stock_list = []
+		with open('all_annual_data_stocks.pk', 'wb') as output:
+			pickle.dump(annual_data_stock_list, output, pickle.HIGHEST_PROTOCOL)
+		annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
+	GLOBAL_ANNUAL_DATA_STOCK_LIST = pickle.load(annual_data_stock_list)
+	annual_data_stock_list.close()
 
-try:
-	annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
-except Exception, e:
-	print e
-	annual_data_stock_list = open('all_annual_data_stocks.pk', 'wb')
-	annual_data_stock_list = []
-	with open('all_annual_data_stocks.pk', 'wb') as output:
-		pickle.dump(annual_data_stock_list, output, pickle.HIGHEST_PROTOCOL)
-	annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
-GLOBAL_ANNUAL_DATA_STOCK_LIST = pickle.load(annual_data_stock_list)
-annual_data_stock_list.close()
-
-try:
-	analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'rb')
-except Exception, e:
-	print e
-	analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'wb')
-	analyst_estimates_stock_list = []
-	with open('all_analyst_estimates_stocks.pk', 'wb') as output:
-		pickle.dump(analyst_estimates_stock_list, output, pickle.HIGHEST_PROTOCOL)
-	analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'rb')
-GLOBAL_ANALYST_ESTIMATES_STOCK_LIST = pickle.load(analyst_estimates_stock_list)
-analyst_estimates_stock_list.close()
-
+	try:
+		analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'rb')
+	except Exception, e:
+		print e
+		analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'wb')
+		analyst_estimates_stock_list = []
+		with open('all_analyst_estimates_stocks.pk', 'wb') as output:
+			pickle.dump(analyst_estimates_stock_list, output, pickle.HIGHEST_PROTOCOL)
+		analyst_estimates_stock_list = open('all_analyst_estimates_stocks.pk', 'rb')
+	GLOBAL_ANALYST_ESTIMATES_STOCK_LIST = pickle.load(analyst_estimates_stock_list)
+	analyst_estimates_stock_list.close()
 SCRAPE_CHUNK_LENGTH = 50
 SCRAPE_SLEEP_TIME = 18
 TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 4) # 4 hours
@@ -116,14 +118,14 @@ except Exception, e:
 		pickle.dump(data_from_portfolios_file, output, pickle.HIGHEST_PROTOCOL)
 	data_from_portfolios_file = open('portfolios.pk', 'rb')
 DATA_ABOUT_PORTFOLIOS = pickle.load(data_from_portfolios_file
-									# DATA_ABOUT_PORTFOLIOS = 	[
-									#								NUMBER_OF_PORTFOLIOS, # this is an integer
-									#								[
-									#									"Portfolio Name", # string
-									#									etc...
-									#								]
-									#							]
-									)
+	# DATA_ABOUT_PORTFOLIOS = 	[
+	#								NUMBER_OF_PORTFOLIOS, # this is an integer
+	#								[
+	#									"Portfolio Name", # string
+	#									etc...
+	#								]
+	#							]
+	)
 data_from_portfolios_file.close()
 NUMBER_OF_PORTFOLIOS = DATA_ABOUT_PORTFOLIOS[0]	
 PORTFOLIO_NAMES = []
@@ -696,17 +698,17 @@ class ScrapePage(Tab):
 								if "p_52_WeekHigh" in key_term:
 									date = key_term[14:]
 									setattr(new_stock, 
-										"52_WeekHigh_Date", 
+										"p_52_WeekHigh_Date", 
 										date
 										)
-									key_str = "52_WeekHigh"
+									key_str = "p_52_WeekHigh"
 								elif "p_52_WeekLow" in key_term:
 									date = key_term[13:]
 									setattr(new_stock, 
-										"52_WeekLow_Date", 
+										"p_52_WeekLow_Date", 
 										date
 										)
-									key_str = "52_WeekLow"
+									key_str = "p_52_WeekLow"
 								elif "ForwardPE_fye" in key_term:
 									date = key_term[14:]
 									setattr(new_stock, 
@@ -749,8 +751,6 @@ class ScrapePage(Tab):
 										date
 										)
 									key_str = "ShortPercentageofFloat"
-								elif "p_2" in key_term or "p_5" in key_term:
-									key_str = key_str[2:]
 								else:
 									key_str = str(key + "_" + term)
 								content = str(i["content"])
@@ -789,17 +789,17 @@ class ScrapePage(Tab):
 							if "p_52_WeekHigh" in key_term:
 								date = key_term[14:]
 								setattr(new_stock, 
-									"52_WeekHigh_Date", 
+									"p_52_WeekHigh_Date", 
 									date
 									)
-								key_str = "52_WeekHigh"
+								key_str = "p_52_WeekHigh"
 							elif "p_52_WeekLow" in key_term:
 								date = key_term[13:]
 								setattr(new_stock, 
-									"52_WeekLow_Date", 
+									"p_52_WeekLow_Date", 
 									date
 									)
-								key_str = "52_WeekLow"
+								key_str = "p_52_WeekLow"
 							elif "ForwardPE_fye" in key_term:
 								date = key_term[14:]
 								setattr(new_stock, 
@@ -842,8 +842,6 @@ class ScrapePage(Tab):
 									date
 									)
 								key_str = "ShortPercentageofFloat"
-							elif "p_2" in key_term or "p_5" in key_term:
-								key_str = key_str[2:]
 							else:
 								key_str = str(key + "_" + term)
 							content = str(y["content"])
@@ -860,16 +858,12 @@ class ScrapePage(Tab):
 									)
 					else:
 						key_str = str(key)
-						if "p_2" in key_str or "p_5" in key_str:
-							key_str = key_str[2:]
 						setattr(new_stock, 
 							key_str, 
 							x
 							)
 				else:
 					key_str = str(key)
-					if "p_2" in key_str or "p_5" in key_str:
-						key_str = key_str[2:]
 					setattr(new_stock, 
 							key_str, 
 							value
@@ -3254,12 +3248,58 @@ class StockDataPage(Tab):
 		                                  pos=(210,5), 
 		                                  size=(-1,-1)
 		                                  )
+		update_yql_basic_data_button = wx.Button(self, 
+		                                  label="update basic data", 
+		                                  pos=(300,5), 
+		                                  size=(-1,-1)
+		                                  )
+		update_annual_data_button = wx.Button(self, 
+		                                  label="update annual data", 
+		                                  pos=(430,5), 
+		                                  size=(-1,-1)
+		                                  )
+		update_analyst_estimates_button = wx.Button(self, 
+		                                  label="update analyst estimates", 
+		                                  pos=(570,5), 
+		                                  size=(-1,-1)
+		                                  )
+
 		load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
+		
+		update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
+		update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
+		update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
+	
 	def createOneStockSpreadSheet(self, event):
 		ticker = self.ticker_input.GetValue()
 		if str(ticker) == "ticker":
 			return
 		self.screen_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper())
+
+	def update_yql_basic_data(self, event):
+		ticker = self.ticker_input.GetValue()
+		if str(ticker) == "ticker":
+			return
+		print "basic yql scrape"
+		basicYQLScrapePartOne( [ [str(ticker).upper()] ] )
+		self.createOneStockSpreadSheet(event = "")
+
+	def update_annual_data(self, event):
+		ticker = self.ticker_input.GetValue()
+		if str(ticker) == "ticker":
+			return
+		print "scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes."
+		scrape_balance_sheet_income_statement_and_cash_flow( [str(ticker).upper()] )
+		self.createOneStockSpreadSheet(event = "")
+
+	def update_analyst_estimates_data(self, event):
+		ticker = self.ticker_input.GetValue()
+		if str(ticker) == "ticker":
+			return
+		print "about to scrape"
+		scrape_analyst_estimates( [str(ticker).upper()] )
+		self.createOneStockSpreadSheet(event = "")
+
 
 ####################### Screening functions #######################
 def screen_pe_less_than_10():
@@ -3503,7 +3543,8 @@ def contains_digits(some_string):
             return True
             break
     return False
-
+def first_character_is_digit(some_string):
+	return some_string[0].isdigit()
 
 example_stock = Stock("GOOG")
 
@@ -3566,6 +3607,7 @@ def neff_ratio_5y(Stock): # requires only primary scrape
 	return neff5
 
 # Stock Valuation Functions: I use functions, rather than actual methods because they mess up spreadsheets with their superfluous object data
+
 def neff_5_Year_future_estimate(Stock): # done!
 	'''
 	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
@@ -3672,6 +3714,7 @@ def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to d
 	'''
 	num_of_stocks = len(stock_list)
 	sort_list = []
+	error_count = 0
 	for this_stock in stock_list:
 		try:
 			margin = this_stock.ProfitMargin_ttm
@@ -3681,11 +3724,18 @@ def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to d
 				margin = float(margin)
 				sort_list.append([margin, symbol])
 			else:
-				print line_number(), "Format of profit margin unknown"
+				if error_count < 5:
+					print line_number(), "Format of profit margin unknown"
+				error_count+=1
+
 		except Exception, exception:
 			# There needs to be a case here for stocks that fail... ideally there should be none though
-			print line_number(), exception, "Stock appears to have no ProfitMargin_ttm attribute."
-	stock_list.sort(key = lambda x: x[0], reverse=False) # Highest ranking ends last, i.e. closer to 100%
+			if error_count < 5:
+				print line_number(), exception, "Stock appears to have no ProfitMargin_ttm attribute."
+			error_count+=1
+
+	if len(sort_list) > 1:
+		sort_list.sort(key = lambda x: x[0], reverse=False) # Highest ranking ends last, i.e. closer to 100%
 
 	if len(stock_list) != len(sort_list):
 		print "Error: Some Stocks not included in margin rank function"
@@ -3763,26 +3813,32 @@ def roePercentDev(Stock): #done!
 		print "Error: there is no annual data for %s" % Stock.symbol
 		return
 
+	try:
+		net_income_Y1 = float(annual_data.Net_Income)
+		shareholder_equity_Y1 = float(annual_data.Total_Stockholder_Equity)
+		roe_Y1 = net_income_Y1 / shareholder_equity_Y1
 
-	net_income_Y1 = float(annual_data.Net_Income)
-	shareholder_equity_Y1 = float(annual_data.Total_Stockholder_Equity)
-	roe_Y1 = net_income_Y1 / shareholder_equity_Y1
+		net_income_Y2 = float(annual_data.Net_Income_t1y)
+		shareholder_equity_Y2 = float(annual_data.Total_Stockholder_Equity_t1y)
+		roe_Y2 = net_income_Y1 / shareholder_equity_Y2
 
-	net_income_Y2 = float(annual_data.Net_Income_t1y)
-	shareholder_equity_Y2 = float(annual_data.Total_Stockholder_Equity_t1y)
-	roe_Y2 = net_income_Y1 / shareholder_equity_Y2
+		net_income_Y3 = float(annual_data.Net_Income_t2y)
+		shareholder_equity_Y3 = float(annual_data.Total_Stockholder_Equity_t2y)
+		roe_Y3 = net_income_Y3 / shareholder_equity_Y3
 
-	net_income_Y3 = float(annual_data.Net_Income_t2y)
-	shareholder_equity_Y3 = float(annual_data.Total_Stockholder_Equity_t2y)
-	roe_Y3 = net_income_Y3 / shareholder_equity_Y3
+		roe_data = [roe_Y1, roe_Y2, roe_Y3]
 
-	roe_data = [roe_Y1, roe_Y2, roe_Y3]
+		roe_mean = numpy.mean(roe_data)
+		roe_standard_deviation = numpy.std(roe_data)
 
-	roe_mean = numpy.mean(roe_data)
-	roe_standard_deviation = numpy.std(roe_data)
+		roe_percent_deviation = roe_standard_deviation / roe_mean
+		return roe_percent_deviation
+	except Exception, exception:
+		print "roePercentDev has failed due to the following exception:"
+		print exception
+		print "the equation will return None"
+		return None
 
-	roe_percent_deviation = roe_standard_deviation / roe_mean
-	return roe_percent_deviation
 	
 def price_to_book_growth(Stock):
 	'''
@@ -3799,21 +3855,30 @@ def price_to_book_growth(Stock):
 	book_value_year_3 = None
 	book_value_year_1 = None
 
-	# Book Value = Total Shareholders Equity - Preferred Equity
-	total_stockholder_equity_year_3 = Stock.Total_Stockholder_Equity
-	total_stockholder_equity_year_1 = Stock.Total_Stockholder_Equity_t2y
+	try:
+		# Book Value = Total Shareholders Equity - Preferred Equity
+		total_stockholder_equity_year_3 = Stock.Total_Stockholder_Equity
+		total_stockholder_equity_year_1 = Stock.Total_Stockholder_Equity_t2y
 
-	# Additional Paid in Capital is capital surplus
-	capital_surplus_year_3 = Stock.Capital_Surplus
-	capital_surplus_year_1 = Stock.Capital_Surplus_t2y
+		# Additional Paid in Capital is capital surplus
+		capital_surplus_year_3 = Stock.Capital_Surplus
+		capital_surplus_year_1 = Stock.Capital_Surplus_t2y
 
-	# Treasury Stock
-	treasury_stock_year_3 = Stock.Treasury_Stock
-	treasury_stock_year_1 = Stock.Treasury_Stock_t2y
+		# Treasury Stock
+		treasury_stock_year_3 = Stock.Treasury_Stock
+		treasury_stock_year_1 = Stock.Treasury_Stock_t2y
+	except Exception, exception:
+		print "price_to_book_growth has failed due to the following exception:"
+		print exception
+		print "the equation will return None"
+		return None
+
 
 def kGrowth(Stock): # incomplete, no definition yet
-	pass
-def price_to_range(Stock):
+	print "kGrowth is incomplete ---- no definition for formula yet"
+	print "this function will return None"
+	return None
+def price_to_range(Stock): #done!
 	'''
 	= Price to (52 Week Price Range) 
 	= ([Current Price] - [52 wk Low Price]) / ([52 wk High Price] - [52 wk Low Price])
@@ -3825,8 +3890,17 @@ def price_to_range(Stock):
 
 	I like to have it greater than 0.2.
 	'''
-	pass
-def percentage_held_by_insiders(Stock):
+	# this uses the close in the equation, but should use live price
+	logging.warning("this uses the close in the equation, but should use live price")
+	current_price = float(Stock.PreviousClose)
+	the_52_week_low  = float(Stock.p_52_WeekLow)
+	the_52_week_high = float(Stock.p_52_WeekHigh)
+
+	price_to_range_var = ((current_price - the_52_week_low)/(the_52_week_high - the_52_week_low))
+
+	return price_to_range_var
+
+def percentage_held_by_insiders(Stock): #done!
 	try:
 		if Stock.PercentageHeldbyInsiders:
 			percentage_held_by_insiders = float(Stock.PercentageHeldbyInsiders)
@@ -3842,7 +3916,7 @@ def percentage_held_by_institutions(Stock): # this may not be necessary
 	except Exception, exception:
 		print line_number(), exception
 		return None
-def current_ratio(Stock):
+def current_ratio(Stock): #done! (trivial)
 	try:
 		if Stock.CurrentRatio_mrq:
 			current_ratio = float(Stock.CurrentRatio_mrq)
@@ -3851,19 +3925,28 @@ def current_ratio(Stock):
 		print line_number(), exception
 		return None
 def longTermDebtToEquity(Stock):
-	annual_data = return_existing_StockAnnualData(Stock)
-	long_term_debt = annual_data.Long_Term_Debt
-	equity = annual_data.Total_Stockholder_Equity
-	if long_term_debt == "-":
-		long_term_debt = 0.00
-	else:
-		long_term_debt = float(long_term_debt)
-	if equity == "-":
-		print 'Cannot divide by zero'
-		return "None"
-	else:
-		equity = float(equity)
-	return float(long_term_debt/equity)
+	try:
+		annual_data = return_existing_StockAnnualData(Stock)
+		if not annual_data:
+			print Stock.symbol, "has no annual data. The longTermDebtToEquity function should be updated here to download annual data in a pinch if it is not here."
+		long_term_debt = annual_data.Long_Term_Debt
+		equity = annual_data.Total_Stockholder_Equity
+		if long_term_debt == "-":
+			long_term_debt = 0.00
+		else:
+			long_term_debt = float(long_term_debt)
+		if equity == "-":
+			print 'Cannot divide by zero'
+			return "None"
+		else:
+			equity = float(equity)
+		return float(long_term_debt/equity)
+	except Exception, exception:
+		print "longTermDebtToEquity has failed due to the following exception:"
+		print exception
+		print "the equation will return None"
+		return None
+
 def neffEvEBIT(Stock): #incomplete
 	'''
 	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
@@ -3884,12 +3967,390 @@ def neffEvEBIT(Stock): #incomplete
 
 	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])
 	'''
-	pass
-def neffCf3Year(Stock): #incomplete
+
+
+
+	print "neffEvEBIT is incomplete ---- has not been written yet"
+	print "this function will return None"
+	return None
+def neffCf3Year(Stock): #incomplete: not sure if e/s should be eps growth... very confusing
 	'''
 	(3 year Historical) Neff ratio where Earnings/Share is replaced by CashFlow/Share.
 	'''
-	pass
+	# Neff is total return/PE. Source: http://www.forbes.com/2010/06/01/tupperware-cvs-astrazeneca-intelligent-investing-neff-value.html
+	# Total return is defined as: EPS growth rate + dividend yield
+	# Now YQL provides his data:
+	##	PEG 5 year = PE/EPS Growth 5 Year
+
+	# So our ratio needs to be CF/Share / eps growth 3year
+
+	# Cash Flow Per Share = ("Operating" Cash Flow - Preferred Dividends) / Shares Outstanding
+	# either:
+	#### operating_cash_flow = float(Stock.OperatingCashFlow_ttm)
+	# or 
+	operating_cash_flow = float(Stock.Cash_Flows_From_Operating_Activities)
+	# preferred stock dividends doesn't exist for many stocks:
+	try:
+		preferred_dividends = float(Stock.Preferred_dividend_ttm)
+	except Exception, exception:
+		print exception
+		print "if you have an exception here, it probably means that the stock doesn't pay preferred dividends, but it still should be noted."
+		preferred_dividends = 0.0
+		print "preferred dividends have been set to zero"
+	shares_outstanding = float(Stock.SharesOutstanding)
+
+	# So CF/Share:
+	cash_flow_per_share = (operating_cash_flow - preferred_dividends)/shares_outstanding
+
+	### do we need the cf/share growth rate???
+
+	##	Yield = Dividend Yield
+	##	PE = PE
+	####
+	## Therefore
+	# Neff 5 year = (1 / PEG 5 year) + (Yield / PE)
+	# thus:
+
+formula_list = [
+	neff_5_Year_future_estimate, 
+	neff_TTM_historical, 
+	marginPercentRank, 
+	roePercentRank, 
+	roePercentDev, 
+	price_to_book_growth, 
+	kGrowth, 
+	price_to_range, 
+	percentage_held_by_insiders, 
+	percentage_held_by_institutions,
+	current_ratio,
+	longTermDebtToEquity,
+	neffEvEBIT,
+	neffCf3Year
+	]
+
+
+# Basic stock scrape
+def basicYQLScrapePartOne(ticker_chunk_list, position_of_this_chunk = 0):
+	global GLOBAL_TICKER_LIST
+	global GLOBAL_STOCK_LIST
+	global SCRAPE_CHUNK_LENGTH
+	global SCRAPE_SLEEP_TIME
+	global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	sleep_time = SCRAPE_SLEEP_TIME
+
+
+	ticker_chunk = ticker_chunk_list[position_of_this_chunk]
+
+	if ticker_chunk:
+		scrape_1_failed = False
+		try:
+			data = pyql.lookupQuote(ticker_chunk)
+		except:
+			logging.warning("Scrape didn't work. Nothing scraped.")
+			scrape_1_failed = True
+		if scrape_1_failed:
+			#time.sleep(sleep_time)
+			return
+		else:
+			logging.warning("Scrape 1 Success: mid-scrape sleep for %d seconds" % sleep_time)
+
+			timer = threading.Timer(sleep_time, basicYQLScrapePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
+			timer.start()
+def basicYQLScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data):
+	global GLOBAL_TICKER_LIST
+	global GLOBAL_STOCK_LIST
+	global SCRAPE_CHUNK_LENGTH
+	global SCRAPE_SLEEP_TIME
+	global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	sleep_time = SCRAPE_SLEEP_TIME
+
+	ticker_chunk = ticker_chunk_list[position_of_this_chunk]
+	number_of_stocks_in_this_scrape = len(ticker_chunk)
+
+	data = successful_pyql_data
+
+	try:
+		data2 = pyql.lookupKeyStats(ticker_chunk)
+	except:
+		logging.warning("Scrape 2 didn't work. Abort.")
+		time.sleep(sleep_time)
+		return
+
+	for stock in data:
+		new_stock = None
+		for key, value in stock.iteritems():
+			if key == "symbol":
+				new_stock = return_stock_by_symbol(value)
+				if not new_stock:
+					new_stock = Stock(value)
+					GLOBAL_STOCK_LIST.append(new_stock)
+				else:
+					new_stock.updated = datetime.datetime.now()
+					new_stock.epoch = float(time.time())
+		for key, value in stock.iteritems():
+			# Here we hijack the power of the expando db structure
+			# This adds the attribute of every possible attribute that can be passed
+			setattr(new_stock, 
+					str(key), 
+					value
+					)
+		logging.warning("Success, putting %s: Data 1" % new_stock.symbol)
+	#save
+	with open('all_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
+
+	for stock2 in data2:
+		for key, value in stock2.iteritems():
+			if key == "symbol":
+				new_stock = return_stock_by_symbol(value)
+				if not new_stock:
+					new_stock = Stock(value)
+					GLOBAL_STOCK_LIST.append(new_stock)
+		for key, value in stock2.iteritems():
+			if isinstance(value, (list, dict)):
+				#logging.warning(type(value))
+				x = repr(value)
+				term = None
+				content = None
+				#logging.warning(x)
+				if x[0] == "[":
+					y = ast.literal_eval(x)
+					#logging.warning(y)
+					for i in y:
+						try:
+							test = i["term"]
+							test = i["content"]
+						except Exception, e:
+							#logging.error(new_stock.symbol)
+							#logging.error(y)
+							#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
+							continue
+						#logging.warning(i)
+						try:
+							key_str = str(key)
+							term = str(i["term"])
+							term = term.replace(" ", "_")
+							term = term.replace(",", "")
+							term = strip_string_whitespace(term)
+							key_term = key_str + "_" + term
+							key_term = strip_string_whitespace(key_term)
+							if "p_52_WeekHigh" in key_term:
+								date = key_term[14:]
+								setattr(new_stock, 
+									"p_52_WeekHigh_Date", 
+									date
+									)
+								key_str = "p_52_WeekHigh"
+							elif "p_52_WeekLow" in key_term:
+								date = key_term[13:]
+								setattr(new_stock, 
+									"p_52_WeekLow_Date", 
+									date
+									)
+								key_str = "p_52_WeekLow"
+							elif "ForwardPE_fye" in key_term:
+								date = key_term[14:]
+								setattr(new_stock, 
+									"ForwardPE_fiscal_y_end_Date", 
+									date
+									)
+								key_str = "ForwardPE"
+							elif "EnterpriseValue_" in key_term:
+								date = key_term[16:]
+								setattr(new_stock, 
+									"EnterpriseValue_Date", 
+									date
+									)
+								key_str = "EnterpriseValue"
+							elif "TrailingPE_ttm_" in key_term:
+								date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
+								setattr(new_stock, 
+									"TrailingPE_ttm_Date", 
+									date
+									)
+								key_str = "TrailingPE_ttm"
+							elif "SharesShort_as_of" in key_term:
+								date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
+								setattr(new_stock, 
+									"SharesShort_as_of_Date", 
+									date
+									)
+								key_str = "SharesShort"
+							elif "ShortRatio_as_of" in key_term:
+								date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
+								setattr(new_stock, 
+									"ShortRatio_as_of_Date", 
+									date
+									)
+								key_str = "ShortRatio"
+							elif "ShortPercentageofFloat_as_of" in key_term:
+								date = key_term[29:]
+								setattr(new_stock, 
+									"ShortPercentageofFloat_as_of_Date", 
+									date
+									)
+								key_str = "ShortPercentageofFloat"
+							else:
+								key_str = str(key + "_" + term)
+							content = str(i["content"])
+							setattr(new_stock, 
+									key_str, 
+									content
+									)
+						except Exception, e:
+							logging.warning(repr(i))
+							logging.warning("complex list method did not work")
+							logging.exception(e)
+							setattr(new_stock, 
+									str(key), 
+									x
+									)
+
+				elif x[0] == "{":
+					y = ast.literal_eval(x)
+					try:
+						test = y["term"]
+						test = y["content"]
+					except Exception, e:
+						#logging.error(new_stock.symbol)
+						#logging.error(y)
+						#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
+						continue
+					#logging.warning(y)
+					try:
+						key_str = str(key)
+						term = str(y["term"])
+						term = term.replace(" ", "_")
+						term = term.replace(",", "")
+						term = strip_string_whitespace(term)
+						key_term = key_str + "_" + term
+						key_term = strip_string_whitespace(key_term)
+						if "p_52_WeekHigh" in key_term:
+							date = key_term[14:]
+							setattr(new_stock, 
+								"p_52_WeekHigh_Date", 
+								date
+								)
+							key_str = "p_52_WeekHigh"
+						elif "p_52_WeekLow" in key_term:
+							date = key_term[13:]
+							setattr(new_stock, 
+								"p_52_WeekLow_Date", 
+								date
+								)
+							key_str = "p_52_WeekLow"
+						elif "ForwardPE_fye" in key_term:
+							date = key_term[14:]
+							setattr(new_stock, 
+								"ForwardPE_fiscal_y_end_Date", 
+								date
+								)
+							key_str = "ForwardPE"
+						elif "EnterpriseValue_" in key_term:
+							date = key_term[16:]
+							setattr(new_stock, 
+								"EnterpriseValue_Date", 
+								date
+								)
+							key_str = "EnterpriseValue"
+						elif "TrailingPE_ttm_" in key_term:
+							date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
+							setattr(new_stock, 
+								"TrailingPE_ttm_Date", 
+								date
+								)
+							key_str = "TrailingPE_ttm"
+						elif "SharesShort_as_of" in key_term:
+							date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
+							setattr(new_stock, 
+								"SharesShort_as_of_Date", 
+								date
+								)
+							key_str = "SharesShort"
+						elif "ShortRatio_as_of" in key_term:
+							date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
+							setattr(new_stock, 
+								"ShortRatio_as_of_Date", 
+								date
+								)
+							key_str = "ShortRatio"
+						elif "ShortPercentageofFloat_as_of" in key_term:
+							date = key_term[29:]
+							setattr(new_stock, 
+								"ShortPercentageofFloat_as_of_Date", 
+								date
+								)
+							key_str = "ShortPercentageofFloat"
+						else:
+							key_str = str(key + "_" + term)
+						content = str(y["content"])
+						setattr(new_stock, 
+								key_str, 
+								content
+								)
+					except Exception, e:
+						logging.warning("complex dict method did not work")
+						logging.exception(e)
+						setattr(new_stock, 
+								str(key), 
+								x
+								)
+				else:
+					key_str = str(key)
+					setattr(new_stock, 
+						key_str, 
+						x
+						)
+			else:
+				key_str = str(key)
+				setattr(new_stock, 
+						key_str, 
+						value
+						)
+		logging.warning("Success, putting %s: Data 2" % new_stock.symbol)
+
+	#save again
+	with open('all_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
+
+	logging.warning("This stock chunk finished successfully.")
+	#self.progress_bar.SetValue((float(slice_end)/float(num_of_tickers)) * 100)
+	#app.Yield()
+
+	logging.warning("Sleeping for %d seconds before the next task" % sleep_time)
+	#time.sleep(sleep_time)
+
+	#self.numScrapedStocks += number_of_stocks_in_this_scrape
+	#cont, skip = self.progress_dialog.Update(self.numScrapedStocks)
+	#if not cont:
+	#	self.progress_dialog.Destroy()
+	#	return
+
+
+	number_of_tickers_in_chunk_list = 0
+	for chunk in ticker_chunk_list:
+		for ticker in chunk:
+			number_of_tickers_in_chunk_list += 1
+	number_of_tickers_previously_updated = len(GLOBAL_TICKER_LIST) - number_of_tickers_in_chunk_list
+	number_of_tickers_done_in_this_scrape = 0
+	for i in range(len(ticker_chunk_list)):
+		if i > position_of_this_chunk:
+			continue
+		for ticker in ticker_chunk_list[i]:
+			number_of_tickers_done_in_this_scrape += 1
+	total_number_of_tickers_done = number_of_tickers_previously_updated + number_of_tickers_done_in_this_scrape
+	percent_of_full_scrape_done = round( 100 * float(total_number_of_tickers_done) / float(len(GLOBAL_TICKER_LIST)))
+
+	position_of_this_chunk += 1
+	percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
+	print line_number(), "%d%%" % percent_done, "done this scrape execution."
+	print line_number(), "%d%%" % percent_of_full_scrape_done, "done of all tickers."
+	if position_of_this_chunk >= len(ticker_chunk_list):
+		# finished
+		return
+	else:
+		timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
+		timer.start()
 
 # Stock Annual Data Scraping Functions
 # ---- unfortunately after scraping many stocks, these scraping functions need to be overhauled
@@ -5148,6 +5609,11 @@ def yahoo_analyst_estimates_scrape(ticker):
 	table = soup.findAll("table", { "class" : "yfnc_tableout1" })
 
 	print "table:", len(table), "rows"
+	if int(len(table)) == 0:
+		print "there is either no data for %s, or something went wrong, you can check by visiting" % ticker
+		print ""
+		print 'http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker
+		print ""
 	count = 0
 	for i in table:
 		rows = i.findChildren('tr')
@@ -5378,6 +5844,7 @@ def yahoo_analyst_estimates_scrape(ticker):
 	with open('all_analyst_estimates_stocks.pk', 'wb') as output:
 		pickle.dump(GLOBAL_ANALYST_ESTIMATES_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 def scrape_analyst_estimates(list_of_ticker_symbols):
+	print "attempting to scrape analyst estimates"
 	one_day = (60 * 60 * 24)
 	yesterdays_epoch = float(time.time()) - one_day
 	ticker_list = list_of_ticker_symbols
@@ -5456,6 +5923,8 @@ def create_spread_sheet(wxWindow, ticker_list, held_ticker_list = [], include_ba
 	num_columns = 0
 	# Here we make columns for each attribute to be included
 	for this_list in all_lists:
+		# if empty list:
+		num_attributes = 0
 		for stock in this_list:
 			num_attributes = 0
 			if include_basic_stock_data:
@@ -5777,8 +6246,70 @@ def create_spread_sheet_for_one_stock(wxWindow, ticker, include_basic_stock_data
 
 	return screen_grid
 ###################################################
-ge = return_stock_by_symbol("GE")
-print "neff TTM historical:", neff_TTM_historical(ge)
+testing = 0
+testing = True
+testing_ticker = "GE"
+
+def return_dictionary_of_object_attributes_and_values(obj):
+	attribute_list = []
+	for key in obj.__dict__:
+		if key[:1] != "__":
+			attribute_list.append(key)
+
+	obj_attribute_value_dict = {}
+
+	for attribute in attribute_list:
+		obj_attribute_value_dict[attribute] = getattr(obj, attribute)
+
+	for attribute in obj_attribute_value_dict:
+		print attribute, ":", obj_attribute_value_dict[attribute]
+
+	return obj_attribute_value_dict
+
+
+if testing:
+	sample_stock = return_stock_by_symbol(testing_ticker)
+	sample_annual_data = return_existing_StockAnnualData(testing_ticker)
+	sample_analyst_estimates = return_existing_StockAnalystEstimates(testing_ticker)
+
+	annual_data_attribute_list = return_dictionary_of_object_attributes_and_values(sample_annual_data)
+	analyst_estimates_attribute_list = return_dictionary_of_object_attributes_and_values(sample_analyst_estimates)
+
+	data_lists = [annual_data_attribute_list, analyst_estimates_attribute_list]
+
+	for attribute_list in data_lists:
+		for attribute in attribute_list:
+			setattr(sample_stock, attribute, attribute_list[attribute])
+
+	print "\n\n\n"
+	print "Testing area"
+	print "\n\n\n"
+	for equation in formula_list:
+
+		print "trying:", equation.__name__
+		try:
+			print equation(sample_stock)
+			continue
+		except Exception, exception:
+			try:
+				print ""
+				print exception
+				print equation(sample_stock, GLOBAL_STOCK_LIST)
+				continue
+			except Exception, exception:
+				print ""
+				print exception
+				print "function", equation.__name__, ":", "failed"
+	print "\n\n\n"
+
+	print_this_dict = return_dictionary_of_object_attributes_and_values(sample_stock)
+
+	for attribute in print_this_dict:
+		print "%s:" % attribute, print_this_dict[attribute]
+
+	print "\n\n\n"
+
+
 
 app = None
 def main():
