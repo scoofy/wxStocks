@@ -3525,7 +3525,7 @@ def time_from_epoch(item_epoch_var):
 def return_stock_by_symbol(ticker_symbol):
 	global GLOBAL_STOCK_LIST
 	for stock in GLOBAL_STOCK_LIST:
-		if stock.symbol == ticker_symbol:
+		if stock.symbol.upper() == ticker_symbol.upper():
 			return stock
 	#if the function does not return a stock
 	return None
@@ -3625,7 +3625,7 @@ def neff_TTM_historical(Stock, diluted=False): # Maybe done... double check the 
 	annual_data = return_existing_StockAnnualData(Stock.symbol)
 	if not annual_data:
 		print "You must update annual data for %s" % Stock.symbol
-		return
+		return None
 	try:
 		dividend_yield = float(Stock.DividendYield)/100
 	except Exception, exception:
@@ -3661,7 +3661,7 @@ def neff_TTM_historical(Stock, diluted=False): # Maybe done... double check the 
 		preferred_dividend = annual_data.Preferred_dividend_ttm
 		preferred_dividend = float(preferred_dividend)
 	except Exception, exception:
-		print exception
+		#print exception
 		preferred_dividend = 0.00
 
 	# Step 4: Preferred Dividends t1y
@@ -3669,8 +3669,8 @@ def neff_TTM_historical(Stock, diluted=False): # Maybe done... double check the 
 		preferred_dividend_t1y = annual_data.Preferred_dividend_t1y
 		preferred_dividend_t1y = float(preferred_dividend_t1y)
 	except Exception, exception:
-		print exception
-		preferred_dividend = 0.00
+		#print exception
+		preferred_dividend_t1y = 0.00
 
 	# Step 5: Weighted average common shares
 	if not diluted:
@@ -3815,16 +3815,16 @@ def roePercentDev(Stock): #done!
 		return
 
 	try:
-		net_income_Y1 = float(annual_data.Net_Income)
-		shareholder_equity_Y1 = float(annual_data.Total_Stockholder_Equity)
+		net_income_Y1 = float(annual_data.Net_income)
+		shareholder_equity_Y1 = float(annual_data.Stockholders_equity)
 		roe_Y1 = net_income_Y1 / shareholder_equity_Y1
 
-		net_income_Y2 = float(annual_data.Net_Income_t1y)
-		shareholder_equity_Y2 = float(annual_data.Total_Stockholder_Equity_t1y)
+		net_income_Y2 = float(annual_data.Net_income_t1y)
+		shareholder_equity_Y2 = float(annual_data.Stockholders_equity_t1y)
 		roe_Y2 = net_income_Y1 / shareholder_equity_Y2
 
-		net_income_Y3 = float(annual_data.Net_Income_t2y)
-		shareholder_equity_Y3 = float(annual_data.Total_Stockholder_Equity_t2y)
+		net_income_Y3 = float(annual_data.Net_income_t2y)
+		shareholder_equity_Y3 = float(annual_data.Stockholders_equity_t2y)
 		roe_Y3 = net_income_Y3 / shareholder_equity_Y3
 
 		roe_data = [roe_Y1, roe_Y2, roe_Y3]
@@ -3857,22 +3857,41 @@ def price_to_book_growth(Stock):
 	book_value_year_1 = None
 
 	try:
+		# Book Value = Total Assets - Intangibles - Liabilities
+		# or
 		# Book Value = Total Shareholders Equity - Preferred Equity
-		total_stockholder_equity_year_3 = Stock.Total_Stockholder_Equity
-		total_stockholder_equity_year_1 = Stock.Total_Stockholder_Equity_t2y
+		total_stockholder_equity_year_3 = Stock.Stockholders_equity
+		total_stockholder_equity_year_1 = Stock.Stockholders_equity_t2y
 
 		# Additional Paid in Capital is capital surplus
-		capital_surplus_year_3 = Stock.Capital_Surplus
-		capital_surplus_year_1 = Stock.Capital_Surplus_t2y
+		try:
+			capital_surplus_year_3 = Stock.Additional_paid_in_capital
+			capital_surplus_year_1 = Stock.Additional_paid_in_capital_t2y
+		except:
+			capital_surplus_year_3 = Stock.Capital_Surplus
+			capital_surplus_year_1 = Stock.Capital_Surplus_t2y
 
 		# Treasury Stock
-		treasury_stock_year_3 = Stock.Treasury_Stock
-		treasury_stock_year_1 = Stock.Treasury_Stock_t2y
+		try:
+			treasury_stock_year_3 = Stock.Treasury_stock
+			treasury_stock_year_1 = Stock.Treasury_stock_t2y
+		except:
+			treasury_stock_year_3 = 0
+			treasury_stock_year_1 = 0
+
+
 	except Exception, exception:
 		print "price_to_book_growth has failed due to the following exception:"
 		print exception
-		print "the equation will return None"
-		return None
+	print "the equation will return None"
+	print "this equation is incomplete, view notes for more details"
+	return None
+
+	# So, here is the issue, we need price/book growth
+	# morningstar has book value trailing 5 years, but not price to book
+	# morningstar also has price trailing 5 years in a decent format, but they'll both have to be scraped
+	# should be able to combine the two and easily finish this formula
+	
 
 
 def kGrowth(Stock): # incomplete, no definition yet
@@ -3904,7 +3923,13 @@ def price_to_range(Stock): #done!
 def percentage_held_by_insiders(Stock): #done!
 	try:
 		if Stock.PercentageHeldbyInsiders:
-			percentage_held_by_insiders = float(Stock.PercentageHeldbyInsiders)
+			if "%" in Stock.PercentageHeldbyInsiders:
+				#print Stock.PercentageHeldbyInsiders
+				percentage_held_by_insiders = Stock.PercentageHeldbyInsiders[:-1]
+				#print percentage_held_by_insiders
+				percentage_held_by_insiders = float(percentage_held_by_insiders)
+			else:
+				percentage_held_by_insiders = float(Stock.PercentageHeldbyInsiders)
 			return percentage_held_by_insiders
 	except Exception, exception:
 		print line_number(), exception
@@ -3912,7 +3937,13 @@ def percentage_held_by_insiders(Stock): #done!
 def percentage_held_by_institutions(Stock): # this may not be necessary
 	try:
 		if Stock.PercentageHeldbyInstitutions:
-			percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
+			if "%" in Stock.PercentageHeldbyInstitutions:
+				print Stock.PercentageHeldbyInstitutions
+				percentage_held_by_institutions = Stock.PercentageHeldbyInstitutions[:-1]
+				print percentage_held_by_institutions
+				percentage_held_by_institutions = float(percentage_held_by_institutions)
+			else:
+				percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
 			return percentage_held_by_institutions
 	except Exception, exception:
 		print line_number(), exception
@@ -3927,11 +3958,11 @@ def current_ratio(Stock): #done! (trivial)
 		return None
 def longTermDebtToEquity(Stock):
 	try:
-		annual_data = return_existing_StockAnnualData(Stock)
+		annual_data = return_existing_StockAnnualData(Stock.symbol)
 		if not annual_data:
 			print Stock.symbol, "has no annual data. The longTermDebtToEquity function should be updated here to download annual data in a pinch if it is not here."
-		long_term_debt = annual_data.Long_Term_Debt
-		equity = annual_data.Total_Stockholder_Equity
+		long_term_debt = annual_data.Long_term_debt
+		equity = annual_data.Stockholders_equity
 		if long_term_debt == "-":
 			long_term_debt = 0.00
 		else:
@@ -3994,8 +4025,8 @@ def neffCf3Year(Stock): #incomplete: not sure if e/s should be eps growth... ver
 	try:
 		preferred_dividends = float(Stock.Preferred_dividend_ttm)
 	except Exception, exception:
-		print exception
 		print "if you have an exception here, it probably means that the stock doesn't pay preferred dividends, but it still should be noted."
+		print exception
 		preferred_dividends = 0.0
 		print "preferred dividends have been set to zero"
 	shares_outstanding = float(Stock.SharesOutstanding)
@@ -4011,6 +4042,8 @@ def neffCf3Year(Stock): #incomplete: not sure if e/s should be eps growth... ver
 	## Therefore
 	# Neff 5 year = (1 / PEG 5 year) + (Yield / PE)
 	# thus:
+	print "This formula is incomplete and will return None"
+	return None
 
 formula_list = [
 	neff_5_Year_future_estimate, 
@@ -6249,23 +6282,29 @@ def create_spread_sheet_for_one_stock(wxWindow, ticker, include_basic_stock_data
 ###################################################
 testing = 0
 testing = True
-testing_ticker = "GE"
+testing_ticker = "AAPL"
+
+#for stock in GLOBAL_STOCK_LIST:
+#	stock.ticker = stock.symbol
+#with open('all_stocks.pk', 'wb') as output:
+#	pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)	
 
 def return_dictionary_of_object_attributes_and_values(obj):
 	attribute_list = []
-	for key in obj.__dict__:
-		if key[:1] != "__":
-			attribute_list.append(key)
+	if obj:
+		for key in obj.__dict__:
+			if key[:1] != "__":
+				attribute_list.append(key)
 
-	obj_attribute_value_dict = {}
+		obj_attribute_value_dict = {}
 
-	for attribute in attribute_list:
-		obj_attribute_value_dict[attribute] = getattr(obj, attribute)
+		for attribute in attribute_list:
+			obj_attribute_value_dict[attribute] = getattr(obj, attribute)
 
-	for attribute in obj_attribute_value_dict:
-		print attribute, ":", obj_attribute_value_dict[attribute]
+		#for attribute in obj_attribute_value_dict:
+		#	print attribute, ":", obj_attribute_value_dict[attribute]
 
-	return obj_attribute_value_dict
+		return obj_attribute_value_dict
 
 
 if testing:
@@ -6279,34 +6318,38 @@ if testing:
 	data_lists = [annual_data_attribute_list, analyst_estimates_attribute_list]
 
 	for attribute_list in data_lists:
-		for attribute in attribute_list:
-			setattr(sample_stock, attribute, attribute_list[attribute])
+		if attribute_list:
+			for attribute in attribute_list:
+				setattr(sample_stock, attribute, attribute_list[attribute])
+		else:
+			print sample_stock.symbol, "needs to be updated"
 
-	print "\n\n\n"
+	print "\n\n\n\n\n\n"
+	print "-" * 3300
 	print "Testing area"
+	print "\n\n\n\n\n\n"
 	print "\n\n\n"
 	for equation in formula_list:
-
-		print "trying:", equation.__name__
+		print "\n\n\n"	
+		print "trying: %s %s" % (sample_stock.symbol, equation.__name__)
 		try:
 			print equation(sample_stock)
 			continue
-		except Exception, exception:
+		except TypeError:
 			try:
-				print ""
-				print exception
 				print equation(sample_stock, GLOBAL_STOCK_LIST)
 				continue
 			except Exception, exception:
 				print ""
-				print exception
-				print "function", equation.__name__, ":", "failed"
+				print exception, line_number()
+				print "function", equation.__name__, ":", "failed for", sample_stock.ticker
+	
 	print "\n\n\n"
 
 	print_this_dict = return_dictionary_of_object_attributes_and_values(sample_stock)
 
-	for attribute in print_this_dict:
-		print "%s:" % attribute, print_this_dict[attribute]
+	#for attribute in print_this_dict:
+	#	print "%s:" % attribute, print_this_dict[attribute]
 
 	print "\n\n\n"
 
