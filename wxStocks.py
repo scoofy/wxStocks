@@ -3240,9 +3240,10 @@ class StockDataPage(Tab):
 							 (10,10)
 							 )
 		self.ticker_input = wx.TextCtrl(self, -1, 
-		                           "ticker",
+		                           "",
 		                           (110, 8)
 		                           )
+		self.ticker_input.SetHint("ticker")
 		load_screen_button = wx.Button(self, 
 		                                  label="look up", 
 		                                  pos=(210,5), 
