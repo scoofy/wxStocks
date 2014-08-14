@@ -1,18 +1,13 @@
 import logging, inspect, numpy, sys
 import wxStocks_formulas as formula
-def line_number():
-    """Returns the current line number in our program."""
-    line_number = inspect.currentframe().f_back.f_lineno
-    line_number_string = "Line %d:" % line_number
-    return line_number_string
 
 def run_test(
-    sample_stock, 
+	sample_stock, 
 	sample_annual_data, 
-    sample_analyst_estimates,
-    stock_list,
-    quit=False
-    ):
+	sample_analyst_estimates,
+	stock_list,
+	quit=False
+	):
 	annual_data_attribute_list = return_dictionary_of_object_attributes_and_values(sample_annual_data)
 	analyst_estimates_attribute_list = return_dictionary_of_object_attributes_and_values(sample_analyst_estimates)
 
@@ -75,6 +70,8 @@ def run_test(
 	if quit:
 		sys.exit()
 
+
+####################### Utility functions #################################################
 def return_dictionary_of_object_attributes_and_values(obj):
 	attribute_list = []
 	if obj:
@@ -91,3 +88,9 @@ def return_dictionary_of_object_attributes_and_values(obj):
 		#	print attribute, ":", obj_attribute_value_dict[attribute]
 
 		return obj_attribute_value_dict
+def line_number():
+	"""Returns the current line number in our program."""
+	line_number = inspect.currentframe().f_back.f_lineno
+	line_number_string = "Line %d:" % line_number
+	return line_number_string
+############################################################################################

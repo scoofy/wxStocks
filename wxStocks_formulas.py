@@ -1,9 +1,4 @@
 import logging, inspect, numpy
-def line_number():
-    """Returns the current line number in our program."""
-    line_number = inspect.currentframe().f_back.f_lineno
-    line_number_string = "Line %d:" % line_number
-    return line_number_string
 
 def neff_ratio_5y(Stock): # requires only primary scrape
 	# Neff is total return/PE. Source: http://www.forbes.com/2010/06/01/tupperware-cvs-astrazeneca-intelligent-investing-neff-value.html
@@ -518,8 +513,12 @@ annual_data_needed = [
 	roePercentDev,
 	longTermDebtToEquity
 	]
-formula_list = [
-	stock_only_needed,
-	stock_plus_stock_list_needed,
-	annual_data_needed
-	]
+formula_list = stock_only_needed + stock_plus_stock_list_needed + annual_data_needed
+
+####################### Utility functions #################################################
+def line_number():
+    """Returns the current line number in our program."""
+    line_number = inspect.currentframe().f_back.f_lineno
+    line_number_string = "Line %d:" % line_number
+    return line_number_string
+############################################################################################
