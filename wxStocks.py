@@ -1,5 +1,5 @@
 import wx, numpy
-import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2, json
+import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2, json, gc
 import cPickle as pickle
 import wxStocks_formulas as formula
 import wxStocks_testing
@@ -235,52 +235,6 @@ def saveStocks(obj, stock_list):
 	with open(filename, 'wb') as output:
 		pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 #saveobject(company1, r'c:\mypythonobject')
-############################################################################################
-
-####################### wx general #######################################################
-class GridAllStocks(wx.grid.Grid):
-	def __init__(self, *args, **kwargs):
-		wx.grid.Grid.__init__(self, *args, **kwargs)
-		global GLOBAL_STOCK_LIST
-		self.num_rows = len(GLOBAL_STOCK_LIST)
-		self.num_columns = 0
-		for stock in GLOBAL_STOCK_LIST:
-			num_attributes = 0
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					num_attributes += 1
-			if self.num_columns < num_attributes:
-				self.num_columns = num_attributes
-		#print line_number(), "Number of rows: %d" % self.num_rows
-		#print line_number(), "Number of columns: %d" % self.num_columns
-class StockScreenGrid(wx.grid.Grid):
-	def __init__(self, *args, **kwargs):
-		wx.grid.Grid.__init__(self, *args, **kwargs)
-		
-		global SCREEN_LIST
-		stock_list = SCREEN_LIST
-
-		self.num_rows = len(stock_list)
-		self.num_columns = 0
-		for stock in stock_list:
-			num_attributes = 0
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					num_attributes += 1
-			if self.num_columns < num_attributes:
-				self.num_columns = num_attributes
-				#print line_number(), num_attributes
-		#print line_number(), "Number of rows: %d" % self.num_rows
-		#print line_number(), "Number of columns: %d" % self.num_columns
-class SalePrepGrid(wx.grid.Grid):
-	def __init__(self, *args, **kwargs):
-		wx.grid.Grid.__init__(self, *args, **kwargs)
-class TradeGrid(wx.grid.Grid):
-	def __init__(self, *args, **kwargs):
-		wx.grid.Grid.__init__(self, *args, **kwargs)
-class AccountDataGrid(wx.grid.Grid):
-	def __init__(self, *args, **kwargs):
-		wx.grid.Grid.__init__(self, *args, **kwargs)
 ############################################################################################
 
 ####################### wx main ########################################################
@@ -3327,6 +3281,51 @@ class StockDataPage(Tab):
 		self.createOneStockSpreadSheet(event = "")
 ############################################################################################
 
+####################### wx grids #######################################################
+class GridAllStocks(wx.grid.Grid):
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
+		global GLOBAL_STOCK_LIST
+		self.num_rows = len(GLOBAL_STOCK_LIST)
+		self.num_columns = 0
+		for stock in GLOBAL_STOCK_LIST:
+			num_attributes = 0
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					num_attributes += 1
+			if self.num_columns < num_attributes:
+				self.num_columns = num_attributes
+		#print line_number(), "Number of rows: %d" % self.num_rows
+		#print line_number(), "Number of columns: %d" % self.num_columns
+class StockScreenGrid(wx.grid.Grid):
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
+		
+		global SCREEN_LIST
+		stock_list = SCREEN_LIST
+
+		self.num_rows = len(stock_list)
+		self.num_columns = 0
+		for stock in stock_list:
+			num_attributes = 0
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					num_attributes += 1
+			if self.num_columns < num_attributes:
+				self.num_columns = num_attributes
+				#print line_number(), num_attributes
+		#print line_number(), "Number of rows: %d" % self.num_rows
+		#print line_number(), "Number of columns: %d" % self.num_columns
+class SalePrepGrid(wx.grid.Grid):
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
+class TradeGrid(wx.grid.Grid):
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
+class AccountDataGrid(wx.grid.Grid):
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
+############################################################################################
 ############# Spreadsheet Functions ########################################################
 def create_spread_sheet(
     wxWindow, 
@@ -3725,7 +3724,6 @@ def create_spread_sheet_for_one_stock(
 
 	return screen_grid
 ############################################################################################
-
 ####################### Screening functions ###############################################
 def screen_pe_less_than_10():
 	global GLOBAL_STOCK_LIST
@@ -4709,6 +4707,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 	
 	with open('all_annual_data_stocks.pk', 'wb') as output:
 		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+
 # Morningstar Annual Data Scrapers
 def morningstar_annual_cash_flow_scrape(ticker):
 	print "morningstar_annual_cash_flow_scrape:", ticker
@@ -5865,13 +5864,239 @@ def return_dictionary_of_object_attributes_and_values(obj):
 
 
 
+def morningstar_key_ratios_scrape(ticker):
+	ticker = ticker.upper()
+	print "morningstar_key_ratios_scrape:", ticker
+	stock = return_existing_StockAnnualData(ticker)
+	if not stock:
+		stock = StockAnnualData(ticker)
+		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
+	if stock:
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		#if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
+		#	print "Cash flow data for %s is up to date." % ticker
+		#	return
+	
+	basic_data = return_stock_by_symbol(ticker)
+	if basic_data:
+		exchange = basic_data.StockExchange
+		if exchange == 'NYSE':
+			exchange_code = "XNYS"
+		elif exchange == "NasdaqNM":
+			exchange_code = "XNAS"
+		else:
+			print "Unknown Exchange Code for", basic_data.symbol
+			print line_number()
+			return
+	else:
+		print 'Stock cannot be updated, need exchange symbol'
+		return
+
+
+	print 'http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker)
+	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker))
+	#morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/exportKR2CSV.html?&callback=?&t=%s:%s&region=usa&culture=en-US&cur=USD&order=' % (exchange_code, ticker) )#, int(time.time()), int(time.time()+150)))
+	morningstar_json = morningstar_raw.read()
+	#print morningstar_json
+	morningstar_string = str(morningstar_json)
+	# dummy_str = ""
+	# start_copy = False
+	# for char in morningstar_string:
+	# 	if start_copy == False and char != "(":
+	# 		continue
+	# 	elif start_copy == False and char == "(":
+	# 		start_copy = True
+	# 		continue
+	# 	elif start_copy == True:
+	# 		dummy_str += char
+	# morningstar_string = dummy_str[:-1]
+	# try:
+	# 	morningstar_json = json.loads(morningstar_string)
+	# except Exception, exception:
+	# 	print exception
+	# 	print morningstar_string
+	# 	print morningstar_raw.read()
+	# 	return
+
+	# #print morningstar_json["ADR"], "<-- should say false"
+	# morningstar_html = morningstar_json["result"]
+	
+	dummy_str = ""
+	start_copy = False
+	last_char_was_backslash = False
+	for char in morningstar_string:
+		if char == "<" and not start_copy:
+			start_copy = True
+			dummy_str += char
+		elif start_copy:
+			if char == "\\":
+				last_char_was_backslash = True
+			elif last_char_was_backslash == True:
+				if char in ["t","r","n"]:
+					last_char_was_backslash = False
+				elif char in ['"', "'", "/"]:
+					dummy_str += char
+					last_char_was_backslash = False
+				else:
+					print "\\%s" % char
+					last_char_was_backslash = False
+
+			else:
+				dummy_str += char
+	#print "\n", dummy_str
+	morningstar_html = dummy_str
+	#print morningstar_html
+	soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+	print soup.prettify()
+	full_data = []
+	
+
+	# Here we set the dates
+	# Y10 = ttm
+	# Y9 = t1y
+	# Y8 = t2y
+	# etc.
+	data_list = []
+
+	div_id = "i" # these are the three unique labels for divs on morningstar
+	count = 0
+	for i in range(100): # this may need to be larger
+		label = soup.find("th", {"id":"%s%d" % (div_id, count)})
+		if label:
+			# first find the row names and units
+			try:
+				label["style"]
+				if "display:none;" in str(label["style"]):
+					# I'm not comfortable accepting unshown data right now
+					count+=1
+					continue
+			except:
+				pass
+			name = label.contents[0]
+			if len(label) > 1:
+				units = label.contents[1]
+				units = units.contents[0]
+			print name, units
+			
+			label_data = []
+			data_sublist = [str(name), str(units), label_data]
+			# Now gather the data using the row id and year in the "header" section
+			# "Y0" or year 0, appears to be 10 years ago, 
+			# where as Y10 appears to be the trailing 12 months data
+			# it's a bit of some odd data, but it's obviously manageable.
+			for years_ago in reversed(range(10)): # this may also be larger
+				data = soup.find("td", {"headers": "Y%d i%d" % (years_ago, count)})
+				if data:
+					print data.contents
+					for datum in data.contents:
+						label_data.append(str(datum))
+			print data_sublist
+			print ""
+			data_list.append(data_sublist)
+		else:
+			name = None
+			count += 1
+			continue
+		#if name:
+		#	print name.children()
+		data = soup.find("div", {"id":"data_%s%d" % (div_id, count)})
+		if data:
+			data_list = []
+			for i in reversed(range(6)):
+				i += 1 # id's are ordinal
+				data_list.append(data.find("div", {"id":"Y_%d" % i})["rawvalue"])
+		
+		full_data.append([name,data_list])
+		count+=1
+
+	print data_list
+	sys.exit()
+	print "total units of data =", len(full_data)
+	#for i in full_data:
+	#	print i[0]
+	#	for j in i[1]:
+	#		print j
+
+	success = False
+
+	for datum in full_data:
+		attribute = datum[0]
+		attribute = attribute.replace(" ","_")
+		attribute = attribute.replace("-","_")
+		attribute = attribute.replace("/","_")
+		attribute = attribute.replace(",","_")
+		attribute = attribute.replace("'","")
+		attribute = attribute.replace("(Gain)_", "")
+		attribute = attribute.replace("(expense)_", "")
+		attribute = attribute.replace("(used_for)", "used_for")
+		attribute = attribute.replace("__","_")
+		
+		data_list = datum[1]
+		trailing_x_year_list = ["", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y"]
+		for i in range(len(data_list)):
+			if data_list[i] == u'\u2014':
+				data_list[i] = "-"
+			try:
+				# testing only commented out
+				# setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
+				#
+				print stock.symbol, str(attribute + trailing_x_year_list[i]), int(data_list[i])
+				success = True
+			except:
+				try:
+					# testing only commented out
+					# setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
+					#
+					print stock.symbol, str(attribute + trailing_x_year_list[i]), str(data_list[i])
+					success = True
+				except Exception, exception:
+					print exception
+	
+	# testing only
+	success = False
+	#
+
+	if success:
+		with open('all_annual_data_stocks.pk', 'wb') as output:
+			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+	print "\n", "key ratios done", "\n"
+	return success
 
 
 
 
+
+def return_stock_from_active_memory(ticker):
+	ticker = ticker.upper()
+	for obj in gc.get_objects():
+		if type(obj) is Stock:
+			if obj.symbol == ticker:
+				return obj
+
+googs = "goog"
+
+print return_stock_from_active_memory(googs).symbol
+
+count = 1
+singles = []
+dups = []
+for obj in gc.get_objects():
+	break
+	if type(obj) is Stock:
+		print count, obj.symbol
+		print "\n"
+		count += 1
+
+		if obj.symbol not in singles:
+			singles.append(obj.symbol)
+		else:
+			dups.append(obj.symbol)
+
+#morningstar_key_ratios_scrape("aapl")
+sys.exit()
 
 ############# Testing ########################################################
-testing = True
+testing = False
 terminate_after_testing = True
 if testing:
 	testing_ticker = "AAPL"
