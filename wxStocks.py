@@ -1,5 +1,7 @@
 import wx, numpy
-import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2, json, gc
+import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2, json
+import gc # Gasp!
+import pprint as pp
 import cPickle as pickle
 import wxStocks_formulas as formula
 import wxStocks_testing
@@ -12,15 +14,21 @@ from BeautifulSoup import BeautifulSoup
 #	print exception
 #	import json
 
-
 ####################### Objects ###############################################
+GLOBAL_STOCK_DICT = {}
 class Stock(object):
 	def __init__(self, symbol):
-		self.symbol = symbol
-		self.ticker = symbol
+		self.symbol = symbol.upper()
+		self.ticker = symbol.upper()
 		self.epoch = float(time.time())
 		self.created_epoch = float(time.time())
 		self.updated = datetime.datetime.now()
+		global GLOBAL_STOCK_DICT
+		if not str(symbol.upper()) in GLOBAL_STOCK_DICT:
+			GLOBAL_STOCK_DICT["%s" % self.symbol] = self
+		else:
+			logging.error("This stock already exists")
+			return
 class StockAnnualData(object):
 	def __init__(self, symbol):
 		self.symbol = symbol
@@ -55,7 +63,11 @@ class Account(object):
 		for stock in self.stock_list:
 			setattr(self, stock.symbol, stock)
 ############################################################################################
-
+def line_number():
+    """Returns the current line number in our program."""
+    line_number = inspect.currentframe().f_back.f_lineno
+    line_number_string = "Line %d:" % line_number
+    return line_number_string
 ####################### Data Loading ###############################################
 # start up try/except clauses below
 if "load data area below" == "load data area below":
@@ -71,6 +83,7 @@ if "load data area below" == "load data area below":
 		ticker_list = open('ticker.pk', 'rb')
 	GLOBAL_TICKER_LIST = pickle.load(ticker_list)
 	ticker_list.close()
+	
 	try:
 		stock_list = open('all_stocks.pk', 'rb')
 	except Exception, e:
@@ -82,6 +95,18 @@ if "load data area below" == "load data area below":
 		stock_list = open('all_stocks.pk', 'rb')
 	GLOBAL_STOCK_LIST = pickle.load(stock_list)
 	stock_list.close()
+
+	try:
+		stock_dict = open('all_stocks_dict.pk', 'rb')
+	except Exception, e:
+		print line_number(), e
+		stock_dict = open('all_stocks_dict.pk', 'wb')
+		stock_dict = {}
+		with open('all_stocks_dict.pk', 'wb') as output:
+			pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
+		stock_dict = open('all_stocks_dict.pk', 'rb')
+	GLOBAL_STOCK_DICT = pickle.load(stock_dict)
+	stock_dict.close()
 
 	try:
 		annual_data_stock_list = open('all_annual_data_stocks.pk', 'rb')
@@ -5742,20 +5767,6 @@ def check_url_instance(url_str):
 		logging.warning(e)
 	logging.warning(deadLinkFound)
 	return deadLinkFound
-def remove_unsafe_chars_from_tags(tag_list):
-	escaped_list = []
-	for tag in tag_list:
-		escaped_string = []
-		for char in tag:
-			if char in URL_SAFE_CHARS:
-				escaped_string.append(char)
-			else:
-				if char == " ":
-					escaped_string.append("_")
-		tag = "".join(escaped_string)
-		escaped_list.append(tag)
-	new_tag_list = escaped_list
-	return new_tag_list 
 def time_from_epoch(item_epoch_var):
 	raw_secs = round(item_epoch_var)
 	#logging.warning(raw_secs)
@@ -5815,8 +5826,13 @@ def return_stock_by_symbol(ticker_symbol):
 	for stock in GLOBAL_STOCK_LIST:
 		if stock.symbol.upper() == ticker_symbol.upper():
 			return stock
-	#if the function does not return a stock
-	return None
+	# switch away from global stock list to dict
+	global GLOBAL_STOCK_DICT
+	try:
+		return GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
+	except Exception as e:
+		logging.error("Stock with symbol %s does not appear to exist" % ticker_symbol.upper())
+		return None
 def is_number(some_string):
 	try:
 		float(some_string)
@@ -5835,11 +5851,21 @@ def contains_digits(some_string):
 def first_character_is_digit(some_string):
 	return some_string[0].isdigit()
 
-def line_number():
-    """Returns the current line number in our program."""
-    line_number = inspect.currentframe().f_back.f_lineno
-    line_number_string = "Line %d:" % line_number
-    return line_number_string
+
+def return_list_of_all_stocks_from_active_memory():
+	stock_list = []
+	for obj in gc.get_objects():
+		if type(obj) is Stock:
+			stock_list.append(obj)
+	stock_list.sort(key = lambda x: x.symbol)
+	return stock_list
+def return_stock_from_active_memory(ticker):
+	ticker = ticker.upper()
+	for obj in gc.get_objects():
+		if type(obj) is Stock:
+			if obj.symbol == ticker:
+				return obj
+
 
 def return_dictionary_of_object_attributes_and_values(obj):
 	attribute_list = []
@@ -5873,7 +5899,7 @@ def morningstar_key_ratios_scrape(ticker):
 		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
 	if stock:
 		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		#if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
+		#if stock.morningstar_key_ratios_scrape > yesterdays_epoch: # if data is more than a day old
 		#	print "Cash flow data for %s is up to date." % ticker
 		#	return
 	
@@ -5938,7 +5964,7 @@ def morningstar_key_ratios_scrape(ticker):
 					dummy_str += char
 					last_char_was_backslash = False
 				else:
-					print "\\%s" % char
+					#print "\\%s" % char
 					last_char_was_backslash = False
 
 			else:
@@ -5947,7 +5973,7 @@ def morningstar_key_ratios_scrape(ticker):
 	morningstar_html = dummy_str
 	#print morningstar_html
 	soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
-	print soup.prettify()
+	#print soup.prettify()
 	full_data = []
 	
 
@@ -5976,7 +6002,7 @@ def morningstar_key_ratios_scrape(ticker):
 			if len(label) > 1:
 				units = label.contents[1]
 				units = units.contents[0]
-			print name, units
+			#print name, units
 			
 			label_data = []
 			data_sublist = [str(name), str(units), label_data]
@@ -5987,11 +6013,11 @@ def morningstar_key_ratios_scrape(ticker):
 			for years_ago in reversed(range(10)): # this may also be larger
 				data = soup.find("td", {"headers": "Y%d i%d" % (years_ago, count)})
 				if data:
-					print data.contents
+					#print data.contents
 					for datum in data.contents:
 						label_data.append(str(datum))
-			print data_sublist
-			print ""
+			#print data_sublist
+			#print ""
 			data_list.append(data_sublist)
 		else:
 			name = None
