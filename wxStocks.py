@@ -6035,28 +6035,33 @@ def morningstar_key_ratios_scrape(ticker):
 		full_data.append([name,data_list])
 		count+=1
 
-	print data_list
-	sys.exit()
-	print "total units of data =", len(full_data)
-	#for i in full_data:
-	#	print i[0]
-	#	for j in i[1]:
-	#		print j
+
+
+	print "total units of data =", len(data_list)
 
 	success = False
 
-	for datum in full_data:
-		attribute = datum[0]
-		attribute = attribute.replace(" ","_")
-		attribute = attribute.replace("-","_")
-		attribute = attribute.replace("/","_")
-		attribute = attribute.replace(",","_")
-		attribute = attribute.replace("'","")
-		attribute = attribute.replace("(Gain)_", "")
-		attribute = attribute.replace("(expense)_", "")
-		attribute = attribute.replace("(used_for)", "used_for")
-		attribute = attribute.replace("__","_")
-		
+	data_list = morningstar_recursive_data_list_string_edit(data_list)
+	
+	print "Result:", data_list
+
+	for unit in data_list:
+		print unit[0]
+		for subunit in unit[2]:
+			print subunit
+		print ""
+	sys.exit()
+
+	# datum is [name, units, [datalist]]
+	count = 1
+	for datum in data_list:
+		print count, datum[0]
+		#print datum[1]
+		#print "------"
+		for data in datum[2]:
+			print data
+		print ""
+		count += 1	
 		data_list = datum[1]
 		trailing_x_year_list = ["", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y"]
 		for i in range(len(data_list)):
@@ -6087,38 +6092,81 @@ def morningstar_key_ratios_scrape(ticker):
 			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 	print "\n", "key ratios done", "\n"
 	return success
+def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
+	dummy_list = []
+	if recursion_count == 0:
+		print "to save:"
+	pp.pprint(data_list)
+	print ""
+	for datum in data_list:
+		if type(datum) is list:
+			# list within previous list
+			double_dummy_list = []
+			for thing in datum:
+				if type(thing) is (str or unicode):
+					thing = thing.replace("%", "perc")
+					thing = thing.replace(" ","_")
+					thing = thing.replace("-","_")
+					thing = thing.replace("/","_")
+					thing = thing.replace(",","_")
+					thing = thing.replace("'","")
+					thing = thing.replace("(Gain)_", "")
+					thing = thing.replace("(expense)_", "")
+					thing = thing.replace("(used_for)", "used_for")
+					thing = thing.replace("__","_")
+					double_dummy_list.append(thing)
+					print "string saved:", thing
+				else:
+					recursion_count += 1
+					if recursion_count > 10:
+						print "max recusions achieved,", line_number()
+						return
+					print ""
+					print "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
+					morningstar_recursive_data_list_string_edit(thing, recursion_count = recursion_count)
+					print "End recursion level %d" % recursion_count
+					recursion_count -= 1
+
+			if double_dummy_list:
+				dummy_list.append(double_dummy_list) 
 
 
-
-
-
-def return_stock_from_active_memory(ticker):
-	ticker = ticker.upper()
-	for obj in gc.get_objects():
-		if type(obj) is Stock:
-			if obj.symbol == ticker:
-				return obj
-
-googs = "goog"
-
-print return_stock_from_active_memory(googs).symbol
-
-count = 1
-singles = []
-dups = []
-for obj in gc.get_objects():
-	break
-	if type(obj) is Stock:
-		print count, obj.symbol
-		print "\n"
-		count += 1
-
-		if obj.symbol not in singles:
-			singles.append(obj.symbol)
+		elif type(datum) is (str or unicode):
+			#print string, "\n"
+			try:
+				datum = datum.replace(",", "")
+				datum.isdigit()
+				print "string (number) saved:", datum
+			except:
+				datum = datum.replace("%", "perc")
+				datum = datum.replace(" ","_")
+				datum = datum.replace("-","_")
+				datum = datum.replace("/","_")
+				datum = datum.replace(",","_")
+				datum = datum.replace("'","")
+				datum = datum.replace("(Gain)_", "")
+				datum = datum.replace("(expense)_", "")
+				datum = datum.replace("(used_for)", "used_for")
+				datum = datum.replace("__","_")
+				print "string saved:", datum
 		else:
-			dups.append(obj.symbol)
+			print "Not able to parse:", datum
 
-#morningstar_key_ratios_scrape("aapl")
+		dummy_list.append(datum)
+
+
+
+	data_list = dummy_list
+
+	if recursion_count == 0:
+		print "Saved:"
+		pp.pprint(data_list)
+	return data_list
+
+
+ticker = "googl"
+stocks = morningstar_key_ratios_scrape(ticker)
+
 sys.exit()
 
 ############# Testing ########################################################
