@@ -5918,13 +5918,14 @@ def morningstar_key_ratios_scrape(ticker):
 		print 'Stock cannot be updated, need exchange symbol'
 		return
 
-
+	### First get your scrape ###
 	print 'http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker)
 	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker))
 	#morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/exportKR2CSV.html?&callback=?&t=%s:%s&region=usa&culture=en-US&cur=USD&order=' % (exchange_code, ticker) )#, int(time.time()), int(time.time()+150)))
 	morningstar_json = morningstar_raw.read()
 	#print morningstar_json
 	morningstar_string = str(morningstar_json)
+
 	# dummy_str = ""
 	# start_copy = False
 	# for char in morningstar_string:
@@ -5947,6 +5948,7 @@ def morningstar_key_ratios_scrape(ticker):
 	# #print morningstar_json["ADR"], "<-- should say false"
 	# morningstar_html = morningstar_json["result"]
 	
+	### Now, remove improper chars ###
 	dummy_str = ""
 	start_copy = False
 	last_char_was_backslash = False
@@ -5972,10 +5974,16 @@ def morningstar_key_ratios_scrape(ticker):
 	#print "\n", dummy_str
 	morningstar_html = dummy_str
 	#print morningstar_html
+
+
+	### convert to soup ###
 	soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
 	#print soup.prettify()
+
 	full_data = []
 	
+
+	### parse the soup ###
 
 	# Here we set the dates
 	# Y10 = ttm
@@ -6010,7 +6018,7 @@ def morningstar_key_ratios_scrape(ticker):
 			# "Y0" or year 0, appears to be 10 years ago, 
 			# where as Y10 appears to be the trailing 12 months data
 			# it's a bit of some odd data, but it's obviously manageable.
-			for years_ago in reversed(range(10)): # this may also be larger
+			for years_ago in reversed(range(11)): # this may also be larger
 				data = soup.find("td", {"headers": "Y%d i%d" % (years_ago, count)})
 				if data:
 					#print data.contents
@@ -6041,45 +6049,50 @@ def morningstar_key_ratios_scrape(ticker):
 
 	success = False
 
+
+	### convert to data_lists ###
+	#########
 	data_list = morningstar_recursive_data_list_string_edit(data_list)
+	data_list = morningstar_add_zeros_to_usd_millions(data_list)
+	#########
 	
-	print "Result:", data_list
+	pp.pprint(data_list)
 
-	for unit in data_list:
-		print unit[0]
-		for subunit in unit[2]:
-			print subunit
-		print ""
-	sys.exit()
+	# for unit in data_list:
+	# 	print unit[0]
+	# 	print unit[1]
+	# 	print "------"
+	# 	for subunit in unit[2]:
+	# 		print subunit
+	# 	print ""
 
+	### save data to objects ###
 	# datum is [name, units, [datalist]]
 	count = 1
 	for datum in data_list:
-		print count, datum[0]
-		#print datum[1]
-		#print "------"
-		for data in datum[2]:
-			print data
 		print ""
+		print count
+		print datum[0]
+		attribute = datum[0]
+		print datum[1]
+		print "------"
 		count += 1	
-		data_list = datum[1]
-		trailing_x_year_list = ["", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y"]
+		data_list = datum[2]
+		trailing_x_year_list = ["_ttm", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y", "_t6y", "_t7y", "_t8y", "_t9y", "_t10y"]
 		for i in range(len(data_list)):
 			if data_list[i] == u'\u2014':
 				data_list[i] = "-"
 			try:
 				# testing only commented out
-				# setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
+				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
 				#
-				print stock.symbol, str(attribute + trailing_x_year_list[i]), int(data_list[i])
-				success = True
+				print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
 			except:
 				try:
 					# testing only commented out
-					# setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
+					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
 					#
-					print stock.symbol, str(attribute + trailing_x_year_list[i]), str(data_list[i])
-					success = True
+					print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
 				except Exception, exception:
 					print exception
 	
@@ -6087,60 +6100,45 @@ def morningstar_key_ratios_scrape(ticker):
 	success = False
 	#
 
+
+	### save objects ###
 	if success:
 		with open('all_annual_data_stocks.pk', 'wb') as output:
 			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+
 	print "\n", "key ratios done", "\n"
 	return success
+
+	sys.exit()
 def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 	dummy_list = []
-	if recursion_count == 0:
-		print "to save:"
-	pp.pprint(data_list)
-	print ""
+	#if recursion_count == 0:
+	#	print "to save:"
+	#	pass
+	#pp.pprint(data_list)
+	#print ""
 	for datum in data_list:
 		if type(datum) is list:
-			# list within previous list
-			double_dummy_list = []
-			for thing in datum:
-				if type(thing) is (str or unicode):
-					thing = thing.replace("%", "perc")
-					thing = thing.replace(" ","_")
-					thing = thing.replace("-","_")
-					thing = thing.replace("/","_")
-					thing = thing.replace(",","_")
-					thing = thing.replace("'","")
-					thing = thing.replace("(Gain)_", "")
-					thing = thing.replace("(expense)_", "")
-					thing = thing.replace("(used_for)", "used_for")
-					thing = thing.replace("__","_")
-					double_dummy_list.append(thing)
-					print "string saved:", thing
-				else:
-					recursion_count += 1
-					if recursion_count > 10:
-						print "max recusions achieved,", line_number()
-						return
-					print ""
-					print "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
-					morningstar_recursive_data_list_string_edit(thing, recursion_count = recursion_count)
-					print "End recursion level %d" % recursion_count
-					recursion_count -= 1
-
-			if double_dummy_list:
-				dummy_list.append(double_dummy_list) 
-
-
+			recursion_count += 1
+			if recursion_count > 10:
+				print "max recusions achieved,", line_number()
+				return
+			print "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
+			datum = morningstar_recursive_data_list_string_edit(datum, recursion_count = recursion_count)
+			print "End recursion level %d" % recursion_count
+			recursion_count -= 1
 		elif type(datum) is (str or unicode):
 			#print string, "\n"
 			try:
 				datum = datum.replace(",", "")
-				datum.isdigit()
+				if not datum.isdigit():
+					raise Exception("Not a number")
+				datum = datum.replace("\xe2\x80\x94","-")
 				print "string (number) saved:", datum
 			except:
 				datum = datum.replace("%", "perc")
 				datum = datum.replace(" ","_")
-				datum = datum.replace("-","_")
+				#datum = datum.replace("-","_")
 				datum = datum.replace("/","_")
 				datum = datum.replace(",","_")
 				datum = datum.replace("'","")
@@ -6148,9 +6146,23 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 				datum = datum.replace("(expense)_", "")
 				datum = datum.replace("(used_for)", "used_for")
 				datum = datum.replace("__","_")
+				datum = datum.replace("\xc2\xa0", "")
+				datum = datum.replace("\xe2\x80\x94","-")
+
+				# datum = datum.replace(u"%", u"perc")
+				# datum = datum.replace(u" ",u"_")
+				# datum = datum.replace(u"-",u"_")
+				# datum = datum.replace(u"/",u"_")
+				# datum = datum.replace(u",",u"_")
+				# datum = datum.replace(u"'",u"")
+				# datum = datum.replace(u"(Gain)_", u"")
+				# datum = datum.replace(u"(expense)_", u"")
+				# datum = datum.replace(u"(used_for)", u"used_for")
+				# datum = datum.replace(u"__",u"_")
 				print "string saved:", datum
 		else:
 			print "Not able to parse:", datum
+			line_number()
 
 		dummy_list.append(datum)
 
@@ -6158,13 +6170,47 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 
 	data_list = dummy_list
 
-	if recursion_count == 0:
-		print "Saved:"
-		pp.pprint(data_list)
+	#for sublist in data_list:
+	#	print sublist
+
+	#if recursion_count == 0:
+	#	print "Saved:"
+	#	pp.pprint(data_list)
+	#	pass
+	return data_list
+def morningstar_add_zeros_to_usd_millions(data_list):
+	dummy_list = []
+	for datum in data_list:
+		print "edits:"
+		print datum[1]
+		if not len(datum) == 3:
+			logging.error("morningstar_add_zeros_to_usd_millions error, not correctly formated list")
+		if datum[1] in ["USD Mil", u"USD Mil", "USD_Mil", u"USD_Mil"]:
+			dummy_list_2 = []
+			for amount_of_dollars in datum[2]:
+				print amount_of_dollars
+				if str(amount_of_dollars).isdigit():
+					print "converting %s to %s000" % (amount_of_dollars, amount_of_dollars)
+					amount_of_dollars = amount_of_dollars + "000"
+				dummy_list_2.append(amount_of_dollars)
+			datum[2] = dummy_list_2
+			datum[1] = "USD_from_Mil"
+			dummy_list.append(datum)
+		elif datum[1] in ["Mil", u"Mil"]:
+			dummy_list_2 = []
+			for amount in datum[2]:
+				if amount.isdigit():
+					amount = amount + "000"
+				dummy_list_2.append(amount)
+			datum[2] = dummy_list_2
+			datum[1] = "was_Mil"
+			dummy_list.append(datum)
+		else:
+			dummy_list.append(datum)
+	data_list = dummy_list
 	return data_list
 
-
-ticker = "googl"
+ticker = "GOOGL"
 stocks = morningstar_key_ratios_scrape(ticker)
 
 sys.exit()
