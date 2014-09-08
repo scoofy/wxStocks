@@ -23,6 +23,18 @@ class Stock(object):
 		self.epoch = float(time.time())
 		self.created_epoch = float(time.time())
 		self.updated = datetime.datetime.now()
+
+		self.last_yql_basic_scrape_update = 0.0
+		
+		self.last_yahoo_balance_sheet_update = 0.0
+		self.last_yahoo_cash_flow_update = 0.0
+		self.last_yahoo_income_statement_update = 0.0
+		
+		self.last_morningstar_balance_sheet_update = 0.0
+		self.last_morningstar_cash_flow_update = 0.0
+		self.last_morningstar_income_statement_update = 0.0
+		self.last_morningstar_key_ratios_update = 0.0
+
 		global GLOBAL_STOCK_DICT
 		if not str(symbol.upper()) in GLOBAL_STOCK_DICT:
 			GLOBAL_STOCK_DICT["%s" % self.symbol] = self
@@ -4105,41 +4117,6 @@ def basicYQLScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_
 # ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
 # ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
 ## --- Much has been improved, but i still need to do a re-write it for single year data.
-def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
-	one_day = (60 * 60 * 24)
-	yesterdays_epoch = float(time.time()) - one_day
-	ticker_list = list_of_ticker_symbols
-	edited_ticker_list = []
-	for ticker in ticker_list:
-		#stock = return_existing_StockAnnualData(ticker)
-		#if stock:
-		#	if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
-		#		print "%s is up to date (no need to update)" % ticker
-		#		continue # if all are up to date skip ahead, and don't append ticker
-		edited_ticker_list.append(ticker)
-	ticker_list = edited_ticker_list
-	if ticker_list:
-		print "updating:", ticker_list
-
-	for i in range(len(ticker_list)):
-		# 2 second sleep per scrape
-		# timer = count * 6 + position of data needed, function, ticker
-		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
-		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
-		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
-		# these can be simultaneous because they are hitting different servers
-		# these large delays seem to be necessary for python to handle all the file reads... but i'm not totally sure if it's necessary.
-		timer_4 = threading.Timer((i * 45), morningstar_annual_balance_sheet_scrape, [ticker_list[i]])
-		timer_5 = threading.Timer((i * 45)+15, morningstar_annual_income_statement_scrape, [ticker_list[i]])
-		timer_6 = threading.Timer((i * 45)+30, morningstar_annual_cash_flow_scrape, [ticker_list[i]])
-
-		#timer_1.start()
-		#timer_2.start()
-		#timer_3.start()
-		
-		timer_4.start()
-		timer_5.start()
-		timer_6.start()
 def yahoo_annual_cash_flow_scrape(ticker):
 	stock = return_existing_StockAnnualData(ticker)
 	if stock:
@@ -4551,6 +4528,42 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 							147	-
 							148	-
 							''']
+
+def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
+	one_day = (60 * 60 * 24)
+	yesterdays_epoch = float(time.time()) - one_day
+	ticker_list = list_of_ticker_symbols
+	edited_ticker_list = []
+	for ticker in ticker_list:
+		#stock = return_existing_StockAnnualData(ticker)
+		#if stock:
+		#	if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
+		#		print "%s is up to date (no need to update)" % ticker
+		#		continue # if all are up to date skip ahead, and don't append ticker
+		edited_ticker_list.append(ticker)
+	ticker_list = edited_ticker_list
+	if ticker_list:
+		print "updating:", ticker_list
+
+	for i in range(len(ticker_list)):
+		# 2 second sleep per scrape
+		# timer = count * 6 + position of data needed, function, ticker
+		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
+		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
+		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
+		# these can be simultaneous because they are hitting different servers
+		# these large delays seem to be necessary for python to handle all the file reads... but i'm not totally sure if it's necessary.
+		timer_4 = threading.Timer((i * 45), morningstar_annual_balance_sheet_scrape, [ticker_list[i]])
+		timer_5 = threading.Timer((i * 45)+15, morningstar_annual_income_statement_scrape, [ticker_list[i]])
+		timer_6 = threading.Timer((i * 45)+30, morningstar_annual_cash_flow_scrape, [ticker_list[i]])
+
+		#timer_1.start()
+		#timer_2.start()
+		#timer_3.start()
+		
+		timer_4.start()
+		timer_5.start()
+		timer_6.start()
 def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor=1):
 	for cell in table.findAll(str_to_find):
 		text = cell.find(text=True)
@@ -4579,6 +4592,7 @@ def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_fac
 		if text:
 			#print text
 			data_list_to_append_to.append(str(text))
+
 def return_existing_StockAnnualData(ticker_symbol):
 	global GLOBAL_ANNUAL_DATA_STOCK_LIST
 	for stock in GLOBAL_ANNUAL_DATA_STOCK_LIST:
@@ -5329,6 +5343,329 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 	return success
 ###
 
+# Morningstar Key Ratios
+def morningstar_key_ratios_scrape(ticker):
+	ticker = ticker.upper()
+	print "morningstar_key_ratios_scrape:", ticker
+	stock = return_existing_StockAnnualData(ticker)
+	if not stock:
+		stock = StockAnnualData(ticker)
+		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
+	if stock:
+		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
+		#if stock.morningstar_key_ratios_scrape > yesterdays_epoch: # if data is more than a day old
+		#	print "Cash flow data for %s is up to date." % ticker
+		#	return
+	
+	basic_data = return_stock_by_symbol(ticker)
+	if basic_data:
+		exchange = basic_data.StockExchange
+		if exchange == 'NYSE':
+			exchange_code = "XNYS"
+		elif exchange == "NasdaqNM":
+			exchange_code = "XNAS"
+		else:
+			print "Unknown Exchange Code for", basic_data.symbol
+			print line_number()
+			return
+	else:
+		print 'Stock cannot be updated, need exchange symbol'
+		return
+
+	### First get your scrape ###
+	print 'http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker)
+	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker))
+	#morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/exportKR2CSV.html?&callback=?&t=%s:%s&region=usa&culture=en-US&cur=USD&order=' % (exchange_code, ticker) )#, int(time.time()), int(time.time()+150)))
+	morningstar_json = morningstar_raw.read()
+	#print morningstar_json
+	morningstar_string = str(morningstar_json)
+
+	# dummy_str = ""
+	# start_copy = False
+	# for char in morningstar_string:
+	# 	if start_copy == False and char != "(":
+	# 		continue
+	# 	elif start_copy == False and char == "(":
+	# 		start_copy = True
+	# 		continue
+	# 	elif start_copy == True:
+	# 		dummy_str += char
+	# morningstar_string = dummy_str[:-1]
+	# try:
+	# 	morningstar_json = json.loads(morningstar_string)
+	# except Exception, exception:
+	# 	print exception
+	# 	print morningstar_string
+	# 	print morningstar_raw.read()
+	# 	return
+
+	# #print morningstar_json["ADR"], "<-- should say false"
+	# morningstar_html = morningstar_json["result"]
+	
+	### Now, remove improper chars ###
+	dummy_str = ""
+	start_copy = False
+	last_char_was_backslash = False
+	for char in morningstar_string:
+		if char == "<" and not start_copy:
+			start_copy = True
+			dummy_str += char
+		elif start_copy:
+			if char == "\\":
+				last_char_was_backslash = True
+			elif last_char_was_backslash == True:
+				if char in ["t","r","n"]:
+					last_char_was_backslash = False
+				elif char in ['"', "'", "/"]:
+					dummy_str += char
+					last_char_was_backslash = False
+				else:
+					#print "\\%s" % char
+					last_char_was_backslash = False
+
+			else:
+				dummy_str += char
+	#print "\n", dummy_str
+	morningstar_html = dummy_str
+	#print morningstar_html
+
+
+	### convert to soup ###
+	soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+	#print soup.prettify()
+
+	full_data = []
+	
+
+	### parse the soup ###
+
+	# Here we set the dates
+	# Y10 = ttm
+	# Y9 = t1y
+	# Y8 = t2y
+	# etc.
+	data_list = []
+
+	div_id = "i" # these are the three unique labels for divs on morningstar
+	count = 0
+	for i in range(100): # this may need to be larger
+		label = soup.find("th", {"id":"%s%d" % (div_id, count)})
+		if label:
+			# first find the row names and units
+			try:
+				label["style"]
+				if "display:none;" in str(label["style"]):
+					# I'm not comfortable accepting unshown data right now
+					count+=1
+					continue
+			except:
+				pass
+			name = label.contents[0]
+			if len(label) > 1:
+				units = label.contents[1]
+				units = units.contents[0]
+			#print name, units
+			
+			label_data = []
+			data_sublist = [str(name), str(units), label_data]
+			# Now gather the data using the row id and year in the "header" section
+			# "Y0" or year 0, appears to be 10 years ago, 
+			# where as Y10 appears to be the trailing 12 months data
+			# it's a bit of some odd data, but it's obviously manageable.
+			for years_ago in reversed(range(11)): # this may also be larger
+				data = soup.find("td", {"headers": "Y%d i%d" % (years_ago, count)})
+				if data:
+					#print data.contents
+					for datum in data.contents:
+						label_data.append(str(datum))
+			#print data_sublist
+			#print ""
+			data_list.append(data_sublist)
+		else:
+			name = None
+			count += 1
+			continue
+		#if name:
+		#	print name.children()
+		data = soup.find("div", {"id":"data_%s%d" % (div_id, count)})
+		if data:
+			data_list = []
+			for i in reversed(range(6)):
+				i += 1 # id's are ordinal
+				data_list.append(data.find("div", {"id":"Y_%d" % i})["rawvalue"])
+		
+		full_data.append([name,data_list])
+		count+=1
+
+
+
+	print "total units of data =", len(data_list)
+
+	success = False
+
+
+	### convert to data_lists ###
+	#########
+	data_list = morningstar_recursive_data_list_string_edit(data_list)
+	data_list = morningstar_add_zeros_to_usd_millions(data_list)
+	#########
+	
+	pp.pprint(data_list)
+
+	# for unit in data_list:
+	# 	print unit[0]
+	# 	print unit[1]
+	# 	print "------"
+	# 	for subunit in unit[2]:
+	# 		print subunit
+	# 	print ""
+
+	### save data to object ###
+	# datum is [name, units, [datalist]]
+	count = 1
+	for datum in data_list:
+		print ""
+		print count
+		print datum[0]
+		attribute = datum[0]
+		print datum[1]
+		print "------"
+		count += 1	
+		data_list = datum[2]
+		trailing_x_year_list = ["_ttm", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y", "_t6y", "_t7y", "_t8y", "_t9y", "_t10y"]
+		for i in range(len(data_list)):
+			if data_list[i] == u'\u2014':
+				data_list[i] = "-"
+			try:
+				# testing only commented out
+				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
+				#
+				print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
+			except:
+				try:
+					# testing only commented out
+					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
+					#
+					print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
+				except Exception, exception:
+					print exception
+	# testing only
+	success = False
+	#
+
+
+	### save object ###
+	stock.last_morningstar_key_ratios_update = float(time.time())
+
+	with open('all_annual_data_stocks.pk', 'wb') as output:
+		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+	with open('all_stocks_dict.pk', 'wb') as output:
+		pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
+
+	print "\n", "key ratios done", "\n"
+	return success
+
+	sys.exit()
+
+def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
+	dummy_list = []
+	#if recursion_count == 0:
+	#	print "to save:"
+	#	pass
+	#pp.pprint(data_list)
+	#print ""
+	for datum in data_list:
+		if type(datum) is list:
+			recursion_count += 1
+			if recursion_count > 10:
+				print "max recusions achieved,", line_number()
+				return
+			print "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
+			datum = morningstar_recursive_data_list_string_edit(datum, recursion_count = recursion_count)
+			print "End recursion level %d" % recursion_count
+			recursion_count -= 1
+		elif type(datum) is (str or unicode):
+			#print string, "\n"
+			try:
+				datum = datum.replace(",", "")
+				if not datum.isdigit():
+					raise Exception("Not a number")
+				datum = datum.replace("\xe2\x80\x94","-")
+				print "string (number) saved:", datum
+			except:
+				datum = datum.replace("%", "perc")
+				datum = datum.replace(" ","_")
+				#datum = datum.replace("-","_")
+				datum = datum.replace("/","_")
+				datum = datum.replace(",","_")
+				datum = datum.replace("'","")
+				datum = datum.replace("(Gain)_", "")
+				datum = datum.replace("(expense)_", "")
+				datum = datum.replace("(used_for)", "used_for")
+				datum = datum.replace("__","_")
+				datum = datum.replace("\xc2\xa0", "")
+				datum = datum.replace("\xe2\x80\x94","-")
+
+				# datum = datum.replace(u"%", u"perc")
+				# datum = datum.replace(u" ",u"_")
+				# datum = datum.replace(u"-",u"_")
+				# datum = datum.replace(u"/",u"_")
+				# datum = datum.replace(u",",u"_")
+				# datum = datum.replace(u"'",u"")
+				# datum = datum.replace(u"(Gain)_", u"")
+				# datum = datum.replace(u"(expense)_", u"")
+				# datum = datum.replace(u"(used_for)", u"used_for")
+				# datum = datum.replace(u"__",u"_")
+				print "string saved:", datum
+		else:
+			print "Not able to parse:", datum
+			line_number()
+
+		dummy_list.append(datum)
+
+
+
+	data_list = dummy_list
+
+	#for sublist in data_list:
+	#	print sublist
+
+	#if recursion_count == 0:
+	#	print "Saved:"
+	#	pp.pprint(data_list)
+	#	pass
+	return data_list
+def morningstar_add_zeros_to_usd_millions(data_list):
+	dummy_list = []
+	for datum in data_list:
+		print "edits:"
+		print datum[1]
+		if not len(datum) == 3:
+			logging.error("morningstar_add_zeros_to_usd_millions error, not correctly formated list")
+		if datum[1] in ["USD Mil", u"USD Mil", "USD_Mil", u"USD_Mil"]:
+			dummy_list_2 = []
+			for amount_of_dollars in datum[2]:
+				print amount_of_dollars
+				if str(amount_of_dollars).isdigit():
+					print "converting %s to %s000" % (amount_of_dollars, amount_of_dollars)
+					amount_of_dollars = amount_of_dollars + "000"
+				dummy_list_2.append(amount_of_dollars)
+			datum[2] = dummy_list_2
+			datum[1] = "USD_from_Mil"
+			dummy_list.append(datum)
+		elif datum[1] in ["Mil", u"Mil"]:
+			dummy_list_2 = []
+			for amount in datum[2]:
+				if amount.isdigit():
+					amount = amount + "000"
+				dummy_list_2.append(amount)
+			datum[2] = dummy_list_2
+			datum[1] = "was_Mil"
+			dummy_list.append(datum)
+		else:
+			dummy_list.append(datum)
+	data_list = dummy_list
+	return data_list
 
 # Stock Analyst Estimates Scraping Functions
 def return_existing_StockAnalystEstimates(ticker_symbol):
@@ -5888,330 +6225,13 @@ def return_dictionary_of_object_attributes_and_values(obj):
 
 
 
-
-
-def morningstar_key_ratios_scrape(ticker):
-	ticker = ticker.upper()
-	print "morningstar_key_ratios_scrape:", ticker
-	stock = return_existing_StockAnnualData(ticker)
-	if not stock:
-		stock = StockAnnualData(ticker)
-		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		#if stock.morningstar_key_ratios_scrape > yesterdays_epoch: # if data is more than a day old
-		#	print "Cash flow data for %s is up to date." % ticker
-		#	return
-	
-	basic_data = return_stock_by_symbol(ticker)
-	if basic_data:
-		exchange = basic_data.StockExchange
-		if exchange == 'NYSE':
-			exchange_code = "XNYS"
-		elif exchange == "NasdaqNM":
-			exchange_code = "XNAS"
-		else:
-			print "Unknown Exchange Code for", basic_data.symbol
-			print line_number()
-			return
-	else:
-		print 'Stock cannot be updated, need exchange symbol'
-		return
-
-	### First get your scrape ###
-	print 'http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker)
-	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker))
-	#morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/exportKR2CSV.html?&callback=?&t=%s:%s&region=usa&culture=en-US&cur=USD&order=' % (exchange_code, ticker) )#, int(time.time()), int(time.time()+150)))
-	morningstar_json = morningstar_raw.read()
-	#print morningstar_json
-	morningstar_string = str(morningstar_json)
-
-	# dummy_str = ""
-	# start_copy = False
-	# for char in morningstar_string:
-	# 	if start_copy == False and char != "(":
-	# 		continue
-	# 	elif start_copy == False and char == "(":
-	# 		start_copy = True
-	# 		continue
-	# 	elif start_copy == True:
-	# 		dummy_str += char
-	# morningstar_string = dummy_str[:-1]
-	# try:
-	# 	morningstar_json = json.loads(morningstar_string)
-	# except Exception, exception:
-	# 	print exception
-	# 	print morningstar_string
-	# 	print morningstar_raw.read()
-	# 	return
-
-	# #print morningstar_json["ADR"], "<-- should say false"
-	# morningstar_html = morningstar_json["result"]
-	
-	### Now, remove improper chars ###
-	dummy_str = ""
-	start_copy = False
-	last_char_was_backslash = False
-	for char in morningstar_string:
-		if char == "<" and not start_copy:
-			start_copy = True
-			dummy_str += char
-		elif start_copy:
-			if char == "\\":
-				last_char_was_backslash = True
-			elif last_char_was_backslash == True:
-				if char in ["t","r","n"]:
-					last_char_was_backslash = False
-				elif char in ['"', "'", "/"]:
-					dummy_str += char
-					last_char_was_backslash = False
-				else:
-					#print "\\%s" % char
-					last_char_was_backslash = False
-
-			else:
-				dummy_str += char
-	#print "\n", dummy_str
-	morningstar_html = dummy_str
-	#print morningstar_html
-
-
-	### convert to soup ###
-	soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
-	#print soup.prettify()
-
-	full_data = []
-	
-
-	### parse the soup ###
-
-	# Here we set the dates
-	# Y10 = ttm
-	# Y9 = t1y
-	# Y8 = t2y
-	# etc.
-	data_list = []
-
-	div_id = "i" # these are the three unique labels for divs on morningstar
-	count = 0
-	for i in range(100): # this may need to be larger
-		label = soup.find("th", {"id":"%s%d" % (div_id, count)})
-		if label:
-			# first find the row names and units
-			try:
-				label["style"]
-				if "display:none;" in str(label["style"]):
-					# I'm not comfortable accepting unshown data right now
-					count+=1
-					continue
-			except:
-				pass
-			name = label.contents[0]
-			if len(label) > 1:
-				units = label.contents[1]
-				units = units.contents[0]
-			#print name, units
-			
-			label_data = []
-			data_sublist = [str(name), str(units), label_data]
-			# Now gather the data using the row id and year in the "header" section
-			# "Y0" or year 0, appears to be 10 years ago, 
-			# where as Y10 appears to be the trailing 12 months data
-			# it's a bit of some odd data, but it's obviously manageable.
-			for years_ago in reversed(range(11)): # this may also be larger
-				data = soup.find("td", {"headers": "Y%d i%d" % (years_ago, count)})
-				if data:
-					#print data.contents
-					for datum in data.contents:
-						label_data.append(str(datum))
-			#print data_sublist
-			#print ""
-			data_list.append(data_sublist)
-		else:
-			name = None
-			count += 1
-			continue
-		#if name:
-		#	print name.children()
-		data = soup.find("div", {"id":"data_%s%d" % (div_id, count)})
-		if data:
-			data_list = []
-			for i in reversed(range(6)):
-				i += 1 # id's are ordinal
-				data_list.append(data.find("div", {"id":"Y_%d" % i})["rawvalue"])
-		
-		full_data.append([name,data_list])
-		count+=1
-
-
-
-	print "total units of data =", len(data_list)
-
-	success = False
-
-
-	### convert to data_lists ###
-	#########
-	data_list = morningstar_recursive_data_list_string_edit(data_list)
-	data_list = morningstar_add_zeros_to_usd_millions(data_list)
-	#########
-	
-	pp.pprint(data_list)
-
-	# for unit in data_list:
-	# 	print unit[0]
-	# 	print unit[1]
-	# 	print "------"
-	# 	for subunit in unit[2]:
-	# 		print subunit
-	# 	print ""
-
-	### save data to objects ###
-	# datum is [name, units, [datalist]]
-	count = 1
-	for datum in data_list:
-		print ""
-		print count
-		print datum[0]
-		attribute = datum[0]
-		print datum[1]
-		print "------"
-		count += 1	
-		data_list = datum[2]
-		trailing_x_year_list = ["_ttm", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y", "_t6y", "_t7y", "_t8y", "_t9y", "_t10y"]
-		for i in range(len(data_list)):
-			if data_list[i] == u'\u2014':
-				data_list[i] = "-"
-			try:
-				# testing only commented out
-				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
-				#
-				print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
-			except:
-				try:
-					# testing only commented out
-					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
-					#
-					print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
-				except Exception, exception:
-					print exception
-	
-	# testing only
-	success = False
-	#
-
-
-	### save objects ###
-	if success:
-		with open('all_annual_data_stocks.pk', 'wb') as output:
-			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-
-	print "\n", "key ratios done", "\n"
-	return success
-
-	sys.exit()
-def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
-	dummy_list = []
-	#if recursion_count == 0:
-	#	print "to save:"
-	#	pass
-	#pp.pprint(data_list)
-	#print ""
-	for datum in data_list:
-		if type(datum) is list:
-			recursion_count += 1
-			if recursion_count > 10:
-				print "max recusions achieved,", line_number()
-				return
-			print "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
-			datum = morningstar_recursive_data_list_string_edit(datum, recursion_count = recursion_count)
-			print "End recursion level %d" % recursion_count
-			recursion_count -= 1
-		elif type(datum) is (str or unicode):
-			#print string, "\n"
-			try:
-				datum = datum.replace(",", "")
-				if not datum.isdigit():
-					raise Exception("Not a number")
-				datum = datum.replace("\xe2\x80\x94","-")
-				print "string (number) saved:", datum
-			except:
-				datum = datum.replace("%", "perc")
-				datum = datum.replace(" ","_")
-				#datum = datum.replace("-","_")
-				datum = datum.replace("/","_")
-				datum = datum.replace(",","_")
-				datum = datum.replace("'","")
-				datum = datum.replace("(Gain)_", "")
-				datum = datum.replace("(expense)_", "")
-				datum = datum.replace("(used_for)", "used_for")
-				datum = datum.replace("__","_")
-				datum = datum.replace("\xc2\xa0", "")
-				datum = datum.replace("\xe2\x80\x94","-")
-
-				# datum = datum.replace(u"%", u"perc")
-				# datum = datum.replace(u" ",u"_")
-				# datum = datum.replace(u"-",u"_")
-				# datum = datum.replace(u"/",u"_")
-				# datum = datum.replace(u",",u"_")
-				# datum = datum.replace(u"'",u"")
-				# datum = datum.replace(u"(Gain)_", u"")
-				# datum = datum.replace(u"(expense)_", u"")
-				# datum = datum.replace(u"(used_for)", u"used_for")
-				# datum = datum.replace(u"__",u"_")
-				print "string saved:", datum
-		else:
-			print "Not able to parse:", datum
-			line_number()
-
-		dummy_list.append(datum)
-
-
-
-	data_list = dummy_list
-
-	#for sublist in data_list:
-	#	print sublist
-
-	#if recursion_count == 0:
-	#	print "Saved:"
-	#	pp.pprint(data_list)
-	#	pass
-	return data_list
-def morningstar_add_zeros_to_usd_millions(data_list):
-	dummy_list = []
-	for datum in data_list:
-		print "edits:"
-		print datum[1]
-		if not len(datum) == 3:
-			logging.error("morningstar_add_zeros_to_usd_millions error, not correctly formated list")
-		if datum[1] in ["USD Mil", u"USD Mil", "USD_Mil", u"USD_Mil"]:
-			dummy_list_2 = []
-			for amount_of_dollars in datum[2]:
-				print amount_of_dollars
-				if str(amount_of_dollars).isdigit():
-					print "converting %s to %s000" % (amount_of_dollars, amount_of_dollars)
-					amount_of_dollars = amount_of_dollars + "000"
-				dummy_list_2.append(amount_of_dollars)
-			datum[2] = dummy_list_2
-			datum[1] = "USD_from_Mil"
-			dummy_list.append(datum)
-		elif datum[1] in ["Mil", u"Mil"]:
-			dummy_list_2 = []
-			for amount in datum[2]:
-				if amount.isdigit():
-					amount = amount + "000"
-				dummy_list_2.append(amount)
-			datum[2] = dummy_list_2
-			datum[1] = "was_Mil"
-			dummy_list.append(datum)
-		else:
-			dummy_list.append(datum)
-	data_list = dummy_list
-	return data_list
-
 ticker = "GOOGL"
-stocks = morningstar_key_ratios_scrape(ticker)
+#stocks = morningstar_key_ratios_scrape(ticker)
+
+my_stock = return_stock_by_symbol(ticker)
+for attribute in dir(my_stock):
+	if attribute[:2] != "__":
+		print my_stock.symbol + "." + attribute, "=", getattr(my_stock, attribute)
 
 sys.exit()
 
