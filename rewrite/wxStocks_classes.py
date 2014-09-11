@@ -1,0 +1,37 @@
+import time, datetime, inspect, config
+import wxStocks_db_functions as db
+def line_number():
+    """Returns the current line number in our program."""
+    line_number = inspect.currentframe().f_back.f_lineno
+    line_number_string = "Line %d:" % line_number
+    return line_number_string
+
+class Stock(object):
+	def __new__(self, symbol):
+		stock_already_exists = config.GLOBAL_STOCK_DICT.get(symbol.upper())
+		if stock_already_exists:
+			print "stock_already_exists"
+			return stock_already_exists
+		else:
+			self.symbol = symbol.upper()
+			self.ticker = symbol.upper()
+			self.epoch = float(time.time())
+			self.created_epoch = float(time.time())
+			self.updated = datetime.datetime.now()
+
+			self.last_yql_basic_scrape_update = 0.0
+			
+			self.last_yahoo_balance_sheet_update = 0.0
+			self.last_yahoo_cash_flow_update = 0.0
+			self.last_yahoo_income_statement_update = 0.0
+			
+			self.last_morningstar_balance_sheet_update = 0.0
+			self.last_morningstar_cash_flow_update = 0.0
+			self.last_morningstar_income_statement_update = 0.0
+			self.last_morningstar_key_ratios_update = 0.0
+
+			# save new object to db
+			config.GLOBAL_STOCK_DICT[symbol.upper()] = self
+			print 'Saving: Stock("%s")' % symbol.upper()
+			db.save_GLOBAL_STOCK_DICT()
+
