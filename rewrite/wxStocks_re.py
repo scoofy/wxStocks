@@ -1,3 +1,6 @@
+import wxStocks_utilities as utils
+utils.start_whitespace()
+
 # Requirements
 import wx, numpy
 from BeautifulSoup import BeautifulSoup
@@ -13,8 +16,8 @@ from wx.lib import sheet
 from wxStocks_classes import Stock
 import wxStocks_db_functions as db
 import wxStocks_formulas as formula
-import wxStocks_utilities as utils
 import wxStocks_testing
+import wxStocks_gui as gui
 
 # True globals are in config
 import config
@@ -27,35 +30,9 @@ def line_number():
     return line_number_string
 
 
-utils.terminal_whitespace()
 
 db.load_all_data()
 
-print line_number(), config.GLOBAL_STOCK_DICT
-
-for i in range(5):
-	a = Stock("a")
-
-
-import gc
-def return_list_of_all_stocks_from_active_memory():
-	stock_list = []
-	for obj in gc.get_objects():
-		if type(obj) is Stock:
-			stock_list.append(obj)
-	#stock_list.sort(key = lambda x: x.symbol)
-	return stock_list
-
-all_objs = return_list_of_all_stocks_from_active_memory()
-print ""
-pp.pprint(all_objs)
-print ""
-for obj in all_objs:
-	utils.print_attributes(obj)
-	print ""
-
-
-print line_number(), config.GLOBAL_STOCK_DICT
 
 
 
@@ -63,7 +40,14 @@ print line_number(), config.GLOBAL_STOCK_DICT
 
 
 
+### START ###################################################################
+app = None
+def main():
+	global app
+	app = wx.App()
+	gui.MainFrame(size=(1020,800), #style = wx.MINIMIZE_BOX | wx.CLOSE_BOX
+			  ).Show()
+	app.MainLoop()
+main()
 
-
-
-
+# end of line

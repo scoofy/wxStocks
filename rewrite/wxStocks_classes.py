@@ -13,6 +13,13 @@ class Stock(object):
 			print "stock_already_exists"
 			return stock_already_exists
 		else:
+			self.held_list = []
+			# held list should take certain values into account
+			# account where stock is held
+			# number of shares held in that account
+			# redundant information seems silly,
+			# could keep the shares in the account obj only.
+
 			self.symbol = symbol.upper()
 			self.ticker = symbol.upper()
 			self.epoch = float(time.time())
@@ -34,4 +41,38 @@ class Stock(object):
 			config.GLOBAL_STOCK_DICT[symbol.upper()] = self
 			print 'Saving: Stock("%s")' % symbol.upper()
 			db.save_GLOBAL_STOCK_DICT()
+
+class Account(object): #portfolio
+	def __init__(self, id_number, cash = 0, initial_stock_shares_tuple_list = []):
+		self.id_number = id_number
+		self.availble_cash = cash # there is a ticker "CASH" that already exists, ugh
+		self.stock_list = []
+		self.stock_shares_dict = {}
+		if initial_stock_shares_tuple_list:
+			for a_tuple in initial_stock_shares_tuple_list: # ["NAME", int(NumberOfShares)]
+				if a_tuple[0] not in self.stock_list:
+					self.stock_list.append(stock)
+					self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+
+	def update_account(self, updated_cash, updated_stock_shares_tuple_list):
+		self.availble_cash = updated_cash
+		self.stock_list = []
+		self.stock_shares_dict = {}
+		for a_tuple in updated_stock_shares_tuple_list: # ["NAME", int(NumberOfShares)]
+			if a_tuple[0] not in self.stock_list:
+				self.stock_list.append(stock)
+				self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+
+
+	def add_stock(stock_shares_tuple):
+		if stock_shares_tuple[0] not in stock_list:
+			self.stock_list.append(stock)
+			self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+		else: # updating only number of shares held
+			self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+
+
+
+
+
 

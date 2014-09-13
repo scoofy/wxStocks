@@ -85,7 +85,8 @@ IRRELEVANT_ATTRIBUTES = ["updated",
 
 ### Do not edit below, all are reset to saved values on startup ###
 GLOBAL_STOCK_DICT = {}
-GlOBAL_TICKER_LIST = []
+
+GLOBAL_TICKER_LIST = []
 
 DATA_ABOUT_PORTFOLIOS = [] 
 # Structure of this variable below, 
@@ -99,12 +100,12 @@ DATA_ABOUT_PORTFOLIOS = []
 #								]
 #							]
 
-NUMBER_OF_PORTFOLIOS = None 
+NUMBER_OF_PORTFOLIOS = 3 
 # Default loads to 1
 PORTFOLIO_NAMES = []
 # Default name is "Primary"
 
-# PORTFOLIO_OBJECTS_LIST
+PORTFOLIO_OBJECTS_DICT = {}
 
 SCREEN_LIST = []
 

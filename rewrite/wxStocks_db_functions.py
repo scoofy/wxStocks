@@ -1,7 +1,8 @@
-import simplecrypt
 import config
 import inspect, logging
 import cPickle as pickle
+import wxStocks_classes
+
 ####################### Data Loading ###############################################
 def load_all_data():
 	load_GLOBAL_TICKER_LIST()
@@ -15,13 +16,20 @@ def load_GLOBAL_TICKER_LIST():
 	except Exception, e:
 		print line_number(), e
 		ticker_list = open('wxStocks_data/ticker.pk', 'wb')
-		ticker_list = {"Default": "Default"}
+		ticker_list = []
 		with open('wxStocks_data/ticker.pk', 'wb') as output:
 			pickle.dump(ticker_list, output, pickle.HIGHEST_PROTOCOL)
 		ticker_list = open('wxStocks_data/ticker.pk', 'rb')
-	GLOBAL_TICKER_DICT = pickle.load(ticker_list)
+	config.GLOBAL_TICKER_LIST = pickle.load(ticker_list)
 	ticker_list.close()
-	return GLOBAL_TICKER_DICT
+	return config.GLOBAL_TICKER_LIST
+def save_GLOBAL_TICKER_LIST():
+	with open('wxStocks_data/ticker.pk', 'wb') as output:
+		pickle.dump(config.GLOBAL_TICKER_LIST, output, pickle.HIGHEST_PROTOCOL)
+def delete_GLOBAL_TICKER_LIST():
+	config.GLOBAL_TICKER_LIST = []
+	with open('wxStocks_data/ticker.pk', 'wb') as output:
+		pickle.dump(config.GLOBAL_TICKER_LIST, output, pickle.HIGHEST_PROTOCOL)
 
 def load_GLOBAL_STOCK_DICT():
 	try:
@@ -42,20 +50,29 @@ def save_GLOBAL_STOCK_DICT():
 	with open('wxStocks_data/all_stocks_dict.pk', 'wb') as output:
 		pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
 
+def save_DATA_ABOUT_PORTFOLIOS():
+	with open('wxStocks_data/portfolios.pk', 'wb') as output:
+		pickle.dump(config.DATA_ABOUT_PORTFOLIOS, output, pickle.HIGHEST_PROTOCOL)
+
 def load_DATA_ABOUT_PORTFOLIOS():	
+	# add encrypt + decryption to this function
 	try:
-		data_from_portfolios_file = open('wxStocks_data/portfolios.pk', 'rb')
+		pickled_data_from_portfolios_file = open('wxStocks_data/portfolios.pk', 'rb')
 	except Exception, e:
 		print line_number(), e
-		data_from_portfolios_file = open('wxStocks_data/portfolios.pk', 'wb')
-		data_from_portfolios_file = [1,["Primary"]]
+		default_data_about_portfolios_list = [0,[]]
 		with open('wxStocks_data/portfolios.pk', 'wb') as output:
-			pickle.dump(data_from_portfolios_file, output, pickle.HIGHEST_PROTOCOL)
-		data_from_portfolios_file = open('wxStocks_data/portfolios.pk', 'rb')
-	config.DATA_ABOUT_PORTFOLIOS = pickle.load(data_from_portfolios_file)
+			pickle.dump(default_data_about_portfolios_list, output, pickle.HIGHEST_PROTOCOL)
+		pickled_data_from_portfolios_file = open('wxStocks_data/portfolios.pk', 'rb')
+
+		
+
+
+	config.DATA_ABOUT_PORTFOLIOS = pickle.load(pickled_data_from_portfolios_file)
 	# For config.DATA_ABOUT_PORTFOLIOS structure, see config file
-	data_from_portfolios_file.close()
-	config.NUMBER_OF_PORTFOLIOS = config.DATA_ABOUT_PORTFOLIOS[0]	
+	pickled_data_from_portfolios_file.close()
+	config.NUMBER_OF_PORTFOLIOS = config.DATA_ABOUT_PORTFOLIOS[0]
+	print config.NUMBER_OF_PORTFOLIOS
 	config.PORTFOLIO_NAMES = []
 	for i in range(config.NUMBER_OF_PORTFOLIOS):
 		try:
@@ -63,17 +80,39 @@ def load_DATA_ABOUT_PORTFOLIOS():
 		except Exception, exception:
 			print line_number(), exception
 			logging.error('Portfolio names do not match number of portfolios')
-	config.PORTFOLIO_OBJECTS_DICT = []
 	for i in range(config.NUMBER_OF_PORTFOLIOS):
 		try:
 			portfolio_account_obj_file = open('wxStocks_data/portfolio_%d_data.pk' % (i+1), 'rb')
 			portfolio_obj = pickle.load(portfolio_account_obj_file)
 			portfolio_account_obj_file.close()
-			config.PORTFOLIO_OBJECTS_LIST.append(portfolio_obj)
+			config.PORTFOLIO_OBJECTS_DICT["%s" % str(portfolio_obj.id_number)] = portfolio_obj
+			print config.PORTFOLIO_OBJECTS_DICT
 		except Exception, e:
 			print line_number(), e
 	# with open('dummy.pk', 'wb') as output:
 	#	pickle.dump(SOME_DATA, output, pickle.HIGHEST_PROTOCOL)
+
+def load_account_object(id_number):
+	pickled_account =  open('wxStocks_data/portfolio_%s.pk' % str(id_number), 'rb')
+	account = pickle.load(pickled_account)
+	return account
+
+############################################################################################
+
+def load_screen_names():
+	try:
+		existing_screen_names_file = open('wxStocks_data/screen_names.pk', 'rb')
+	except Exception, exception:
+		print line_number(), exception
+		existing_screen_names_file = open('wxStocks_data/screen_names.pk', 'wb')
+		empty_list = []
+		with open('wxStocks_data/screen_names.pk', 'wb') as output:
+			pickle.dump(empty_list, output, pickle.HIGHEST_PROTOCOL)
+		existing_screen_names_file = open('wxStocks_data/screen_names.pk', 'rb')
+	existing_screen_names = pickle.load(existing_screen_names_file)
+	existing_screen_names_file.close()
+	return existing_screen_names
+
 ############################################################################################
 def line_number():
     """Returns the current line number in our program."""

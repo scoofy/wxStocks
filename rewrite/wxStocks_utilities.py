@@ -1,6 +1,5 @@
 import inspect
 import config
-from wxStocks_classes import Stock
 
 def print_attributes(obj):
 	for attribute in dir(obj):
@@ -9,7 +8,7 @@ def print_attributes(obj):
 				print obj.symbol + "." + attribute, "=", getattr(obj, attribute)
 			else:
 				print attribute, "=", getattr(obj, attribute)
-def terminal_whitespace():
+def start_whitespace():
 	print """
 	\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
 	\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
