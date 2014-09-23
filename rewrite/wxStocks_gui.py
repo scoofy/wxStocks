@@ -116,20 +116,51 @@ class WelcomePage(Tab):
 									)
 class TickerPage(Tab):
 	def __init__(self, parent):
-
-		self.ticker_list_file = None
-
 		wx.Panel.__init__(self, parent)
 		text = wx.StaticText(self, -1, 
 							 "Welcome to the ticker page.", 
 							 (10,10)
 							 )
-		download_button = wx.Button(self, label="Download Tickers", pos=(472,5), size=(-1,-1))
-		download_button.Bind(wx.EVT_BUTTON, self.downloadTickers, download_button) 
+		download_button = wx.Button(self, label="Download Tickers", pos=(5, 30), size=(-1,-1))
+		download_button.Bind(wx.EVT_BUTTON, self.confirmDownloadTickers, download_button) 
 
-		self.showTickerCSV()
+		exchanges = ""
+		for exchange_name in config.STOCK_EXCHANGE_LIST:
+			if exchange_name is config.STOCK_EXCHANGE_LIST[0]:
+				exchanges = exchange_name.upper()
+			elif exchange_name is config.STOCK_EXCHANGE_LIST[-1]:
+				if len(config.STOCK_EXCHANGE_LIST) == 2:
+					exchanges = exchanges + " and " + exchange_name.upper()
+				else:
+					exchanges = exchanges + ", and " + exchange_name.upper()
+			else:
+				exchanges = exchanges + ", " + exchange_name.upper()
 
-	def downloadTickers(self, e):
+		more_text = wx.StaticText(self, -1, 
+							 "Currently downloads tickers from %s. To add or remove exchanges, edit the config file." % exchanges, 
+							 (145,36)
+							 )
+
+		self.showAllTickers()
+
+	def confirmDownloadTickers(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.", 
+								   'Confirm Download', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		#try:
+		#	confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+		#except AttributeError:
+		#	pass
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.downloadTickers()
+
+	def downloadTickers(self):
 		print line_number(), "Begin ticker download..."
 		ticker_data = ticker_downloader.download_ticker_symbols()
 		self.saveTickerDataAsStocks(ticker_data)
@@ -143,46 +174,50 @@ class TickerPage(Tab):
 		for ticker_data_sublist in ticker_data_from_download:
 			print ticker_data_sublist[0] + ":", ticker_data_sublist[1]
 
-			ticker_symbol_upper = ticker_data_sublist[0]
+			ticker_symbol_upper = utils.strip_string_whitespace(ticker_data_sublist[0]).upper()
 			ticker_list.append(ticker_symbol_upper)
 
 		# check all stocks against that list
-		for stock.symbol in config.GLOBAL_STOCK_DICT:
-			if stock.symbol in ticker_list:
-				if stock.ticker_relevant == False:
-					stock.ticker_relevant = True
+		for ticker in config.GLOBAL_STOCK_DICT:
+			if ticker in ticker_list:
+				if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant == False:
+					config.GLOBAL_STOCK_DICT[ticker].ticker_relevant = True
+				print line_number(), ticker, "appears to be fine"
 			else:
 				# ticker may have been removed from exchange
-				dead_tickers.append(stock.symbol)
+				print line_number(), ticker + " appears to be dead"
+				dead_tickers.append(ticker)
 
 		# check for errors, and if not, mark stocks as no longer on exchanges:
 		if len(dead_tickers) > config.NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR:
 			logging.error("Something went wrong with ticker download, probably a dead link")
 		else:
 			for dead_ticker_symbol in dead_tickers:
+				print line_number(), dead_ticker_symbol
 				dead_stock = utils.return_stock_by_symbol(dead_ticker_symbol)
 				dead_stock.ticker_relevant = False
 
 		# save stocks if new
 		for ticker_data_sublist in ticker_data_from_download:
-			ticker_symbol = ticker_data_sublist[0]
+			ticker_symbol = utils.strip_string_whitespace(ticker_data_sublist[0])
 			firm_name = ticker_data_sublist[1]
-			stock = Stock(ticker_symbol)
+
+			stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)
+			
 			stock.firm_name = firm_name
 			print "Saving:", stock.ticker, stock.firm_name
-		db.save_GLOBAL_STOCK_DICT
+		db.save_GLOBAL_STOCK_DICT()
+		self.showAllTickers()
 
-		print config.GLOBAL_STOCK_DICT
-
-		self.showTickerCSV()
-
-	def showTickerCSV(self):
+	def showAllTickers(self):
+		print line_number(), "Loading Tickers"
 		ticker_list = []
-		for stock in config.GLOBAL_STOCK_DICT:
-			if config.GLOBAL_STOCK_DICT[stock].ticker_relevant:
-				ticker_list.append(stock)
+		for ticker in config.GLOBAL_STOCK_DICT:
+			if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
+				ticker_list.append(ticker)
 		self.displayTickers(ticker_list)
 		self.Show()
+		print line_number(), "Done"
 
 	def displayTickers(self, ticker_list):
 		ticker_list.sort()
@@ -1576,7 +1611,7 @@ class SalePrepPage(Tab):
 						return
 
 		for i in sell_tuple_list:
-			print i
+			print line_number(), i
 
 		# Here, i'm not sure whether to save to file or not (currently not saving to file, obviously)
 		relevant_portfolios_list = []
@@ -1887,7 +1922,7 @@ class TradePage(Tab):
 		self.grid = None
 
 	def importSaleCandidates(self, event):
-		print "Boom goes the boom!!!!!!!!"
+		print line_number(), "Boom goes the boom!!!!!!!!"
 		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
 
 		self.relevant_portfolios_list = SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
@@ -1895,10 +1930,10 @@ class TradePage(Tab):
 		
 		for portfolio in self.relevant_portfolios_list:
 			id_number = portfolio.id_number
-			print id_number
+			print line_number(), id_number
 			
-			print config.PORTFOLIO_NAMES[id_number - 1]
-		print self.sale_tuple_list
+			print line_number(), config.PORTFOLIO_NAMES[id_number - 1]
+		print line_number(), self.sale_tuple_list
 
 		# Now, how to refresh only parts of the list... hmmmm
 	def makeGridOnButtonPush(self, event):
@@ -2219,18 +2254,18 @@ class TradePage(Tab):
 		# thus, this hack... create a new grid on execution each time.
 
 		if not grid:
-			print "no grid"
+			print line_number(), "no grid"
 			grid = self.grid
 		else:
-			print grid
+			print line_number(), grid
 
 		row = event.GetRow()
 		column = event.GetCol()
 		cursor_positon = (int(row), int(column))
 
 		buy_candidates_len = len(self.buy_candidates)
-		print buy_candidates_len
-		print buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1
+		print line_number(), buy_candidates_len
+		print line_number(), buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1
 		self.buy_candidates = []
 		self.buy_candidate_tuples = []
 		for row in (range(buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1)):
@@ -2249,8 +2284,8 @@ class TradePage(Tab):
 							ticker_row = row
 							self.buy_candidate_tuples.append((ticker_row, quantity))
 				else:
-					print ticker, "doesn't seem to exist"
-		print self.buy_candidates
+					print line_number(), ticker, "doesn't seem to exist"
+		print line_number(), self.buy_candidates
 
 		# build new grid
 		self.newGridFill(cursor_positon = cursor_positon)
@@ -2586,7 +2621,7 @@ class TradePage(Tab):
 				quantity = str(new_grid.GetCellValue(row_num, buy_cost_column - 1))
 				if quantity:
 					ticker = str(new_grid.GetCellValue(row_num, buy_cost_column - 8))
-					print ticker
+					print line_number(), ticker
 					stock = return_stock_by_symbol(ticker)
 					if stock:
 						quantity = int(quantity)
@@ -2639,13 +2674,13 @@ class TradePage(Tab):
 
 
 		new_grid.AutoSizeColumns()
-		print "done building grid"
+		print line_number(), "done building grid"
 		new_grid.SetGridCursor(cursor_positon[0] + 1, cursor_positon[1])
 
 		for grid in self.grid_list:
 			grid.Hide()
 		self.grid_list.append(new_grid)
-		print "number of grids created =", len(self.grid_list)
+		print line_number(), "number of grids created =", len(self.grid_list)
 		new_grid.SetFocus()
 
 class PortfolioPage(Tab):
@@ -2718,7 +2753,7 @@ class PortfolioAccountTab(Tab):
 		
 		self.portfolio_id = tab_number
 		#print line_number(), self.portfolio_id
-		print config.PORTFOLIO_OBJECTS_DICT
+		print line_number(), config.PORTFOLIO_OBJECTS_DICT
 		portfolio_file = config.PORTFOLIO_OBJECTS_DICT["%s" % str(self.portfolio_id)]
 
 		

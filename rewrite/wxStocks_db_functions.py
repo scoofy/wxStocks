@@ -31,12 +31,19 @@ def delete_GLOBAL_TICKER_LIST():
 	with open('wxStocks_data/ticker.pk', 'wb') as output:
 		pickle.dump(config.GLOBAL_TICKER_LIST, output, pickle.HIGHEST_PROTOCOL)
 
+def create_new_Stock_if_it_doesnt_exist(ticker):
+	ticker = ticker.upper()
+	stock = config.GLOBAL_STOCK_DICT.get(ticker)
+	if stock:
+		print "%s already exists." % ticker
+		return stock
+	else:
+		return wxStocks_classes.Stock(ticker)
 def load_GLOBAL_STOCK_DICT():
 	try:
 		pickled_file = open('wxStocks_data/all_stocks_dict.pk', 'rb')
 		stock_dict = pickle.load(pickled_file)
 		config.GLOBAL_STOCK_DICT = stock_dict
-		stock_dict = dict(stock_dict)
 
 	except Exception, e:
 		print line_number(), e
@@ -72,7 +79,7 @@ def load_DATA_ABOUT_PORTFOLIOS():
 	# For config.DATA_ABOUT_PORTFOLIOS structure, see config file
 	pickled_data_from_portfolios_file.close()
 	config.NUMBER_OF_PORTFOLIOS = config.DATA_ABOUT_PORTFOLIOS[0]
-	print config.NUMBER_OF_PORTFOLIOS
+	#print line_number(), config.NUMBER_OF_PORTFOLIOS
 	config.PORTFOLIO_NAMES = []
 	for i in range(config.NUMBER_OF_PORTFOLIOS):
 		try:

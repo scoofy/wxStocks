@@ -32,10 +32,9 @@ def line_number():
 # Load data
 db.load_all_data()
 
-for stock in config.GLOBAL_STOCK_DICT:
-	print stock
-	print type(stock)
-
+#for ticker in config.GLOBAL_STOCK_DICT:
+#	print dir(config.GLOBAL_STOCK_DICT[ticker])
+#sys.exit()
 
 
 
