@@ -11,6 +11,7 @@ import inspect
 from wxStocks_classes import Stock, Account
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
+import wxStocks_ticker_downloader as ticker_downloader
 
 def line_number():
     """Returns the current line number in our program."""
@@ -87,8 +88,7 @@ class WelcomePage(Tab):
 	Instructions: 	this program is essentially a work-flow following the tabs above.
 	---------------------------------------------------------------------------------------------------------------------------------
 
-	Tickers:		This page is where you load in a .CSV file to create a list of tickers to scrape.
-				You can get a properly formatted .CSV from the exchanges you want via a link on this page.
+	Tickers:		This page is where you download ticker .CSV files to create a list of tickers to scrape.
 
 	Scrape:		This page takes the tickers, and then scrapes current stock data using them.
 
@@ -121,54 +121,68 @@ class TickerPage(Tab):
 
 		wx.Panel.__init__(self, parent)
 		text = wx.StaticText(self, -1, 
-							 "Welcome to the ticker page. Download correctly formatted .csv files here:", 
+							 "Welcome to the ticker page.", 
 							 (10,10)
 							 )
-		link_button = wx.Button(self, label="nasdaq.com/screening/company-list", pos=(472,5), size=(-1,-1))
-		link_button.Bind(wx.EVT_BUTTON, self.linkToTickerCSV, link_button) 
+		download_button = wx.Button(self, label="Download Tickers", pos=(472,5), size=(-1,-1))
+		download_button.Bind(wx.EVT_BUTTON, self.downloadTickers, download_button) 
 
 		self.showTickerCSV()
 
-	def linkToTickerCSV(self, e):
-		wx.LaunchDefaultBrowser("http://www.nasdaq.com/screening/company-list.aspx")
+	def downloadTickers(self, e):
+		print line_number(), "Begin ticker download..."
+		ticker_data = ticker_downloader.download_ticker_symbols()
+		self.saveTickerDataAsStocks(ticker_data)
+
+	def saveTickerDataAsStocks(self, ticker_data_from_download):
+		# first check for stocks that have fallen off the stock exchanges
+		ticker_list = []
+		dead_tickers = []
+
+		# create a list of tickers
+		for ticker_data_sublist in ticker_data_from_download:
+			print ticker_data_sublist[0] + ":", ticker_data_sublist[1]
+
+			ticker_symbol_upper = ticker_data_sublist[0]
+			ticker_list.append(ticker_symbol_upper)
+
+		# check all stocks against that list
+		for stock.symbol in config.GLOBAL_STOCK_DICT:
+			if stock.symbol in ticker_list:
+				if stock.ticker_relevant == False:
+					stock.ticker_relevant = True
+			else:
+				# ticker may have been removed from exchange
+				dead_tickers.append(stock.symbol)
+
+		# check for errors, and if not, mark stocks as no longer on exchanges:
+		if len(dead_tickers) > config.NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR:
+			logging.error("Something went wrong with ticker download, probably a dead link")
+		else:
+			for dead_ticker_symbol in dead_tickers:
+				dead_stock = utils.return_stock_by_symbol(dead_ticker_symbol)
+				dead_stock.ticker_relevant = False
+
+		# save stocks if new
+		for ticker_data_sublist in ticker_data_from_download:
+			ticker_symbol = ticker_data_sublist[0]
+			firm_name = ticker_data_sublist[1]
+			stock = Stock(ticker_symbol)
+			stock.firm_name = firm_name
+			print "Saving:", stock.ticker, stock.firm_name
+		db.save_GLOBAL_STOCK_DICT
+
+		print config.GLOBAL_STOCK_DICT
+
+		self.showTickerCSV()
 
 	def showTickerCSV(self):
-		
-		self.displayTickers(config.GLOBAL_TICKER_LIST)
-
-		add_button = wx.Button(self, label="Add .csv", pos=(10,50), size=(-1,-1))
-		add_button.Bind(wx.EVT_BUTTON, self.addCsv, add_button) 
-
-		clear_button = wx.Button(self, label="Delete ticker list", pos=(100,50), size=(-1,-1))
-		clear_button.Bind(wx.EVT_BUTTON, self.deleteTickerList, clear_button) 
-
+		ticker_list = []
+		for stock in config.GLOBAL_STOCK_DICT:
+			if config.GLOBAL_STOCK_DICT[stock].ticker_relevant:
+				ticker_list.append(stock)
+		self.displayTickers(ticker_list)
 		self.Show()
-
-	def deleteTickerList(self,e):
-		'''delete current ticker list'''
-		
-		db.deleteTickerList()
-		self.showTickerCSV()
-
-	def addCsv(self, e):
-		'''append a csv to current ticker list'''
-		self.dirname = ''
-		dialog = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
-		if dialog.ShowModal() == wx.ID_OK:
-			self.filename = dialog.GetFilename()
-			self.dirname = dialog.GetDirectory()
-			
-			new_ticker_file = open(os.path.join(self.dirname, self.filename), 'rb')
-			tickers_to_append = gen_ticker_list(new_ticker_file)
-			new_ticker_file.close()
-
-			
-			config.GLOBAL_TICKER_LIST = config.GLOBAL_TICKER_LIST + tickers_to_append
-			config.GLOBAL_TICKER_LIST = remove_list_duplicates(config.GLOBAL_TICKER_LIST)
-			config.GLOBAL_TICKER_LIST.sort()
-			db.save_GLOBAL_TICKER_LIST()
-			self.showTickerCSV()
-		dialog.Destroy()
 
 	def displayTickers(self, ticker_list):
 		ticker_list.sort()

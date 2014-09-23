@@ -115,7 +115,7 @@ def load_screen_names():
 
 ############################################################################################
 def line_number():
-    """Returns the current line number in our program."""
-    line_number = inspect.currentframe().f_back.f_lineno
-    line_number_string = "Line %d:" % line_number
-    return line_number_string
+	"""Returns the current line number in our program."""
+	line_number = inspect.currentframe().f_back.f_lineno
+	line_number_string = "Line %d:" % line_number
+	return line_number_string

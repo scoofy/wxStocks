@@ -1,4 +1,4 @@
-import inspect
+import inspect, logging
 import config
 
 def print_attributes(obj):
@@ -203,12 +203,6 @@ def time_from_epoch(item_epoch_var):
 		time_str = None
 	return time_str	
 def return_stock_by_symbol(ticker_symbol):
-	global GLOBAL_STOCK_LIST
-	for stock in GLOBAL_STOCK_LIST:
-		if stock.symbol.upper() == ticker_symbol.upper():
-			return stock
-	# switch away from global stock list to dict
-	global GLOBAL_STOCK_DICT
 	try:
 		return GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
 	except Exception as e:
@@ -231,7 +225,6 @@ def contains_digits(some_string):
     return False
 def first_character_is_digit(some_string):
 	return some_string[0].isdigit()
-
 
 def return_list_of_all_stocks_from_active_memory():
 	stock_list = []

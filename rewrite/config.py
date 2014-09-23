@@ -1,5 +1,7 @@
 ### Editable globals that may improve your performance ###
 
+STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
+
 SCRAPE_CHUNK_LENGTH = 50
 # Had errors with yql (yahoo query language) at greater numbers than 50
 SCRAPE_SLEEP_TIME = 18
@@ -82,6 +84,9 @@ IRRELEVANT_ATTRIBUTES = ["updated",
 	]
 # these attributes will not show up on most spreadsheets
 
+NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR = 100
+# when downloading tickers, if more than this number of tickers appear to have fallen off the exchange
+# it is probably the case that something went wrong, rather than it being a legitimate number.
 
 ### Do not edit below, all are reset to saved values on startup ###
 GLOBAL_STOCK_DICT = {}

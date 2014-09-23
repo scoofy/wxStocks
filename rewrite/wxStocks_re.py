@@ -29,11 +29,12 @@ def line_number():
     line_number_string = "Line %d:" % line_number
     return line_number_string
 
-
-
+# Load data
 db.load_all_data()
 
-
+for stock in config.GLOBAL_STOCK_DICT:
+	print stock
+	print type(stock)
 
 
 
