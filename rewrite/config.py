@@ -4,10 +4,17 @@ STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american ex
 
 SCRAPE_CHUNK_LENGTH = 50
 # Had errors with yql (yahoo query language) at greater numbers than 50
+
 SCRAPE_SLEEP_TIME = 18
+# this is a very important number
+# approx 200 calls per hour (yql forums info)
+# 3600 seconds in an hour
+# 3600 / 200 = 18 seconds pause per query to stay under the 200/hour limit.
 # Had ip banned for 24 hour periods scraping yql at a greater rate than this,
 # however, their documentation says you can scrape at a faster rate.
 # Note that i was banned for periods for scraping at the max rate they officially allow.
+
+ABORT_YQL_SCRAPE = False
 
 TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 4) # 4 hours
 # This is how long the program will reject rescraping stocks when looking for stocks that were not saved successfully.

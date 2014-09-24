@@ -1,17 +1,17 @@
 #################################################################
 # 	Most of the wxPython in wxStocks is located here. 			#
 # 	Table of Contents: 											#
-# 		1: imports and line_number function 					#
+# 		1: Imports and line_number function 					#
 # 		2: Main Frame, where tab order is placed. 				#
 # 		3: Tabs 												#
 # 		4: Grid objects 										#
 #################################################################
-import wx, numpy, config
+import wx, numpy, config, threading, logging, sys
 import inspect
 from wxStocks_classes import Stock, Account
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
-import wxStocks_ticker_downloader as ticker_downloader
+import wxStocks_scrapers as scrape
 
 def line_number():
     """Returns the current line number in our program."""
@@ -162,7 +162,7 @@ class TickerPage(Tab):
 
 	def downloadTickers(self):
 		print line_number(), "Begin ticker download..."
-		ticker_data = ticker_downloader.download_ticker_symbols()
+		ticker_data = scrape.download_ticker_symbols()
 		self.saveTickerDataAsStocks(ticker_data)
 
 	def saveTickerDataAsStocks(self, ticker_data_from_download):
@@ -271,6 +271,7 @@ class ScrapePage(Tab):
 					 (10,50)
 					 )
 		self.numScrapedStocks = 0
+		self.number_of_tickers_to_scrape = 0
 
 		#self.Show()
 	def confirmScrape(self, event):
@@ -288,133 +289,52 @@ class ScrapePage(Tab):
 		confirm.Destroy()
 
 		if yesNoAnswer == wx.ID_YES:
-			self.setUpScrape()
+			self.scrapeYQL()
 
-	def setUpScrape(self):
-		
-		global GLOBAL_STOCK_LIST
-		
-		
-		global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
-		chunk_length = config.SCRAPE_CHUNK_LENGTH # 145 appears to be the longest url string i can query with
-		ticker_list = []
-		for ticker in config.GLOBAL_TICKER_LIST:
-			stock = return_stock_by_symbol(ticker)
-			if stock:
-				time_since_update = float(time.time()) - stock.epoch
-				if int(time_since_update) < int(TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE):
-					logging.warning("Will not add %s to update list, updated too recently, waste of yql query" % str(stock.symbol))
-					continue
-			ticker_list.append(ticker)
-		num_of_tickers = len(ticker_list)
-		sleep_time = config.SCRAPE_SLEEP_TIME
+	def scrapeYQL(self):
+		chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape = scrape.prepareYqlScrape()
 
-		# self.progress_bar.SetValue(0)
-		# self.progress_bar.Show()
-		# global app
-		# app.Yield() # this updates the gui within a script (it must be here, or the progress bar will not show till the function finishes, also below for updates)
-
-		slice_start = 0
-		slice_end = chunk_length
-		# this is a very important number
-		# approx 200 calls per hour (yql forums info)
-		# 3600 seconds in an hour
-		# 3600 / 200 = 18 seconds pause per query to stay under the 200/hour limit
-		if chunk_length < 1:
-			logging.error("chunk_length too small, will create infinite loop")
-			return
-		count = 0
-		last_loop = False
-
-		chunk_list = []
-		while slice_end < (num_of_tickers + (chunk_length)):
-			if slice_end > num_of_tickers:
-				slice_end = num_of_tickers
-				last_loop = True
-			data = None
-			data2= None
-			logging.info('While loop #%d' % count)
-			ticker_chunk = ticker_list[slice_start:slice_end]
-			chunk_list.append(ticker_chunk)
-			count += 1
-			print line_number(), count
-			slice_start += chunk_length
-			slice_end += chunk_length
-
-		print line_number(), "got this far"
-		
-		#self.progress_dialog = wx.ProgressDialog('Scrape Progress', 
-		#									'The stocks are currently downloading', 
-		#									num_of_tickers,
-		#									parent=self, 
-		#									style=wx.PD_CAN_ABORT|wx.PD_REMAINING_TIME
-		#									)
+		chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
+		percent_of_full_scrape_done = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[1]
+		self.number_of_tickers_to_scrape = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[2]
 
 
-		number_of_tickers_in_chunk_list = 0
-		for chunk in chunk_list:
-			for ticker in chunk:
-				number_of_tickers_in_chunk_list += 1
-				print line_number(), number_of_tickers_in_chunk_list
-		number_of_tickers_previously_updated = len(config.GLOBAL_TICKER_LIST) - number_of_tickers_in_chunk_list
-		print line_number(), number_of_tickers_previously_updated
-		total_number_of_tickers_done = number_of_tickers_previously_updated
-		percent_of_full_scrape_done = round(100 * float(total_number_of_tickers_done) / float(len(config.GLOBAL_TICKER_LIST)) )
-
-		print line_number(), percent_of_full_scrape_done
-		
 		self.progress_bar.SetValue(percent_of_full_scrape_done)
 		self.progress_bar.Show()
 		self.scrape_button.Hide()
-		self.abort_scrape_button.Show()
+		self.abort_scrape_button.Show()	
+
 		# Process the scrape while updating a progress bar
 		timer = threading.Timer(0, self.executeScrapePartOne, [chunk_list, 0])
-		timer.start()
+		timer.start()	
 
-			#scrape_thread = threading.Thread(target=self.executeOneScrape, args = (ticker_chunk,))
-			#scrape_thread.daemon = True
-			#scrape_thread.start()
-			#while scrape_thread.isAlive():
+		#scrape_thread = threading.Thread(target=self.executeOneScrape, args = (ticker_chunk,))
+		#scrape_thread.daemon = True
+		#scrape_thread.start()
+		#while scrape_thread.isAlive():
 
-			#	# Every two sleep times execute a new scrape
-			#	full_scrape_sleep = float(sleep_time * 2)
-			#	scrape_thread.join(full_scrape_sleep)
-			#	cont, skip = progress_dialog.Update(self.numScrapedStocks)
-			#	if not cont:
-			#		progress_dialog.Destroy()
-			#		return
+		#	# Every two sleep times execute a new scrape
+		#	full_scrape_sleep = float(sleep_time * 2)
+		#	scrape_thread.join(full_scrape_sleep)
+		#	cont, skip = progress_dialog.Update(self.numScrapedStocks)
+		#	if not cont:
+		#		progress_dialog.Destroy()
+		#		return
 
 	def executeScrapePartOne(self, ticker_chunk_list, position_of_this_chunk):
 		if self.abort_scrape == True:
 			self.abort_scrape = False
-			self.progress_bar.Hide()
+			wxStocks_gui.ScrapePage.progress_bar.Hide()
 			print line_number(), "Scrape canceled."
 			return
-		
-		global GLOBAL_STOCK_LIST
-		
-		
-		global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+
+		data = scrape.executeYqlScrapePartOne(ticker_chunk_list, position_of_this_chunk)
+
 		sleep_time = config.SCRAPE_SLEEP_TIME
+		timer = threading.Timer(sleep_time, self.executeScrapePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
+		timer.start()
 
 
-		ticker_chunk = ticker_chunk_list[position_of_this_chunk]
-
-		if ticker_chunk:
-			scrape_1_failed = False
-			try:
-				data = pyql.lookupQuote(ticker_chunk)
-			except:
-				logging.warning("Scrape didn't work. Nothing scraped.")
-				scrape_1_failed = True
-			if scrape_1_failed:
-				#time.sleep(sleep_time)
-				return
-			else:
-				logging.warning("Scrape 1 Success: mid-scrape sleep for %d seconds" % sleep_time)
-
-				timer = threading.Timer(sleep_time, self.executeScrapePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
-				timer.start()
 
 	def executeScrapePartTwo(self, ticker_chunk_list, position_of_this_chunk, successful_pyql_data):
 		if self.abort_scrape == True:
@@ -422,266 +342,10 @@ class ScrapePage(Tab):
 			self.progress_bar.Hide()
 			print line_number(), "Scrape canceled."
 			return
-		
-		global GLOBAL_STOCK_LIST
-		
-		
-		global TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+
+		scrape.executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data)
+
 		sleep_time = config.SCRAPE_SLEEP_TIME
-
-		ticker_chunk = ticker_chunk_list[position_of_this_chunk]
-		number_of_stocks_in_this_scrape = len(ticker_chunk)
-
-		data = successful_pyql_data
-
-		try:
-			data2 = pyql.lookupKeyStats(ticker_chunk)
-		except:
-			logging.warning("Scrape 2 didn't work. Abort.")
-			time.sleep(sleep_time)
-			return
-
-		for stock in data:
-			new_stock = None
-			for key, value in stock.iteritems():
-				if key == "symbol":
-					new_stock = return_stock_by_symbol(value)
-					if not new_stock:
-						new_stock = Stock(value)
-						GLOBAL_STOCK_LIST.append(new_stock)
-					else:
-						new_stock.updated = datetime.datetime.now()
-						new_stock.epoch = float(time.time())
-			for key, value in stock.iteritems():
-				# Here we hijack the power of the expando db structure
-				# This adds the attribute of every possible attribute that can be passed
-				setattr(new_stock, 
-						str(key), 
-						value
-						)
-			logging.warning("Success, putting %s: Data 1" % new_stock.symbol)
-		#save
-		with open('all_stocks.pk', 'wb') as output:
-			pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
-
-		for stock2 in data2:
-			for key, value in stock2.iteritems():
-				if key == "symbol":
-					new_stock = return_stock_by_symbol(value)
-					if not new_stock:
-						new_stock = Stock(value)
-						GLOBAL_STOCK_LIST.append(new_stock)
-			for key, value in stock2.iteritems():
-				if isinstance(value, (list, dict)):
-					#logging.warning(type(value))
-					x = repr(value)
-					term = None
-					content = None
-					#logging.warning(x)
-					if x[0] == "[":
-						y = ast.literal_eval(x)
-						#logging.warning(y)
-						for i in y:
-							try:
-								test = i["term"]
-								test = i["content"]
-							except Exception, e:
-								#logging.error(new_stock.symbol)
-								#logging.error(y)
-								#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
-								continue
-							#logging.warning(i)
-							try:
-								key_str = str(key)
-								term = str(i["term"])
-								term = term.replace(" ", "_")
-								term = term.replace(",", "")
-								term = strip_string_whitespace(term)
-								key_term = key_str + "_" + term
-								key_term = strip_string_whitespace(key_term)
-								if "p_52_WeekHigh" in key_term:
-									date = key_term[14:]
-									setattr(new_stock, 
-										"p_52_WeekHigh_Date", 
-										date
-										)
-									key_str = "p_52_WeekHigh"
-								elif "p_52_WeekLow" in key_term:
-									date = key_term[13:]
-									setattr(new_stock, 
-										"p_52_WeekLow_Date", 
-										date
-										)
-									key_str = "p_52_WeekLow"
-								elif "ForwardPE_fye" in key_term:
-									date = key_term[14:]
-									setattr(new_stock, 
-										"ForwardPE_fiscal_y_end_Date", 
-										date
-										)
-									key_str = "ForwardPE"
-								elif "EnterpriseValue_" in key_term:
-									date = key_term[16:]
-									setattr(new_stock, 
-										"EnterpriseValue_Date", 
-										date
-										)
-									key_str = "EnterpriseValue"
-								elif "TrailingPE_ttm_" in key_term:
-									date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
-									setattr(new_stock, 
-										"TrailingPE_ttm_Date", 
-										date
-										)
-									key_str = "TrailingPE_ttm"
-								elif "SharesShort_as_of" in key_term:
-									date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
-									setattr(new_stock, 
-										"SharesShort_as_of_Date", 
-										date
-										)
-									key_str = "SharesShort"
-								elif "ShortRatio_as_of" in key_term:
-									date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
-									setattr(new_stock, 
-										"ShortRatio_as_of_Date", 
-										date
-										)
-									key_str = "ShortRatio"
-								elif "ShortPercentageofFloat_as_of" in key_term:
-									date = key_term[29:]
-									setattr(new_stock, 
-										"ShortPercentageofFloat_as_of_Date", 
-										date
-										)
-									key_str = "ShortPercentageofFloat"
-								else:
-									key_str = str(key + "_" + term)
-								content = str(i["content"])
-								setattr(new_stock, 
-										key_str, 
-										content
-										)
-							except Exception, e:
-								logging.warning(repr(i))
-								logging.warning("complex list method did not work")
-								logging.exception(e)
-								setattr(new_stock, 
-										str(key), 
-										x
-										)
-
-					elif x[0] == "{":
-						y = ast.literal_eval(x)
-						try:
-							test = y["term"]
-							test = y["content"]
-						except Exception, e:
-							#logging.error(new_stock.symbol)
-							#logging.error(y)
-							#logging.error("Seems to be [Trailing Annual Dividend Yield, Trailing Annual Dividend Yield%]")									
-							continue
-						#logging.warning(y)
-						try:
-							key_str = str(key)
-							term = str(y["term"])
-							term = term.replace(" ", "_")
-							term = term.replace(",", "")
-							term = strip_string_whitespace(term)
-							key_term = key_str + "_" + term
-							key_term = strip_string_whitespace(key_term)
-							if "p_52_WeekHigh" in key_term:
-								date = key_term[14:]
-								setattr(new_stock, 
-									"p_52_WeekHigh_Date", 
-									date
-									)
-								key_str = "p_52_WeekHigh"
-							elif "p_52_WeekLow" in key_term:
-								date = key_term[13:]
-								setattr(new_stock, 
-									"p_52_WeekLow_Date", 
-									date
-									)
-								key_str = "p_52_WeekLow"
-							elif "ForwardPE_fye" in key_term:
-								date = key_term[14:]
-								setattr(new_stock, 
-									"ForwardPE_fiscal_y_end_Date", 
-									date
-									)
-								key_str = "ForwardPE"
-							elif "EnterpriseValue_" in key_term:
-								date = key_term[16:]
-								setattr(new_stock, 
-									"EnterpriseValue_Date", 
-									date
-									)
-								key_str = "EnterpriseValue"
-							elif "TrailingPE_ttm_" in key_term:
-								date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
-								setattr(new_stock, 
-									"TrailingPE_ttm_Date", 
-									date
-									)
-								key_str = "TrailingPE_ttm"
-							elif "SharesShort_as_of" in key_term:
-								date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
-								setattr(new_stock, 
-									"SharesShort_as_of_Date", 
-									date
-									)
-								key_str = "SharesShort"
-							elif "ShortRatio_as_of" in key_term:
-								date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
-								setattr(new_stock, 
-									"ShortRatio_as_of_Date", 
-									date
-									)
-								key_str = "ShortRatio"
-							elif "ShortPercentageofFloat_as_of" in key_term:
-								date = key_term[29:]
-								setattr(new_stock, 
-									"ShortPercentageofFloat_as_of_Date", 
-									date
-									)
-								key_str = "ShortPercentageofFloat"
-							else:
-								key_str = str(key + "_" + term)
-							content = str(y["content"])
-							setattr(new_stock, 
-									key_str, 
-									content
-									)
-						except Exception, e:
-							logging.warning("complex dict method did not work")
-							logging.exception(e)
-							setattr(new_stock, 
-									str(key), 
-									x
-									)
-					else:
-						key_str = str(key)
-						setattr(new_stock, 
-							key_str, 
-							x
-							)
-				else:
-					key_str = str(key)
-					setattr(new_stock, 
-							key_str, 
-							value
-							)
-			logging.warning("Success, putting %s: Data 2" % new_stock.symbol)
-
-		#save again
-		with open('all_stocks.pk', 'wb') as output:
-			pickle.dump(GLOBAL_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)		
-
-		logging.warning("This stock chunk finished successfully.")
-		#self.progress_bar.SetValue((float(slice_end)/float(num_of_tickers)) * 100)
-		#app.Yield()
-
 		logging.warning("Sleeping for %d seconds before the next task" % sleep_time)
 		#time.sleep(sleep_time)
 
@@ -696,7 +360,7 @@ class ScrapePage(Tab):
 		for chunk in ticker_chunk_list:
 			for ticker in chunk:
 				number_of_tickers_in_chunk_list += 1
-		number_of_tickers_previously_updated = len(config.GLOBAL_TICKER_LIST) - number_of_tickers_in_chunk_list
+		number_of_tickers_previously_updated = self.number_of_tickers_to_scrape - number_of_tickers_in_chunk_list
 		number_of_tickers_done_in_this_scrape = 0
 		for i in range(len(ticker_chunk_list)):
 			if i > position_of_this_chunk:
@@ -704,7 +368,7 @@ class ScrapePage(Tab):
 			for ticker in ticker_chunk_list[i]:
 				number_of_tickers_done_in_this_scrape += 1
 		total_number_of_tickers_done = number_of_tickers_previously_updated + number_of_tickers_done_in_this_scrape
-		percent_of_full_scrape_done = round( 100 * float(total_number_of_tickers_done) / float(len(config.GLOBAL_TICKER_LIST)))
+		percent_of_full_scrape_done = round( 100 * float(total_number_of_tickers_done) / float(self.number_of_tickers_to_scrape))
 
 		position_of_this_chunk += 1
 		percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
@@ -718,6 +382,7 @@ class ScrapePage(Tab):
 			self.progress_bar.SetValue(100)
 			return
 		else:
+			print "ready to loop again"
 			timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
 			timer.start()
 
@@ -726,6 +391,8 @@ class ScrapePage(Tab):
 			self.abort_scrape = True
 			self.abort_scrape_button.Hide()
 			self.scrape_button.Show()
+
+
 class AllStocksPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)

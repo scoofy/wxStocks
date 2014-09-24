@@ -14,6 +14,21 @@ def start_whitespace():
 	\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
 	\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
 	"""
+
+####################### Return functions #################################################
+def return_stock_by_symbol(ticker_symbol):
+	try:
+		return config.GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
+	except Exception as e:
+		logging.error("Stock with symbol %s does not appear to exist" % ticker_symbol.upper())
+		return None
+
+def return_stock_by_yql_symbol(yql_ticker_symbol):
+	for ticker in config.GLOBAL_STOCK_DICT:
+		if config.GLOBAL_STOCK_DICT[ticker].yql_ticker == yql_ticker_symbol:
+			return config.GLOBAL_STOCK_DICT[ticker]
+	# if none match
+	return None
 ####################### Utility functions #################################################
 def gen_ticker_list(csv_file):
 	reader = csv.reader(csv_file)
@@ -202,12 +217,7 @@ def time_from_epoch(item_epoch_var):
 		logging.error("something wrong with time_from_epoch function")
 		time_str = None
 	return time_str	
-def return_stock_by_symbol(ticker_symbol):
-	try:
-		return GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
-	except Exception as e:
-		logging.error("Stock with symbol %s does not appear to exist" % ticker_symbol.upper())
-		return None
+
 def is_number(some_string):
 	try:
 		float(some_string)

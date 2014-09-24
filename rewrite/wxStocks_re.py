@@ -6,10 +6,9 @@ import wx, numpy
 from BeautifulSoup import BeautifulSoup
 
 # Standard Libraries
-import sys, os, csv, time, datetime, logging, ast, math, threading, inspect, urllib2, json
+import sys, os, logging, math, inspect, urllib2, json
 import pprint as pp
 import cPickle as pickle
-from pyql import pyql
 from wx.lib import sheet
 
 # Internal libraries
