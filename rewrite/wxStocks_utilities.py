@@ -29,7 +29,9 @@ def return_stock_by_symbol(ticker_symbol):
 		return None
 
 def return_all_stocks():
-	return list(config.GLOBAL_STOCK_DICT.values())
+	stock_list = list(config.GLOBAL_STOCK_DICT.values())
+	stock_list.sort(key = lambda x: x.symbol)
+	return stock_list
 
 def return_stock_by_yql_symbol(yql_ticker_symbol):
 	for ticker in config.GLOBAL_STOCK_DICT:
@@ -54,6 +56,20 @@ def return_all_up_to_date_stocks():
 		else:
 			stocks_up_to_date_list.append(stock)
 	return stocks_up_to_date_list
+
+def return_stocks_with_data_errors():
+	stock_list = return_all_stocks()
+	error_list = []
+	for stock in stock_list:
+		try:
+			if stock.ErrorIndicationreturnedforsymbolchangedinvalid_yf:
+				if stock.ErrorIndicationreturnedforsymbolchangedinvalid_yf != "None":
+					error_list.append(stock)
+				else:
+					continue
+		except:
+			continue
+	return error_list
 ####################### Utility functions #################################################
 def gen_ticker_list(csv_file):
 	reader = csv.reader(csv_file)

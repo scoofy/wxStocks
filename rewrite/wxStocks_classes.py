@@ -38,7 +38,7 @@ class Stock(object):
 		self.last_morningstar_income_statement_update = 0.0
 		self.last_morningstar_key_ratios_update = 0.0
 
-		self.yql_ticker = self.ticker.replace("^", "-P").replace("/", "-")
+		self.yql_ticker = self.ticker.replace("^", "-P").replace("/WS/","-WT").replace("/WS","-WT").replace("/", "-")
 		#if "^" in self.yql_ticker:
 		#	# nasdaq csv seems to use "MITT^A" vs "MITT^B" to demarcate classes, 
 		#	# where yahoo does by "MITT-PA" and "MITT-PB", etc.

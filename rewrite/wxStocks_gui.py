@@ -164,6 +164,11 @@ class TickerPage(Tab):
 		print line_number(), "Begin ticker download..."
 		ticker_data = scrape.download_ticker_symbols()
 		self.saveTickerDataAsStocks(ticker_data)
+		self.showAllTickers()
+		# Update scrape page?
+		# Don't want to take the time to figure this out just now.
+		print line_number(), "Add function here to update scrape time."
+
 
 	def saveTickerDataAsStocks(self, ticker_data_from_download):
 		# first check for stocks that have fallen off the stock exchanges
@@ -210,7 +215,6 @@ class TickerPage(Tab):
 			stock.firm_name = firm_name
 			print "Saving:", stock.ticker, stock.firm_name
 		db.save_GLOBAL_STOCK_DICT()
-		self.showAllTickers()
 
 	def showAllTickers(self):
 		print line_number(), "Loading Tickers"
@@ -463,6 +467,12 @@ class AllStocksPage(Tab):
 
 		# Find all attribute names
 		stock_list = utils.return_all_stocks()
+
+		print "remove code below", line_number()
+		stock_list = utils.return_stocks_with_data_errors()
+		stock_list = stock_list + utils.return_all_stocks()
+		print "and above", line_number()
+
 		attribute_list = []
 		all_attribute_list = []
 		for stock in stock_list:
