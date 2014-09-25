@@ -37,8 +37,8 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		self.ticker_list_page = TickerPage(notebook)
 		notebook.AddPage(self.ticker_list_page, "Tickers")
 
-		self.scrape_page = ScrapePage(notebook)
-		notebook.AddPage(self.scrape_page, "Scrape")
+		self.yql_scrape_page = YqlScrapePage(notebook)
+		notebook.AddPage(self.yql_scrape_page, "Scrape")
 
 		self.all_stocks_page = AllStocksPage(notebook)
 		notebook.AddPage(self.all_stocks_page, "Stocks")
@@ -90,7 +90,7 @@ class WelcomePage(Tab):
 
 	Tickers:		This page is where you download ticker .CSV files to create a list of tickers to scrape.
 
-	Scrape:		This page takes the tickers, and then scrapes current stock data using them.
+	YQL Scrape:		This page takes all tickers, and then scrapes current stock data using them.
 
 	Stocks:		This page generates a list of all stocks that have been scraped and presents all the data about them.
 				Use this page to double check your data to make sure it's accurate and up to date.
@@ -235,7 +235,7 @@ class TickerPage(Tab):
 									size = (765, 625),
 									style = wx.TE_READONLY | wx.TE_MULTILINE ,
 									)
-class ScrapePage(Tab):
+class YqlScrapePage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		text = wx.StaticText(self, -1, 
@@ -282,6 +282,7 @@ class ScrapePage(Tab):
 		#self.Show()
 
 	def calculate_scrape_times(self):
+		print line_number(), "Calculating scrape times..."
 		sleep_time = config.SCRAPE_SLEEP_TIME
 		
 		# calculate number of stocks and stuff to scrape
@@ -305,6 +306,8 @@ class ScrapePage(Tab):
 		self.tickers_to_scrape.SetLabel("Tickers that need to be scraped = %d" % (self.number_of_tickers_to_scrape - self.numScrapedStocks))
 
 		self.scrape_time_text.SetLabel("Time = %s" % scrape_time)
+
+		print line_number(), "Done"
 
 	def confirmScrape(self, event):
 		confirm = wx.MessageDialog(None, 
@@ -440,38 +443,46 @@ class AllStocksPage(Tab):
 		self.spreadsheet = None
 
 		refresh_button = wx.Button(self, label="refresh", pos=(110,4), size=(-1,-1))
-		refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFill, refresh_button)
+		refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFillAllStocks, refresh_button)
 
-		#self.spreadSheetFill('event')
+		self.first_spread_sheet_load = True
 
-	def spreadSheetFill(self, event):
-		try:
-			self.spreadsheet.Destroy()
-		except Exception, exception:
-			print line_number(), exception
+	def spreadSheetFillAllStocks(self, event):
+		if self.first_spread_sheet_load:		
+			self.first_spread_sheet_load = False
+		else:
+			try:
+				self.spreadsheet.Destroy()
+			except Exception, exception:
+				print line_number(), exception
 
-		global GLOBAL_STOCK_LIST
-		stock_list = GLOBAL_STOCK_LIST
+		# Create correctly sized grid
 		self.spreadsheet = GridAllStocks(self, -1, size=(1000,680), pos=(0,50))
-
-
 		self.spreadsheet.CreateGrid(self.spreadsheet.num_rows, self.spreadsheet.num_columns)
 		self.spreadsheet.EnableEditing(False)
 
+		# Find all attribute names
+		stock_list = utils.return_all_stocks()
 		attribute_list = []
+		all_attribute_list = []
 		for stock in stock_list:
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					attribute_list.append(str(attribute))
-			break
+			all_attribute_list = all_attribute_list + list(dir(stock))
+			all_attribute_list = set(all_attribute_list) # remove duplicates
+			all_attribute_list = list(all_attribute_list)
+		# Eliminate non-finance related attributes
+		for attribute in all_attribute_list:
+			if not attribute.startswith('_'):
+				attribute_list.append(str(attribute))
+		# Sort for readability
 		attribute_list.sort()
+
 		# adjust list order for important terms
 		try:
 			attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 		except Exception, e:
 			print line_number(), e
 		try:
-			attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
+			attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
 		except Exception, e:
 			print line_number(), e
 		#print line_number(), attribute_list
@@ -479,11 +490,15 @@ class AllStocksPage(Tab):
 		row_count = 0
 		col_count = 0
 
+		# set first row attribute names
+		for attribute in attribute_list:
+			self.spreadsheet.SetColLabelValue(col_count, str(attribute))
+			col_count += 1
+		col_count = 0
+
+		# fill in the stocks' values
 		for stock in stock_list:
 			for attribute in attribute_list:
-				#if not attribute.startswith('_'):
-				if row_count == 0:
-					self.spreadsheet.SetColLabelValue(col_count, str(attribute))
 				try:
 					self.spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
 				except:
@@ -491,7 +506,11 @@ class AllStocksPage(Tab):
 				col_count += 1
 			row_count += 1
 			col_count = 0
+		
+		# resize calumns
 		self.spreadsheet.AutoSizeColumns()
+
+
 class ScreenPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -2784,10 +2803,9 @@ class StockDataPage(Tab):
 class GridAllStocks(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
-		global GLOBAL_STOCK_LIST
-		self.num_rows = len(GLOBAL_STOCK_LIST)
+		self.num_rows = len(config.GLOBAL_STOCK_DICT)
 		self.num_columns = 0
-		for stock in GLOBAL_STOCK_LIST:
+		for stock in utils.return_all_stocks():
 			num_attributes = 0
 			for attribute in dir(stock):
 				if not attribute.startswith('_'):

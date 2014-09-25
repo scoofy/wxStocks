@@ -1,4 +1,4 @@
-import inspect, logging
+import inspect, logging, time
 import config
 def line_number():
 	"""Returns the current line number in our program."""
@@ -28,6 +28,9 @@ def return_stock_by_symbol(ticker_symbol):
 		logging.error("Stock with symbol %s does not appear to exist" % ticker_symbol.upper())
 		return None
 
+def return_all_stocks():
+	return list(config.GLOBAL_STOCK_DICT.values())
+
 def return_stock_by_yql_symbol(yql_ticker_symbol):
 	for ticker in config.GLOBAL_STOCK_DICT:
 		if config.GLOBAL_STOCK_DICT[ticker].yql_ticker == yql_ticker_symbol:
@@ -36,6 +39,21 @@ def return_stock_by_yql_symbol(yql_ticker_symbol):
 	print line_number()
 	logging.error("Stock with yql symbol %s does not appear to exist" % yql_ticker_symbol)
 	return None
+
+def return_all_up_to_date_stocks():
+	stocks_up_to_date_list = []
+
+	current_time = float(time.time())
+	for ticker in config.GLOBAL_STOCK_DICT:
+		print int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))
+		stock = config.GLOBAL_STOCK_DICT[ticker]
+		time_since_update = current_time - stock.last_yql_basic_scrape_update
+		if int(time_since_update) > int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST):
+			print line_number(), "Will not add %s to stock list, data is over %d days old, please rescrape" % (str(stock.symbol), int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60)))
+			continue
+		else:
+			stocks_up_to_date_list.append(stock)
+	return stocks_up_to_date_list
 ####################### Utility functions #################################################
 def gen_ticker_list(csv_file):
 	reader = csv.reader(csv_file)

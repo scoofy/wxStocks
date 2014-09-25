@@ -18,6 +18,8 @@ ABORT_YQL_SCRAPE = False
 
 TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 4) # 4 hours
 # This is how long the program will reject rescraping stocks when looking for stocks that were not saved successfully.
+TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = float(24*60*60* 15) # 15 days
+
 
 DEFAULT_ROWS_ON_SALES_PREP_PAGE = 9
 DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
