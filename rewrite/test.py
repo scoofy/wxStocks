@@ -1,9 +1,24 @@
-from wxStocks_classes import Stock, Account
+a = "{'a': 2, 'b':4}"
 
-a = Stock("a")
-print a
+b = "[1, 2, 3, 4]"
 
-a.firm_name = "A Corp."
+c = [a, b]
 
-for attribute in dir(a):
-	print attribute
+for x in c:
+	try:
+		list(x)
+		print "tried list!"
+		print x
+		print type(x)
+		print ""
+	except Exception, e:
+		print e
+
+	try:
+		list(x)
+		print "tried dict!"
+		print x
+		print type(x)
+		print ""
+	except Exception, e:
+		print e

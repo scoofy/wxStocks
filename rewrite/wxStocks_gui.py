@@ -6,7 +6,7 @@
 # 		3: Tabs 												#
 # 		4: Grid objects 										#
 #################################################################
-import wx, numpy, config, threading, logging, sys
+import wx, numpy, config, threading, logging, sys, time
 import inspect
 from wxStocks_classes import Stock, Account
 import wxStocks_db_functions as db
@@ -14,10 +14,10 @@ import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
 
 def line_number():
-    """Returns the current line number in our program."""
-    line_number = inspect.currentframe().f_back.f_lineno
-    line_number_string = "Line %d:" % line_number
-    return line_number_string
+	"""Returns the current line number in our program."""
+	line_number = inspect.currentframe().f_back.f_lineno
+	line_number_string = "Line %d:" % line_number
+	return line_number_string
 
 
 
@@ -75,7 +75,7 @@ class Tab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 
-####################### wx tabs #########################################################
+# ###################### wx tabs #########################################################
 class WelcomePage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -202,8 +202,11 @@ class TickerPage(Tab):
 			ticker_symbol = utils.strip_string_whitespace(ticker_data_sublist[0])
 			firm_name = ticker_data_sublist[1]
 
-			stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)
-			
+			if "$" in ticker_symbol:
+				print line_number(), 'Ticker %s with "$" symbol found, not sure if ligitimate, so not saving it.' % ticker_symbol
+				continue
+
+			stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)			
 			stock.firm_name = firm_name
 			print "Saving:", stock.ticker, stock.firm_name
 		db.save_GLOBAL_STOCK_DICT()
@@ -250,30 +253,59 @@ class ScrapePage(Tab):
 		self.progress_bar = wx.Gauge(self, -1, 100, size=(995, -1), pos = (0, 200))
 		self.progress_bar.Hide()
 		
-		
-		
-		sleep_time = config.SCRAPE_SLEEP_TIME
-
-		#if not config.GLOBAL_TICKER_LIST:
-		#	ticker_file = open('ticker.pk', 'rb')
-		#	if ticker_file:
-		#		config.GLOBAL_TICKER_LIST = gen_ticker_list(ticker_file)
-		#	ticker_file.close()
-		ticker_len = len(config.GLOBAL_TICKER_LIST)
-		ticker_len_text = wx.StaticText(self, -1, 
-							 "Tickers = %d" % ticker_len, 
-							 (10,30)
-							 )
-		scrape_time_secs = (ticker_len/config.SCRAPE_CHUNK_LENGTH) * sleep_time * 2
-		scrape_time = utils.time_from_epoch(scrape_time_secs)
-		scrape_time_text = wx.StaticText(self, -1, 
-					 "Time = %s" % scrape_time, 
-					 (10,50)
-					 )
 		self.numScrapedStocks = 0
 		self.number_of_tickers_to_scrape = 0
+		self.total_relevant_tickers = 0
+		self.tickers_to_scrape = 0
+		self.scrape_time_text = 0
+
+
+		self.total_relevant_tickers = wx.StaticText(self, -1, 
+							 label = "Total number of tickers = %d" % (self.numScrapedStocks + self.number_of_tickers_to_scrape), 
+							 pos = (10,30)
+							 )
+		self.tickers_to_scrape = wx.StaticText(self, -1, 
+							 label = "Tickers that need to be scraped = %d" % self.number_of_tickers_to_scrape, 
+							 pos = (10,50)
+							 )
+		sleep_time = config.SCRAPE_SLEEP_TIME
+		scrape_time_secs = (self.number_of_tickers_to_scrape/config.SCRAPE_CHUNK_LENGTH) * sleep_time * 2
+		scrape_time = utils.time_from_epoch(scrape_time_secs)
+		self.scrape_time_text = wx.StaticText(self, -1, 
+					 label = "Time = %s" % scrape_time, 
+					 pos = (10,70)
+					 )
+
+
+		self.calculate_scrape_times()
 
 		#self.Show()
+
+	def calculate_scrape_times(self):
+		sleep_time = config.SCRAPE_SLEEP_TIME
+		
+		# calculate number of stocks and stuff to scrape
+		self.numScrapedStocks = 0
+		self.number_of_tickers_to_scrape = 0
+		for stock in config.GLOBAL_STOCK_DICT:
+			if config.GLOBAL_STOCK_DICT[stock].ticker_relevant:
+				self.number_of_tickers_to_scrape += 1
+				current_time = float(time.time())
+				time_since_update = current_time - config.GLOBAL_STOCK_DICT[stock].last_yql_basic_scrape_update
+				if (int(time_since_update) < int(config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE) ):
+					self.numScrapedStocks += 1
+
+
+		total_ticker_len = len(config.GLOBAL_STOCK_DICT)
+		scrape_time_secs = (self.number_of_tickers_to_scrape/config.SCRAPE_CHUNK_LENGTH) * sleep_time * 2
+		scrape_time = utils.time_from_epoch(scrape_time_secs)
+
+		self.total_relevant_tickers.SetLabel("Total number of tickers = %d" % self.number_of_tickers_to_scrape)
+		
+		self.tickers_to_scrape.SetLabel("Tickers that need to be scraped = %d" % (self.number_of_tickers_to_scrape - self.numScrapedStocks))
+
+		self.scrape_time_text.SetLabel("Time = %s" % scrape_time)
+
 	def confirmScrape(self, event):
 		confirm = wx.MessageDialog(None, 
 								   "You are about to scrape of Yahoo's YQL database. If you do this too often Yahoo may temporarily block your IP address.", 
@@ -324,7 +356,7 @@ class ScrapePage(Tab):
 	def executeScrapePartOne(self, ticker_chunk_list, position_of_this_chunk):
 		if self.abort_scrape == True:
 			self.abort_scrape = False
-			wxStocks_gui.ScrapePage.progress_bar.Hide()
+			self.progress_bar.Hide()
 			print line_number(), "Scrape canceled."
 			return
 
@@ -375,6 +407,7 @@ class ScrapePage(Tab):
 		print line_number(), "%d%%" % percent_done, "done this scrape execution."
 		print line_number(), "%d%%" % percent_of_full_scrape_done, "done of all tickers."
 		self.progress_bar.SetValue(percent_of_full_scrape_done)
+		self.calculate_scrape_times()
 		if position_of_this_chunk >= len(ticker_chunk_list):
 			# finished
 			self.abort_scrape_button.Hide()
@@ -387,10 +420,13 @@ class ScrapePage(Tab):
 			timer.start()
 
 	def abortScrape(self, event):
+		print line_number(), "Canceling scrape... this may take up to %d seconds." % config.SCRAPE_SLEEP_TIME
 		if self.abort_scrape == False:
 			self.abort_scrape = True
 			self.abort_scrape_button.Hide()
 			self.scrape_button.Show()
+			self.calculate_scrape_times()
+
 
 
 class AllStocksPage(Tab):
@@ -2679,30 +2715,33 @@ class StockDataPage(Tab):
 							 (10,10)
 							 )
 		self.ticker_input = wx.TextCtrl(self, -1, 
-		                           "",
-		                           (110, 8)
-		                           )
+								   "",
+								   (110, 8),
+								   style=wx.TE_PROCESS_ENTER
+								   )
 		self.ticker_input.SetHint("ticker")
+		self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
+
 		load_screen_button = wx.Button(self, 
-		                                  label="look up", 
-		                                  pos=(210,5), 
-		                                  size=(-1,-1)
-		                                  )
+										  label="look up", 
+										  pos=(210,5), 
+										  size=(-1,-1)
+										  )
 		update_yql_basic_data_button = wx.Button(self, 
-		                                  label="update basic data", 
-		                                  pos=(300,5), 
-		                                  size=(-1,-1)
-		                                  )
+										  label="update basic data", 
+										  pos=(300,5), 
+										  size=(-1,-1)
+										  )
 		update_annual_data_button = wx.Button(self, 
-		                                  label="update annual data", 
-		                                  pos=(430,5), 
-		                                  size=(-1,-1)
-		                                  )
+										  label="update annual data", 
+										  pos=(430,5), 
+										  size=(-1,-1)
+										  )
 		update_analyst_estimates_button = wx.Button(self, 
-		                                  label="update analyst estimates", 
-		                                  pos=(570,5), 
-		                                  size=(-1,-1)
-		                                  )
+										  label="update analyst estimates", 
+										  pos=(570,5), 
+										  size=(-1,-1)
+										  )
 
 		load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
 		
@@ -2739,9 +2778,9 @@ class StockDataPage(Tab):
 		print "about to scrape"
 		scrape_analyst_estimates( [str(ticker).upper()] )
 		self.createOneStockSpreadSheet(event = "")
-############################################################################################
+# ###########################################################################################
 
-####################### wx grids #######################################################
+# ###################### wx grids #######################################################
 class GridAllStocks(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
@@ -2785,7 +2824,379 @@ class TradeGrid(wx.grid.Grid):
 class AccountDataGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
-############################################################################################
+# ###########################################################################################
 
 
+# ############ Spreadsheet Functions ########################################################
+def create_spread_sheet(
+	wxWindow, 
+	ticker_list, 
+	held_ticker_list = [], 
+	include_basic_stock_data = True, 
+	include_annual_data = True, 
+	include_analyst_estimates = True, 
+	height = 637, 
+	width = 980, 
+	position = (0,60), 
+	enable_editing = False
+	):
+	global GLOBAL_STOCK_LIST
+	global IRRELEVANT_ATTRIBUTES
+	irrelevant_attributes = IRRELEVANT_ATTRIBUTES
 
+	all_lists = []
+
+	basic_data_list = []
+	if include_basic_stock_data:
+		all_lists.append(basic_data_list)
+
+	annual_data_list  = []
+	if include_annual_data:
+		all_lists.append(annual_data_list)
+	
+	analyst_estimate_list = []
+	if include_analyst_estimates:
+		all_lists.append(analyst_estimate_list)
+
+	for ticker in ticker_list:
+
+		if include_basic_stock_data:
+			stock_absent = True
+			for stock in GLOBAL_STOCK_LIST:
+				if str(ticker) == str(stock.symbol):
+					basic_data_list.append(stock)
+					stock_absent = False
+			if stock_absent:
+				logging.error('Ticker "%s" does not appear to be in the GLOBAL_STOCK_LIST' % ticker)
+
+		if include_annual_data:
+			annual_data_absent = True
+			for annual_data in GLOBAL_ANNUAL_DATA_STOCK_LIST:
+				if str(ticker) == str(annual_data.symbol):
+					annual_data_list.append(annual_data)
+					annual_data_absent = False
+			if annual_data_absent:
+				logging.error('There does not appear to be annual data for "%s," you should update annual data' % ticker)
+		
+		if include_analyst_estimates:
+			analyst_estimate_data_absent = True
+			for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
+				if str(ticker) == str(analyst_estimate_data.symbol):
+					analyst_estimate_list.append(analyst_estimate_data)
+					analyst_estimate_data_absent = False
+			if analyst_estimate_data_absent:
+				logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
+
+	full_attribute_list = [] # not sure if this is necessary
+	attribute_list = []
+
+	num_rows = len(ticker_list)
+	num_columns = 0
+	# Here we make columns for each attribute to be included
+	for this_list in all_lists:
+		# if empty list:
+		num_attributes = 0
+		for stock in this_list:
+			num_attributes = 0
+			if include_basic_stock_data:
+				for basic_data in basic_data_list:
+					if str(stock.symbol) == str(basic_data.symbol):
+						for attribute in dir(basic_data):
+							if not attribute.startswith('_'):
+								if attribute not in irrelevant_attributes:
+									num_attributes += 1
+									if attribute not in attribute_list:
+										attribute_list.append(str(attribute))
+										
+										# if str(attribute) not in full_attribute_list:
+										#	full_attribute_list.append(str(attribute))
+
+			if include_annual_data:
+				for annual_data in annual_data_list:
+					if str(stock.symbol) == str(annual_data.symbol):
+						for attribute in dir(annual_data):
+							if not attribute.startswith('_'):
+								if attribute not in irrelevant_attributes:
+									if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+										if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
+											num_attributes += 1
+											if attribute not in attribute_list:
+												attribute_list.append(str(attribute))
+			
+			if include_analyst_estimates:
+				for estimate_data in analyst_estimate_list:
+					if str(stock.symbol) == str(estimate_data.symbol):
+						for attribute in dir(estimate_data):
+							if not attribute.startswith('_'):
+								if attribute not in irrelevant_attributes:
+									num_attributes += 1
+									if attribute not in attribute_list:
+										attribute_list.append(str(attribute))
+
+			##### Model if adding new data type #####
+			#
+			# if include_data_type:
+			# 	for data in data_type:
+			# 		if str(stock.symbol) == str(data_type.symbol):
+			# 			for attribute in dir(data_type):
+			# 				if not attribute.startswith('_'):
+			# 					if attribute not in irrelevant_attributes:
+			# 						num_attributes += 1
+			# 						if attribute not in attribute_list:
+			# 							attribute_list.append(str(attribute))
+
+		if num_columns < num_attributes:
+			num_columns = num_attributes
+
+	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+
+	screen_grid.CreateGrid(num_rows, num_columns)
+	screen_grid.EnableEditing(enable_editing)
+
+	if not attribute_list:
+		logging.warning('attribute list empty')
+		return
+	attribute_list.sort(key = lambda x: x.lower())
+	# adjust list order for important terms
+	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+	attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
+
+	# fill in grid
+	row_count = 0
+	for ticker in ticker_list:
+		col_count = 0
+
+		basic_stock_data = None
+		if include_basic_stock_data:
+			basic_stock_data = return_stock_by_symbol(ticker)
+		stock_annual_data = None
+		if include_annual_data:
+			stock_annual_data = return_existing_StockAnnualData(ticker)
+		stock_analyst_data = None
+		if include_analyst_estimates:
+			stock_analyst_estimate = return_existing_StockAnalystEstimates(ticker)
+
+		no_stock = True
+		if basic_stock_data or stock_annual_data or stock_analyst_data:
+			no_stock = False
+		
+
+
+		for attribute in attribute_list:
+			# set attributes to be labels if it's the first run through
+			if row_count == 0:
+				screen_grid.SetColLabelValue(col_count, str(attribute))
+
+			if no_stock:
+				# If there is no data on the ticker, just place the ticker in the first position
+				screen_grid.SetCellValue(row_count, 0, ticker)
+				break
+
+			try:
+				# Try to add basic data value
+				screen_grid.SetCellValue(row_count, col_count, str(getattr(basic_stock_data, attribute)))
+
+				# Add color if relevant
+				if str(ticker) in held_ticker_list:
+					screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+				# Change text red if value is negative
+				if str(getattr(basic_stock_data, attribute)).startswith("(") or str(getattr(basic_stock_data, attribute)).startswith("-"):
+					screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+			except Exception, exception:
+				# This will fail if we are not dealing with a basic data attribute
+				try:
+					# Try to add an annual data value
+					screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
+					
+					# Add color if relevant
+					if str(ticker) in held_ticker_list:
+						screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+
+					# Change text red if value is negative
+					if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
+						screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+				except:
+					# This will fail if we are not dealing with an annual data attribute
+					try:
+						screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_analyst_estimate, attribute)))
+						
+						# Add color if relevant
+						if str(ticker) in held_ticker_list:
+							screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+						
+						# Change text red if value is negative
+						if str(getattr(stock_analyst_estimate, attribute)).startswith("(") or (str(getattr(stock_analyst_estimate, attribute)).startswith("-") and len(str(getattr(stock_analyst_estimate, attribute))) > 0):
+							screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+					except Exception, exception:
+						print exception
+						print line_number()
+
+						### model to add new data type ###
+
+						# # This will fail if we are not dealing with a PREVIOUS_DATA_TYPE attribute
+						# try:
+						# 	screen_grid.SetCellValue(row_count, col_count, str(getattr(data_type, attribute)))
+							
+						# 	# Add color if relevant
+						# 	if str(ticker) in held_ticker_list:
+						# 		screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+							
+						# 	# Change text red if value is negative
+						# 	if str(getattr(data_type, attribute)).startswith("(") or (str(getattr(data_type, attribute)).startswith("-") and len(str(getattr(data_type, attribute))) > 0):
+						# 		screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+						# except Exception, exception:
+						# 	# etc...
+			col_count += 1
+		row_count += 1
+
+	screen_grid.AutoSizeColumns()
+
+	return screen_grid
+
+	### this may need to come after
+	try:
+		wxWindow.sort_drop_down.Destroy()
+		wxWindow.sort_drop_down = wx.ComboBox(self, 
+										 pos=(520, 31), 
+										 choices = full_attribute_list,
+										 style = wx.TE_READONLY
+										 )
+	except Exception, exception:
+		pass
+		print line_number(), exception
+	wxWindow.clear_button.Show()
+	wxWindow.sort_button.Show()
+	wxWindow.sort_drop_down.Show()
+def create_spread_sheet_for_one_stock(
+	wxWindow, 
+	ticker, 
+	height = 637, 
+	width = 980, 
+	position = (0,60), 
+	enable_editing = False
+	):
+	basic_data = None
+	annual_data = None
+	analyst_estimates = None
+
+	data_list = []
+
+	basic_data = utils.return_stock_by_symbol(ticker)
+	if basic_data:
+		data_list.append(basic_data)
+
+	if not basic_data:
+		print 'Ticker "%s" does not appear to have basic data' % ticker
+
+	if not data_list:
+		return
+
+	attribute_list = []
+	num_columns = 2 # for this we only need two columns
+	num_rows = 0
+	# Here we make rows for each attribute to be included
+	num_attributes = 0
+	for stock in data_list:
+		if basic_data:
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					if attribute not in attribute_list:
+						num_attributes += 1
+						attribute_list.append(str(attribute))
+					else:
+						print "%s.%s" % (ticker, attribute), "is a duplicate"
+
+		
+		if num_rows < num_attributes:
+			num_rows = num_attributes
+
+	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+
+	screen_grid.CreateGrid(num_rows, num_columns)
+	screen_grid.EnableEditing(enable_editing)
+
+	if not attribute_list:
+		logging.warning('attribute list empty')
+		return
+	attribute_list.sort(key = lambda x: x.lower())
+	# adjust list order for important terms
+	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+	attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+
+	# fill in grid
+	col_count = 1 # data will go on the second row
+	row_count = 0
+	for attribute in attribute_list:
+		# set attributes to be labels if it's the first run through
+		if row_count == 0:
+			screen_grid.SetColLabelValue(0, "attribute")
+			screen_grid.SetColLabelValue(1, "data")
+
+		try:
+			# Add attribute name
+			screen_grid.SetCellValue(row_count, col_count-1, str(attribute))
+
+			# Try to add basic data value
+			screen_grid.SetCellValue(row_count, col_count, str(getattr(basic_data, attribute)))
+
+			# Change text red if value is negative
+			if str(getattr(basic_data, attribute)).startswith("(") or str(getattr(basic_data, attribute)).startswith("-"):
+				screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+
+		except Exception, exception:
+			# This will fail if we are not dealing with a basic data attribute
+			try:
+				# Try to add an annual data value
+				screen_grid.SetCellValue(row_count, col_count, str(getattr(annual_data, attribute)))
+				
+				# Change text red if value is negative
+				if str(getattr(annual_data, attribute)).startswith("(") or (str(getattr(annual_data, attribute)).startswith("-") and len(str(getattr(annual_data, attribute))) > 1):
+					screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+			except:
+				# This will fail if we are not dealing with an annual data attribute
+				try:
+					screen_grid.SetCellValue(row_count, col_count, str(getattr(analyst_estimates, attribute)))
+
+					# Change text red if value is negative
+					if str(getattr(analyst_estimates, attribute)).startswith("(") or (str(getattr(analyst_estimates, attribute)).startswith("-") and len(str(getattr(analyst_estimates, attribute))) > 0):
+						screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+				except Exception, exception:
+					print exception
+					print line_number()
+
+					### model to add new data type ###
+
+					# # This will fail if we are not dealing with a PREVIOUS_DATA_TYPE attribute
+					# try:
+					# 	screen_grid.SetCellValue(row_count, col_count, str(getattr(data_type, attribute)))
+						
+					# 	# Add color if relevant
+					# 	if str(ticker) in held_ticker_list:
+					# 		screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+						
+					# 	# Change text red if value is negative
+					# 	if str(getattr(data_type, attribute)).startswith("(") or (str(getattr(data_type, attribute)).startswith("-") and len(str(getattr(data_type, attribute))) > 0):
+					# 		screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+					# except Exception, exception:
+					# 	# etc...
+		row_count += 1
+
+	screen_grid.AutoSizeColumns()
+
+	return screen_grid
+# ###########################################################################################
+# ###################### Screening functions ###############################################
+def screen_pe_less_than_10():
+	global GLOBAL_STOCK_LIST
+	screen = []
+	for stock in GLOBAL_STOCK_LIST:
+		try:
+			if stock.PERatio:
+				if float(stock.PERatio) < 10:
+					screen.append(stock)
+		except Exception, e:
+			print line_number(),e
+	return screen
+# ###########################################################################################
+
+# end of line

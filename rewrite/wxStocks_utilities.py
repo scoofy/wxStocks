@@ -1,6 +1,10 @@
 import inspect, logging
 import config
-
+def line_number():
+	"""Returns the current line number in our program."""
+	line_number = inspect.currentframe().f_back.f_lineno
+	line_number_string = "Line %d:" % line_number
+	return line_number_string
 def print_attributes(obj):
 	for attribute in dir(obj):
 		if attribute[:2] != "__":
@@ -20,6 +24,7 @@ def return_stock_by_symbol(ticker_symbol):
 	try:
 		return config.GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
 	except Exception as e:
+		print line_number()
 		logging.error("Stock with symbol %s does not appear to exist" % ticker_symbol.upper())
 		return None
 
@@ -28,6 +33,8 @@ def return_stock_by_yql_symbol(yql_ticker_symbol):
 		if config.GLOBAL_STOCK_DICT[ticker].yql_ticker == yql_ticker_symbol:
 			return config.GLOBAL_STOCK_DICT[ticker]
 	# if none match
+	print line_number()
+	logging.error("Stock with yql symbol %s does not appear to exist" % yql_ticker_symbol)
 	return None
 ####################### Utility functions #################################################
 def gen_ticker_list(csv_file):

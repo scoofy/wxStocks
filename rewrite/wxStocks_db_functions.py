@@ -46,6 +46,7 @@ def load_GLOBAL_STOCK_DICT():
 		config.GLOBAL_STOCK_DICT = stock_dict
 
 	except Exception, e:
+		print "If this is your first time opening wxStocks, please ignore the following exception, otherwise, your previously saved data may have been deleted."
 		print line_number(), e
 		stock_dict = config.GLOBAL_STOCK_DICT
 		with open('wxStocks_data/all_stocks_dict.pk', 'wb') as output:
