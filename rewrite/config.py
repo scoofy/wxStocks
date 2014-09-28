@@ -16,7 +16,7 @@ SCRAPE_SLEEP_TIME = 18
 
 ABORT_YQL_SCRAPE = False
 
-TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 4) # 4 hours
+TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 48) # 48 hours
 # This is how long the program will reject rescraping stocks when looking for stocks that were not saved successfully.
 TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = float(24*60*60* 15) # 15 days
 
@@ -102,6 +102,7 @@ GLOBAL_STOCK_DICT = {}
 
 GLOBAL_TICKER_LIST = []
 
+ENCRYPTION_POSSIBLE = False
 DATA_ABOUT_PORTFOLIOS = [] 
 # Structure of this variable below, 
 # see "wxStocks_db_functions.load_DATA_ABOUT_PORTFOLIOS" for more info about loading.
@@ -121,7 +122,7 @@ PORTFOLIO_NAMES = []
 
 PORTFOLIO_OBJECTS_DICT = {}
 
-SCREEN_LIST = []
+STOCK_SCREEN_DICT = {}
 
 SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE = [[],[]] # description below
 # [[relevant portfolios list], [sale ticker|#shares tuple list]]

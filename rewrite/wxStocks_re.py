@@ -1,9 +1,9 @@
-import wxStocks_utilities as utils
+import wxStocks_modules.wxStocks_utilities as utils
 utils.start_whitespace()
 
-# Requirements
-import wx, numpy
-from BeautifulSoup import BeautifulSoup
+# Requirements that must be installed
+import wx, numpy # pycrypto, simplecrypt
+from modules.BeautifulSoup import BeautifulSoup
 
 # Standard Libraries
 import sys, os, logging, math, inspect, urllib2, json
@@ -12,14 +12,25 @@ import cPickle as pickle
 from wx.lib import sheet
 
 # Internal libraries
-from wxStocks_classes import Stock
-import wxStocks_db_functions as db
-import wxStocks_formulas as formula
-import wxStocks_testing
-import wxStocks_gui as gui
+from wxStocks_modules.wxStocks_classes import Stock
+import wxStocks_modules.wxStocks_db_functions as db
+import wxStocks_modules.wxStocks_formulas as formula
+import wxStocks_modules.wxStocks_testing
+import wxStocks_modules.wxStocks_gui as gui
 
 # True globals are in config
 import config
+
+# Encryption
+def encryption_possible():
+	try:
+		import Crypto
+		from modules.simplecrypt import encrypt, decrypt
+		config.ENCRYPTION_POSSIBLE = True
+	except:
+		print "Encryption not possible"
+		config.ENCRYPTION_POSSIBLE = False
+	return config.ENCRYPTION_POSSIBLE
 
 # Necessary in-module functions
 def line_number():

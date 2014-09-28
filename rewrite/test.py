@@ -1,24 +1,48 @@
-a = "{'a': 2, 'b':4}"
+from modules.simplecrypt import encrypt, decrypt
+import cPickle as pickle
+import sys
 
-b = "[1, 2, 3, 4]"
 
-c = [a, b]
 
-for x in c:
-	try:
-		list(x)
-		print "tried list!"
-		print x
-		print type(x)
-		print ""
-	except Exception, e:
-		print e
+test_path = 'wxStocks_modules/wxStocks_data/test_data.txt'
+password = "blah"
 
-	try:
-		list(x)
-		print "tried dict!"
-		print x
-		print type(x)
-		print ""
-	except Exception, e:
-		print e
+class TestObj(object):
+	def __init__(self):
+		self.a = "a"
+		self.b = "boomtown"
+
+def encrypt_file():
+	a = TestObj()
+
+
+	b = pickle.dumps(a)
+
+	print type(b)
+	print b
+
+	c = encrypt(password, b)
+
+	print type(c)
+	print c
+
+	with open(test_path, 'w') as output:
+		output.write(c)
+def decrypt_file():
+	a = open(test_path, 'r')
+	a = a.read()
+
+	b = decrypt(password, a)
+
+	print b
+
+	c = pickle.loads(b)
+
+	print type(c)
+
+	print c.b
+
+encrypt_file()
+decrypt_file()
+
+#print "end"
