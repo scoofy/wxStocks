@@ -3,6 +3,14 @@ import cPickle as pickle
 import sys
 
 
+big_dict = {"key": "value","key2": "value2","key3": "value3","key4": "value4"}
+
+print big_dict.keys()
+
+
+
+
+
 
 test_path = 'wxStocks_modules/wxStocks_data/test_data.txt'
 password = "blah"
@@ -41,8 +49,5 @@ def decrypt_file():
 	print type(c)
 
 	print c.b
-
-encrypt_file()
-decrypt_file()
 
 #print "end"

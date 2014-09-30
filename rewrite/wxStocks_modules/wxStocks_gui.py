@@ -9,10 +9,13 @@
 import wx, numpy
 import config, threading, logging, sys, time
 import inspect
+import pprint as pp
+
 from wxStocks_classes import Stock, Account
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
+import wxStocks_screen_functions as screen
 
 def line_number():
 	"""Returns the current line number in our program."""
@@ -456,9 +459,6 @@ class YqlScrapePage(Tab):
 			self.abort_scrape_button.Hide()
 			self.scrape_button.Show()
 			self.calculate_scrape_times()
-
-
-
 class AllStocksPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -507,7 +507,9 @@ class AllStocksPage(Tab):
 			if not attribute.startswith('_'):
 				attribute_list.append(str(attribute))
 		# Sort for readability
-		attribute_list.sort()
+		pp.pprint(attribute_list)
+		attribute_list.sort(key=lambda x: x.lower())
+		pp.pprint(attribute_list)
 
 		# adjust list order for important terms
 		try:
@@ -542,8 +544,6 @@ class AllStocksPage(Tab):
 		
 		# resize calumns
 		self.spreadsheet.AutoSizeColumns()
-
-
 class ScreenPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -560,23 +560,54 @@ class ScreenPage(Tab):
 		self.save_screen_button.Bind(wx.EVT_BUTTON, self.saveScreen, self.save_screen_button)
 		self.save_screen_button.Hide()
 
-		#self.my_text = wx.StaticText(self, -1, "default", (600, 10), style=wx.ALIGN_CENTRE)
-
 		self.screen_grid = None
 
-	def saveScreen(self, event):
-		current_screen_dict = config.STOCK_SCREEN_DICT
+		self.first_spread_sheet_load = True
 
-		try:
-			existing_screen_names_file = open('screen_names.pk', 'rb')
-		except Exception, exception:
-			print line_number(), exception
-			existing_screen_names_file = open('screen_names.pk', 'wb')
-			empty_list = []
-			with open('screen_names.pk', 'wb') as output:
-				pickle.dump(empty_list, output, pickle.HIGHEST_PROTOCOL)
-			existing_screen_names_file = open('screen_names.pk', 'rb')
-		existing_screen_names = pickle.load(existing_screen_names_file)
+	def screenStocks(self, event):
+		drop_down_value = self.drop_down.GetValue()
+
+		if drop_down_value == 'PE < 10':
+			current_screen = screen.return_stocks_with_pe_less_than_10()
+
+		config.CURRENT_SCREEN_LIST = current_screen
+
+		if self.screen_grid:
+			try:
+				self.screen_grid.Destroy()
+			except Exception, e:
+				print line_number(), e
+
+		
+		if self.first_spread_sheet_load:
+			self.first_spread_sheet_load = False
+		else:
+			try:
+				self.screen_grid.Destroy()
+			except Exception, exception:
+				print line_number(), exception
+		self.screen_grid = StockScreenGrid(self, -1, size=(1000,680), pos=(0,50))
+		self.screen_grid.CreateGrid(self.screen_grid.num_rows, self.screen_grid.num_columns)
+		self.spreadSheetFill(self.screen_grid, current_screen)
+
+		self.save_screen_button.Show()
+
+		print line_number(), "screenStocks done!"
+
+	def spreadSheetFill(self, spreadsheet, stock_list):
+		create_spreadsheet_from_stock_list(spreadsheet, stock_list)
+
+
+
+	def saveScreen(self, event):
+		current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
+		screen_name_tuple_list = config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
+		existing_screen_names = [i[0] for i in screen_name_tuple_list]
+
+		if not current_screen_dict:
+			db.load_GLOBAL_STOCK_SCREEN_DICT()
+			current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
+			# current_screen_dict must at least be {}
 
 		save_popup = wx.TextEntryDialog(None,
 										  "What would you like to name this group?", 
@@ -587,84 +618,38 @@ class ScreenPage(Tab):
 			saved_screen_name = str(save_popup.GetValue())
 
 			if saved_screen_name in existing_screen_names:
+				save_popup.Destroy()
 				error = wx.MessageDialog(self,
-										 'Each saved screen must have a unique name. Please try saving again with a different name.',
-										 'Error: Could not save',
-										 style = wx.ICON_ERROR
+										 'Each saved screen must have a unique name. Would you like to try saving again with a different name.',
+										 'Error: Name already exists',
+										 style = wx.YES_NO
 										 )
-				error.ShowModal()
+				error.SetYesNoLabels(("&Rename"), ("&Don't Save"))
+				yesNoAnswer = error.ShowModal()
 				error.Destroy()
+				if yesNoAnswer == wx.ID_YES:
+					# Recursion
+					print line_number(), "Recursion event in saveScreen"
+					self.saveScreen(event="event")
 				return
 			else:
-				existing_screen_names.append(saved_screen_name)
-				print line_number(), existing_screen_names
-				with open('screen_names.pk', 'wb') as output:
-					pickle.dump(existing_screen_names, output, pickle.HIGHEST_PROTOCOL)
-
-				with open('screen-%s.pk' % saved_screen_name, 'wb') as output:
-					pickle.dump(current_screen_list, output, pickle.HIGHEST_PROTOCOL)
+				config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST.append([saved_screen_name, float(time.time())])
+				#print line_number(), config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
+				
+				# Save global dict
+				db.save_GLOBAL_STOCK_STREEN_DICT()
+				# Save screen name results
+				db.save_named_screen(saved_screen_name, config.CURRENT_SCREEN_LIST)
+				# Save SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
+				db.save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
 
 				self.save_screen_button.Hide()
+				save_popup.Destroy()
+				return
 
-		save_popup.Destroy()
 
 
 
-	def screenStocks(self, event):
-		global GLOBAL_STOCK_LIST
-		stock_list = GLOBAL_STOCK_LIST
-		drop_down_value = self.drop_down.GetValue()
-
-		if drop_down_value == 'PE < 10':
-			stock_list = screen_pe_less_than_10()
-
-		global SCREEN_LIST
-		SCREEN_LIST = stock_list
-
-		try:
-			self.screen_grid.Destroy()
-		except Exception, e:
-			print line_number(), e
-
-		self.screen_grid = StockScreenGrid(self, -1, size=(1000,680), pos=(0,50))
-		self.spreadSheetFill(self.screen_grid, stock_list)
-
-		self.save_screen_button.Show()
-
-	def spreadSheetFill(self, spreadsheet, stock_list):
-		spreadsheet.CreateGrid(spreadsheet.num_rows, spreadsheet.num_columns)
-		spreadsheet.EnableEditing(False)
-
-		attribute_list = []
-		for stock in stock_list:
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					attribute_list.append(str(attribute))
-			break
-		if not attribute_list:
-			return
-		attribute_list.sort()
-		# adjust list order for important terms
-		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-		attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-		#print line_number(), attribute_list
-
-		row_count = 0
-		col_count = 0
-
-		for stock in stock_list:
-			for attribute in attribute_list:
-				#if not attribute.startswith('_'):
-				if row_count == 0:
-					spreadsheet.SetColLabelValue(col_count, str(attribute))
-				try:
-					spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-				except:
-					pass
-				col_count += 1
-			row_count += 1
-			col_count = 0
-		spreadsheet.AutoSizeColumns()
 class SavedScreenPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -678,7 +663,9 @@ class SavedScreenPage(Tab):
 		load_screen_button = wx.Button(self, label="load screen", pos=(200,5), size=(-1,-1))
 		load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
 
-		existing_screen_names = db.load_screen_names()
+		existing_screen_names = config.GLOBAL_STOCK_SCREEN_DICT.keys()
+
+
 
 		self.drop_down = wx.ComboBox(self, 
 									 pos=(305, 6), 
@@ -827,6 +814,9 @@ class SavedScreenPage(Tab):
 		self.screen_grid.AutoSizeColumns()
 
 		self.delete_screen_button.Show()
+
+
+
 class RankPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -864,7 +854,9 @@ class RankPage(Tab):
 		update_analyst_estimates_button = wx.Button(self, label="update analysts estimates", pos=(5,30), size=(-1,-1))
 		update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.updateAnalystEstimates, update_analyst_estimates_button)
 
-		existing_screen_names = db.load_screen_names()
+
+
+		existing_screen_names = config.GLOBAL_STOCK_SCREEN_DICT.keys()
 		self.drop_down = wx.ComboBox(self, 
 									 pos=(305, 6), 
 									 choices=existing_screen_names,
@@ -2850,8 +2842,7 @@ class StockScreenGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
 		
-		global SCREEN_LIST
-		stock_list = SCREEN_LIST
+		stock_list = config.CURRENT_SCREEN_LIST
 
 		self.num_rows = len(stock_list)
 		self.num_columns = 0
@@ -2877,6 +2868,59 @@ class AccountDataGrid(wx.grid.Grid):
 # ###########################################################################################
 
 # ############ Spreadsheet Functions ########################################################
+def create_spreadsheet_from_stock_list(spreadsheet, stock_list):
+	spreadsheet.EnableEditing(False)
+
+
+	# Find all attribute names
+	attribute_list = []
+	all_attribute_list = []
+	for stock in stock_list:
+		all_attribute_list = all_attribute_list + list(dir(stock))
+		all_attribute_list = set(all_attribute_list) # remove duplicates
+		all_attribute_list = list(all_attribute_list)
+	# Eliminate non-finance related attributes
+	for attribute in all_attribute_list:
+		if not attribute.startswith('_'):
+			attribute_list.append(str(attribute))
+	# Sort for readability
+	attribute_list.sort(key=lambda x: x.lower())
+
+	# adjust list order for important terms
+	try:
+		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+	except Exception, e:
+		print line_number(), e
+	try:
+		attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+	except Exception, e:
+		print line_number(), e
+	#print line_number(), attribute_list
+
+	row_count = 0
+	col_count = 0
+
+	# set first row attribute names
+	for attribute in attribute_list:
+		spreadsheet.SetColLabelValue(col_count, str(attribute))
+		col_count += 1
+	col_count = 0
+
+	# fill in the stocks' values
+	for stock in stock_list:
+		for attribute in attribute_list:
+			try:
+				spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
+			except:
+				pass
+			col_count += 1
+		row_count += 1
+		col_count = 0
+	
+	# resize calumns
+	spreadsheet.AutoSizeColumns()
+	return spreadsheet
+
 def create_spread_sheet(
 	wxWindow, 
 	ticker_list, 

@@ -1,5 +1,9 @@
+print "Startup may take a few moments..."
+
 import wxStocks_modules.wxStocks_utilities as utils
 utils.start_whitespace()
+print "Startup may take a few moments..."
+
 
 # Requirements that must be installed
 import wx, numpy # pycrypto, simplecrypt

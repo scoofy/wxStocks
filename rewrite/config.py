@@ -122,7 +122,9 @@ PORTFOLIO_NAMES = []
 
 PORTFOLIO_OBJECTS_DICT = {}
 
-STOCK_SCREEN_DICT = {}
+GLOBAL_STOCK_SCREEN_DICT = {}
+SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST = []
+CURRENT_SCREEN_LIST = []
 
 SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE = [[],[]] # description below
 # [[relevant portfolios list], [sale ticker|#shares tuple list]]

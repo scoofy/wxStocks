@@ -4,11 +4,13 @@ import cPickle as pickle
 
 import wxStocks_classes
 
-from modules import Crypto
+import traceback, sys
 
 ticker_path = 'wxStocks_modules/wxStocks_data/ticker.pk'
 all_stocks_path = 'wxStocks_modules/wxStocks_data/all_stocks_dict.pk'
-screen_names_path = 'wxStocks_modules/wxStocks_data/screen_names.pk'
+screen_dict_path = 'wxStocks_modules/wxStocks_data/screen_dict.pk'
+named_screen_path = 'wxStocks_modules/wxStocks_data/screen-%s.pk'
+screen_name_and_time_created_tuple_list_path = 'wxStocks_modules/wxStocks_data/screen_names_and_times_tuple_list.pk'
 portfolios_path = 'wxStocks_modules/wxStocks_data/portfolios.pk'
 portfolio_account_obj_file_path = 'wxStocks_modules/wxStocks_data/portfolio_%d_data.pk'
 
@@ -18,11 +20,13 @@ def load_all_data():
 	load_GLOBAL_TICKER_LIST()
 	load_GLOBAL_STOCK_DICT()
 	load_DATA_ABOUT_PORTFOLIOS()
-
+	load_GLOBAL_STOCK_SCREEN_DICT()
+	load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
 # start up try/except clauses below
 
 # Dont think these are used any more
 def load_GLOBAL_TICKER_LIST():
+	print "Loading GLOBAL_TICKER_LIST"
 	try:
 		ticker_list = open(ticker_path, 'rb')
 	except Exception, e:
@@ -54,6 +58,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 	else:
 		return wxStocks_classes.Stock(ticker)
 def load_GLOBAL_STOCK_DICT():
+	print "Loading GLOBAL_STOCK_DICT"
 	try:
 		pickled_file = open(all_stocks_path, 'rb')
 		stock_dict = pickle.load(pickled_file)
@@ -73,42 +78,62 @@ def save_GLOBAL_STOCK_DICT():
 		pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
 
 ### Stock screen loading information
-def load_GLOBAL_SCREEN_NAMES():
+def load_GLOBAL_STOCK_SCREEN_DICT():
+	print "Loading GLOBAL_STOCK_SCREEN_DICT"
 	try:
-		existing_screen_names_file = open(screen_names_path, 'rb')
+		existing_screen_names_file = open(screen_dict_path, 'rb')
 	except Exception, exception:
 		print line_number(), exception
-		existing_screen_names_file = open(screen_names_path, 'wb')
-		empty_list = []
-		with open(screen_names_path, 'wb') as output:
-			pickle.dump(empty_list, output, pickle.HIGHEST_PROTOCOL)
-		existing_screen_names_file = open(screen_names_path, 'rb')
-	existing_screen_names = pickle.load(existing_screen_names_file)
-	return 
-
-def load_screen_names():
-	try:
-		existing_screen_names_file = open(screen_names_path, 'rb')
-	except Exception, exception:
-		print line_number(), exception
-		existing_screen_names_file = open(screen_names_path, 'wb')
-		empty_list = []
-		with open(screen_names_path, 'wb') as output:
-			pickle.dump(empty_list, output, pickle.HIGHEST_PROTOCOL)
-		existing_screen_names_file = open(screen_names_path, 'rb')
+		existing_screen_names_file = open(screen_dict_path, 'wb')
+		empty_dict = {}
+		with open(screen_dict_path, 'wb') as output:
+			pickle.dump(empty_dict, output, pickle.HIGHEST_PROTOCOL)
+		existing_screen_names_file = open(screen_dict_path, 'rb')
 	existing_screen_names = pickle.load(existing_screen_names_file)
 	existing_screen_names_file.close()
-	return existing_screen_names
+	config.GLOBAL_STOCK_SCREEN_DICT = existing_screen_names
+def save_GLOBAL_STOCK_STREEN_DICT():
+	print "Saving GLOBAL_STOCK_STREEN_DICT"
+	existing_screens = config.GLOBAL_STOCK_SCREEN_DICT
+	with open(screen_dict_path, 'wb') as output:
+		pickle.dump(existing_screens, output, pickle.HIGHEST_PROTOCOL)
+def save_named_screen(screen_name, stock_list):
+	print "Saving screen named: %s" % screen_name
+	with open(named_screen_path % screen_name, 'wb') as output:
+		pickle.dump(stock_list, output, pickle.HIGHEST_PROTOCOL)
 
-
+def load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
+	print "Loading SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST"
+	try:
+		existing_tuple_list_file = open(screen_name_and_time_created_tuple_list_path, 'rb')
+	except Exception, exception:
+		print line_number(), exception
+		existing_tuple_list_file = open(screen_name_and_time_created_tuple_list_path, 'wb')
+		empty_list = []
+		with open(screen_name_and_time_created_tuple_list_path, 'wb') as output:
+			pickle.dump(empty_list, output, pickle.HIGHEST_PROTOCOL)
+		existing_tuple_list_file = open(screen_name_and_time_created_tuple_list_path, 'rb')
+	existing_tuple_list = pickle.load(existing_tuple_list_file)
+	existing_tuple_list_file.close()
+	config.SCREEN_NAME_AND_TIME_CREATE_TUPLE_LIST = existing_tuple_list
+def save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
+	print "Saving SCREEN_NAME_AND_TIME_CREATE_TUPLE_LIST"
+	tuple_list = config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
+	with open(screen_name_and_time_created_tuple_list_path, 'wb') as output:
+		pickle.dump(tuple_list, output, pickle.HIGHEST_PROTOCOL)
 ###
 
 ### Portfolio functions need encryption/decryption
 def save_DATA_ABOUT_PORTFOLIOS(password = None):
 	data = config.DATA_ABOUT_PORTFOLIOS
 	if config.ENCRYPTION_POSSIBLE:
-		import Crypto
-		from modules.simplecrypt import encrypt, decrypt
+		try:
+			import Crypto
+			from modules.simplecrypt import encrypt, decrypt
+		except:
+			config.ENCRYPTION_POSSIBLE = False
+			print line_number(), "Error: DATA_ABOUT_PORTFOLIOS did not save"
+			return
 		unencrypted_pickle_string = pickle.dumps(data)
 		encrypted_string = encrypt(password, unencrypted_pickle_string)
 		with open(portfolios_path, 'w') as output:
@@ -120,8 +145,13 @@ def save_DATA_ABOUT_PORTFOLIOS(password = None):
 def decrypt_if_possible(path, password=None):
 	error = False
 	if config.ENCRYPTION_POSSIBLE:
-		import Crypto
-		from modules.simplecrypt import encrypt, decrypt
+		try:
+			import Crypto
+			from modules.simplecrypt import encrypt, decrypt
+		except:
+			config.ENCRYPTION_POSSIBLE = False
+			print line_number(), "Error: DATA_ABOUT_PORTFOLIOS did not load"
+			return None
 		encrypted_file = open(path, 'r')
 		encrypted_string = encrypted_file.read()
 		ercrypted_file.close()
