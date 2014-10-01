@@ -28,74 +28,92 @@ DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
 
 IRRELEVANT_ATTRIBUTES = ["updated",
 	"epoch",
-	"TradeDate",
 	"created_epoch",
-	"TrailingPE_ttm_Date",
-	"TradeDate",
-	"TwoHundreddayMovingAverage",
-	"TickerTrend",
-	"SharesOwned",
-	"SP50052_WeekChange",
-	"PricePaid",
-	"PercentChangeFromTwoHundreddayMovingAverage",
-	"PercentChangeFromFiftydayMovingAverage",
-	"PercentChange",
-	"PERatioRealtime",
-	"OrderBookRealtime",
-	"Notes",
-	"MostRecentQuarter_mrq",
-	"MoreInfo",
-	"MarketCapRealtime",
-	"LowLimit",
-	"LastTradeWithTime",
-	"LastTradeTime",
-	"LastTradeRealtimeWithTime",
-	"LastTradePriceOnly",
-	"LastTradeDate",
-	"HoldingsValueRealtime",
-	"HoldingsValue",
-	"HoldingsGainRealtime",
-	"HoldingsGainPercentRealtime",
-	"HoldingsGainPercent",
-	"HoldingsGain",
-	"HighLimit",
-	"ExDividendDate",
-	"DividendPayDate",
-	"DaysValueChangeRealtime",
-	"DaysValueChange",
-	"DaysRangeRealtime",
-	"DaysRange",
-	"DaysLow",
-	"DaysHigh",
-	"Commission",
-	"Change_PercentChange",
-	"ChangeRealtime",
-	"ChangePercentRealtime",
-	"ChangeFromTwoHundreddayMovingAverage",
-	"ChangeFromFiftydayMovingAverage",
-	"Change",
-	"ChangeinPercent",
-	"BidRealtime",
-	"Bid",
-	"AvgVol_3_month",
-	"AvgVol_10_day",
-	"AskRealtime",
-	"Ask",
-	"AnnualizedGain",
-	"AfterHoursChangeRealtime",
-	"52_WeekLow_Date",
-	"52_WeekLow",
-	"52_WeekHigh_Date",
-	"52_WeekHigh",
-	"52_WeekChange",
-	"50_DayMovingAverage",
-	"200_DayMovingAverage"
+	"TrailingPE_ttm_Date_yf",
+	"TradeDate_yf",
+	"TwoHundreddayMovingAverage_yf",
+	"TickerTrend_yf",
+	"SharesOwned_yf",
+	"SP50052_WeekChange_yf",
+	"PricePaid_yf",
+	"PercentChangeFromTwoHundreddayMovingAverage_yf",
+	"PercentChangeFromFiftydayMovingAverage_yf",
+	"PercentChange_yf",
+	"PERatioRealtime_yf",
+	"OrderBookRealtime_yf",
+	"Notes_yf",
+	"MostRecentQuarter_mrq_yf",
+	"MoreInfo_yf",
+	"MarketCapRealtime_yf",
+	"LowLimit_yf",
+	"LastTradeWithTime_yf",
+	"LastTradeTime_yf",
+	"LastTradeRealtimeWithTime_yf",
+	"LastTradePriceOnly_yf",
+	"LastTradeDate_yf",
+	"HoldingsValueRealtime_yf",
+	"HoldingsValue_yf",
+	"HoldingsGainRealtime_yf",
+	"HoldingsGainPercentRealtime_yf",
+	"HoldingsGainPercent_yf",
+	"HoldingsGain_yf",
+	"HighLimit_yf",
+	"ExDividendDate_yf",
+	"DividendPayDate_yf",
+	"DaysValueChangeRealtime_yf",
+	"DaysValueChange_yf",
+	"DaysRangeRealtime_yf",
+	"DaysRange_yf",
+	"DaysLow_yf",
+	"DaysHigh_yf",
+	"Commission_yf",
+	"Change_PercentChange_yf",
+	"ChangeRealtime_yf",
+	"ChangePercentRealtime_yf",
+	"ChangeFromTwoHundreddayMovingAverage_yf",
+	"ChangeFromFiftydayMovingAverage_yf",
+	"Change_yf",
+	"ChangeinPercent_yf",
+	"BidRealtime_yf",
+	"Bid_yf",
+	"AvgVol_3_month_yf",
+	"AvgVol_10_day_yf",
+	"AskRealtime_yf",
+	"Ask_yf",
+	"AnnualizedGain_yf",
+	"AfterHoursChangeRealtime_yf",
+	"p_52_WeekLow_Date_yf",
+	"p_52_WeekLow_yf",
+	"p_52_WeekHigh_Date_yf",
+	"p_52_WeekHigh_yf",
+	"p_52_WeekChange_yf",
+	"p_50_DayMovingAverage_yf",
+	"p_200_DayMovingAverage_yf"
 	]
 # these attributes will not show up on most spreadsheets
 
 NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR = 100
 # when downloading tickers, if more than this number of tickers appear to have fallen off the exchange
 # it is probably the case that something went wrong, rather than it being a legitimate number.
+
+STOCK_SCRAPE_UPDATE_ATTRIBUTES = ["last_yql_basic_scrape_update",
+	
+	"last_yahoo_balance_sheet_update",
+	"last_yahoo_cash_flow_update",
+	"last_yahoo_income_statement_update",
+
+	"last_morningstar_balance_sheet_update",
+	"last_morningstar_cash_flow_update",
+	"last_morningstar_income_statement_update",
+
+	"last_morningstar_key_ratios_update",
+
+
+	]
+
+HELD_STOCK_COLOR_HEX = "#FAEFCF"
+NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX = "#8A0002"
+
 
 ### Do not edit below, all are reset to saved values on startup ###
 GLOBAL_STOCK_DICT = {}
@@ -126,10 +144,14 @@ GLOBAL_STOCK_SCREEN_DICT = {}
 SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST = []
 CURRENT_SCREEN_LIST = []
 CURRENT_SAVED_SCREEN_LIST = []
+RANK_PAGE_ALL_RELEVANT_STOCKS = []
 
 SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE = [[],[]] # description below
 # [[relevant portfolios list], [sale ticker|#shares tuple list]]
 
+TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = []
+
+HELD_STOCK_TICKER_LIST = []
 
 
 

@@ -70,7 +70,19 @@ def return_stocks_with_data_errors():
 		except:
 			continue
 	return error_list
-####################### Utility functions #################################################
+####################### Stock utility functions #################################################
+def stock_value_is_negative(stock_obj, attribute_str):
+	try:
+		getattr(stock_obj, attribute_str)
+	except:
+		return False
+	print line_number(), "Is %s.%s:" % (stock_obj.symbol, attribute_str), str(getattr(stock_obj, attribute_str)), "negative?"
+	print str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
+	print ""
+	return str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
+
+
+####################### General utility functions #################################################
 def gen_ticker_list(csv_file):
 	reader = csv.reader(csv_file)
 	reader_list = []
