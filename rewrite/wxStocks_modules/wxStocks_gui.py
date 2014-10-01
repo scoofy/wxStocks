@@ -7,7 +7,7 @@
 # 		4: Grid objects 										#
 #################################################################
 import wx, numpy
-import config, threading, logging, sys, time
+import config, threading, logging, sys, time, os
 import inspect
 import pprint as pp
 
@@ -29,26 +29,52 @@ class MainFrame(wx.Frame): # reorder tab postions here
 	def __init__(self, *args, **kwargs):
 		wx.Frame.__init__(self, None, title="wxStocks", *args, **kwargs)
 
+		# There seems to be a major bug with osx at this point with message dialogs... cannot get code below functional.
+
 		# Confirm encryption if module not installed
-		try:
-			from modules import Error #Crypto
-		except Exception, e:
-			print e
-			print line_number(), 'Change "Error" to "Crypto" before deploying.'
-			confirm = wx.MessageDialog(None, 
-										   "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.", 
-										   'You do not have pycrypto installed.', 
-										   style = wx.YES_NO
-										   )
-			confirm.SetYesNoLabels(("&Close"), ("&I Understand And Want To Continue Without Encryption"))
-			yesNoAnswer = confirm.ShowModal()
-		confirm.Destroy()
-		if yesNoAnswer == wx.ID_YES:
-			sys.exit()
+		# try:
+		# 	import Crypto
+		# 	from modules import simplecrypt
+		# 	print line_number(), "Remove this and the following test line."
+		# 	import force_error
+		# 	yesNoAnswer = None
+		# except Exception, e:
+		# 	print e
+		# 	print line_number(), 'Change "Error" to "Crypto" before deploying.'
+		# 	confirm = wx.MessageDialog(self, 
+		# 								   "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.", 
+		# 								   'You do not have pycrypto installed.', 
+		# 								   style = wx.YES_NO
+		# 								   )
+		# 	confirm.SetYesNoLabels(("&Close"), ("&I Understand And Want To Continue Without Encryption"))
+		# 	#yesNoAnswer = confirm.ShowModal()
+		# 	if confirm.ShowModal() != wx.ID_YES:
+		# 		yesNoAnswer = wx.ID_NO
+		# 		print "No!"
+		# 	else:
+		# 		yesNoAnswer = wx.ID_YES
+		# 		print "Yes!!!"
+		# if yesNoAnswer == wx.ID_YES:
+		# 	sys.exit()
+		# else:
+		# 	if yesNoAnswer:
+		# 		confirm.Destroy()
+
+		# Workaround
+		#import wx.lib.agw.genericmessagedialog as GMD
+		#main_message = "Without the pycrypto module functioning,\nif you import your portfolios,\nthey will not be encrypted when saved.\nThis will leave your data vulnurable to theft,\npossibly exposing your positions and net worth."
+		#
+		#
+		#dlg = GMD.GenericMessageDialog(None, main_message, 'You do not have pycrypto installed.',
+		#                               agwStyle=wx.ICON_INFORMATION | wx.OK)
+		#
+		#dlg.ShowModal()
+		#dlg.Destroy()
 
 		# Here we create a panel and a notebook on the panel
 		main_frame = wx.Panel(self)
 		notebook = wx.Notebook(main_frame)
+
 
 		# create the page windows as children of the notebook
 		# add the pages to the notebook with the label to show on the tab
@@ -92,10 +118,6 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		sizer = wx.BoxSizer()
 		sizer.Add(notebook, 1, wx.EXPAND)
 		main_frame.SetSizer(sizer)
-
-
-
-
 class Tab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -139,6 +161,7 @@ class WelcomePage(Tab):
 									instructions_text, 
 									(10,20)
 									)
+		print line_number(), "WelcomePage loaded"
 class TickerPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -167,6 +190,7 @@ class TickerPage(Tab):
 							 )
 
 		self.showAllTickers()
+		print line_number(), "TickerPage loaded"
 
 	def confirmDownloadTickers(self, event):
 		confirm = wx.MessageDialog(None, 
@@ -309,7 +333,7 @@ class YqlScrapePage(Tab):
 
 		self.calculate_scrape_times()
 
-		#self.Show()
+		print line_number(), "YqlScrapePage loaded"
 
 	def calculate_scrape_times(self):
 		print line_number(), "Calculating scrape times..."
@@ -474,6 +498,8 @@ class AllStocksPage(Tab):
 
 		self.first_spread_sheet_load = True
 
+		print line_number(), "AllStocksPage loaded"
+
 	def spreadSheetFillAllStocks(self, event):
 		if self.first_spread_sheet_load:		
 			self.first_spread_sheet_load = False
@@ -564,6 +590,8 @@ class ScreenPage(Tab):
 
 		self.first_spread_sheet_load = True
 
+		print line_number(), "ScreenPage loaded"
+
 	def screenStocks(self, event):
 		drop_down_value = self.drop_down.GetValue()
 
@@ -617,7 +645,8 @@ class ScreenPage(Tab):
 		if save_popup.ShowModal() == wx.ID_OK:
 			saved_screen_name = str(save_popup.GetValue())
 
-			if saved_screen_name in existing_screen_names:
+			# files save with replace(" ", "_") so you need to check if any permutation of this patter already exists.
+			if saved_screen_name in existing_screen_names or saved_screen_name.replace(" ", "_") in existing_screen_names or saved_screen_name.replace("_", " ") in existing_screen_names:
 				save_popup.Destroy()
 				error = wx.MessageDialog(self,
 										 'Each saved screen must have a unique name. Would you like to try saving again with a different name.',
@@ -646,10 +675,6 @@ class ScreenPage(Tab):
 				self.save_screen_button.Hide()
 				save_popup.Destroy()
 				return
-
-
-
-
 class SavedScreenPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -663,13 +688,15 @@ class SavedScreenPage(Tab):
 		load_screen_button = wx.Button(self, label="load screen", pos=(200,5), size=(-1,-1))
 		load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
 
-		existing_screen_names = config.GLOBAL_STOCK_SCREEN_DICT.keys()
+		
 
+		self.existing_screen_name_list = []
+		if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
+			self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
 
-
-		self.drop_down = wx.ComboBox(self, 
+		self.drop_down = wx.ComboBox(self, value="",
 									 pos=(305, 6), 
-									 choices=existing_screen_names,
+									 choices=self.existing_screen_name_list,
 									 style = wx.TE_READONLY
 									 )
 
@@ -677,8 +704,11 @@ class SavedScreenPage(Tab):
 		self.delete_screen_button = wx.Button(self, label="delete", pos=(900,4), size=(-1,-1))
 		self.delete_screen_button.Bind(wx.EVT_BUTTON, self.deleteScreen, self.delete_screen_button)
 		self.delete_screen_button.Hide()
-		
+
+		self.first_spread_sheet_load = True		
 		self.screen_grid = None
+
+		print line_number(), "SavedScreenPage loaded"
 
 	def deleteScreen(self, event):
 		confirm = wx.MessageDialog(None, 
@@ -696,14 +726,12 @@ class SavedScreenPage(Tab):
 			return
 		try:
 			print line_number(), self.currently_viewed_screen
-			existing_screen_names_file = open('screen_names.pk', 'rb')
-			existing_screen_names = pickle.load(existing_screen_names_file)
-			#print line_number(), existing_screen_names
-			existing_screen_names.remove(self.currently_viewed_screen)
-			with open('screen_names.pk', 'wb') as output:
-				pickle.dump(existing_screen_names, output, pickle.HIGHEST_PROTOCOL)
-			os.remove('screen-%s.pk' % self.currently_viewed_screen)
+
+			db.delete_named_screen(self.currently_viewed_screen)
+
 			self.screen_grid.Destroy()
+			self.currently_viewed_screen = None
+
 		except Exception, exception:
 			print line_number(), exception
 			error = wx.MessageDialog(self,
@@ -720,31 +748,22 @@ class SavedScreenPage(Tab):
 		self.drop_down.Hide()
 		self.drop_down.Destroy()
 
+		# Why did i put this here? Leave a note next time moron...
 		time.sleep(2)
 
-		try:
-			existing_screen_names_file = open('screen_names.pk', 'rb')
-		except Exception, exception:
-			print line_number(), exception
-			existing_screen_names_file = open('screen_names.pk', 'wb')
-			empty_list = []
-			with open('screen_names.pk', 'wb') as output:
-				pickle.dump(empty_list, output, pickle.HIGHEST_PROTOCOL)
-			existing_screen_names_file = open('screen_names.pk', 'rb')
-		existing_screen_names = pickle.load(existing_screen_names_file)
+		self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+
 
 		self.drop_down = wx.ComboBox(self, 
 									 pos=(305, 6), 
-									 choices=existing_screen_names,
+									 choices=self.existing_screen_name_list,
 									 style = wx.TE_READONLY
 									 )
 
 	def loadScreen(self, event):
 		selected_screen_name = self.drop_down.GetValue()
 		try:
-			saved_screen_file = open('screen-%s.pk' % selected_screen_name, 'rb')
-			saved_screen = pickle.load(saved_screen_file)
-			saved_screen_file.close()
+			config.CURRENT_SAVED_SCREEN_LIST = db.load_named_screen(selected_screen_name)
 		except Exception, exception:
 			print line_number(), exception
 			error = wx.MessageDialog(self,
@@ -755,67 +774,26 @@ class SavedScreenPage(Tab):
 			error.ShowModal()
 			error.Destroy()
 			return
-
 		self.currently_viewed_screen = selected_screen_name
-		stock_list = saved_screen
 
-		try:
-			self.screen_grid.Destroy()
-		except Exception, exception:
-			print line_number(), exception
-
-		self.spreadSheetFill(stock_list)
-
-	def spreadSheetFill(self, stock_list):
-		num_rows = len(stock_list)
-		num_columns = 0
-		for stock in stock_list:
-			num_attributes = 0
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					num_attributes += 1
-			if num_columns < num_attributes:
-				num_columns = num_attributes
-		self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,50))
-
-		self.screen_grid.CreateGrid(num_rows, num_columns)
-		self.screen_grid.EnableEditing(False)
-
-		attribute_list = []
-		for stock in stock_list:
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					attribute_list.append(str(attribute))
-			break
-		if not attribute_list:
-			logging.warning('attribute list empty')
-			return
-		attribute_list.sort()
-		# adjust list order for important terms
-		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-		attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-		#print line_number(), attribute_list
-
-		row_count = 0
-		col_count = 0
-
-		for stock in stock_list:
-			for attribute in attribute_list:
-				#if not attribute.startswith('_'):
-				if row_count == 0:
-					self.screen_grid.SetColLabelValue(col_count, str(attribute))
+		if self.first_spread_sheet_load:
+			self.first_spread_sheet_load = False
+		else:
+			if self.screen_grid:
 				try:
-					self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-				except:
-					pass
-				col_count += 1
-			row_count += 1
-			col_count = 0
-		self.screen_grid.AutoSizeColumns()
+					self.screen_grid.Destroy()
+				except Exception, exception:
+					print line_number(), exception
 
+		self.spreadSheetFill()
+
+	def spreadSheetFill(self):
+		self.screen_grid = SavedScreenGrid(self, -1, size=(980,637), pos=(0,50))
+		self.screen_grid.CreateGrid(self.screen_grid.num_rows, self.screen_grid.num_columns)
+		
+		create_spreadsheet_from_stock_list(self.screen_grid, config.CURRENT_SAVED_SCREEN_LIST)
+		
 		self.delete_screen_button.Show()
-
-
 
 class RankPage(Tab):
 	def __init__(self, parent):
@@ -894,6 +872,8 @@ class RankPage(Tab):
 
 		
 		self.screen_grid = None
+
+		print line_number(), "RankPage loaded"
 
 	def createSpreadSheet(self, ticker_list):
 		held_ticker_list = self.held_ticker_list
@@ -1265,6 +1245,7 @@ class RankPage(Tab):
 			self.sorted_full_ticker_list.append(str(incompatible_stock.symbol))
 		self.spreadSheetFill(self.sorted_full_ticker_list)
 		self.sort_drop_down.SetStringSelection(sort_field)
+
 class SalePrepPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -1326,6 +1307,9 @@ class SalePrepPage(Tab):
 				if is_checked:
 					self.spreadSheetFill('event')
 					break
+
+		print line_number(), "SalePrepPage loaded"
+
 
 	def exportSaleCandidates(self, event):
 		self.save_button.Hide()
@@ -1666,6 +1650,8 @@ class TradePage(Tab):
 
 
 		self.grid = None
+
+		print line_number(), "TradePage loaded"
 
 	def importSaleCandidates(self, event):
 		print line_number(), "Boom goes the boom!!!!!!!!"
@@ -2493,6 +2479,9 @@ class PortfolioPage(Tab):
 		sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
 		self.SetSizer(sizer2)		
 		####
+
+		print line_number(), "PortfolioPage loaded"
+
 class PortfolioAccountTab(Tab):
 	def __init__(self, parent, tab_number):
 		tab_panel = wx.Panel.__init__(self, parent, tab_number)
@@ -2547,6 +2536,9 @@ class PortfolioAccountTab(Tab):
 
 		self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
 		self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
+
+		print line_number(), "PortfolioAccountTab loaded"
+
 	def printData(self, event):
 		if self.account_obj:
 			print line_number(),"cash:", self.account_obj.availble_cash
@@ -2791,6 +2783,9 @@ class StockDataPage(Tab):
 		update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
 		update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
 		update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
+
+		print line_number(), "StockDataPage loaded"
+
 	
 	def createOneStockSpreadSheet(self, event):
 		ticker = self.ticker_input.GetValue()
@@ -2841,9 +2836,9 @@ class GridAllStocks(wx.grid.Grid):
 class StockScreenGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)
-		
+		#############################################
 		stock_list = config.CURRENT_SCREEN_LIST
-
+		#############################################
 		self.num_rows = len(stock_list)
 		self.num_columns = 0
 		for stock in stock_list:
@@ -2853,9 +2848,22 @@ class StockScreenGrid(wx.grid.Grid):
 					num_attributes += 1
 			if self.num_columns < num_attributes:
 				self.num_columns = num_attributes
-				#print line_number(), num_attributes
-		#print line_number(), "Number of rows: %d" % self.num_rows
-		#print line_number(), "Number of columns: %d" % self.num_columns
+class SavedScreenGrid(wx.grid.Grid):
+	# literally the only difference is the config call
+	def __init__(self, *args, **kwargs):
+		wx.grid.Grid.__init__(self, *args, **kwargs)
+		#############################################
+		stock_list = config.CURRENT_SAVED_SCREEN_LIST
+		#############################################
+		self.num_rows = len(stock_list)
+		self.num_columns = 0
+		for stock in stock_list:
+			num_attributes = 0
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					num_attributes += 1
+			if self.num_columns < num_attributes:
+				self.num_columns = num_attributes
 class SalePrepGrid(wx.grid.Grid):
 	def __init__(self, *args, **kwargs):
 		wx.grid.Grid.__init__(self, *args, **kwargs)

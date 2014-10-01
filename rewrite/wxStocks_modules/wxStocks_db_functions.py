@@ -1,5 +1,5 @@
 import config
-import inspect, logging
+import inspect, logging, os
 import cPickle as pickle
 
 import wxStocks_classes
@@ -97,10 +97,28 @@ def save_GLOBAL_STOCK_STREEN_DICT():
 	existing_screens = config.GLOBAL_STOCK_SCREEN_DICT
 	with open(screen_dict_path, 'wb') as output:
 		pickle.dump(existing_screens, output, pickle.HIGHEST_PROTOCOL)
+def load_named_screen(screen_name):
+	print "Loading Screen: %s" % screen_name
+	try:
+		screen_file = open(named_screen_path % screen_name.replace(' ','_'), 'rb')
+		screen = pickle.load(screen_file)
+		screen_file.close()
+	except Exception as e:
+		print line_number(), e
+		print "Screen: %s failed to load." % screen_name
+	return screen
 def save_named_screen(screen_name, stock_list):
 	print "Saving screen named: %s" % screen_name
-	with open(named_screen_path % screen_name, 'wb') as output:
+	with open(named_screen_path % screen_name.replace(' ','_'), 'wb') as output:
 		pickle.dump(stock_list, output, pickle.HIGHEST_PROTOCOL)
+def delete_named_screen(screen_name):
+	print "Deleting named screen: %s" % screen_name
+
+	print line_number(), config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
+	config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST = [x for x in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST if x[0] != screen_name]
+	print line_number(), config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
+	save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
+	os.remove(named_screen_path % screen_name.replace(' ', '_'))
 
 def load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
 	print "Loading SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST"
@@ -115,9 +133,9 @@ def load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
 		existing_tuple_list_file = open(screen_name_and_time_created_tuple_list_path, 'rb')
 	existing_tuple_list = pickle.load(existing_tuple_list_file)
 	existing_tuple_list_file.close()
-	config.SCREEN_NAME_AND_TIME_CREATE_TUPLE_LIST = existing_tuple_list
+	config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST = existing_tuple_list
 def save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
-	print "Saving SCREEN_NAME_AND_TIME_CREATE_TUPLE_LIST"
+	print "Saving SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST"
 	tuple_list = config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
 	with open(screen_name_and_time_created_tuple_list_path, 'wb') as output:
 		pickle.dump(tuple_list, output, pickle.HIGHEST_PROTOCOL)
