@@ -106,7 +106,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		notebook.AddPage(self.trade_page, "Trade")
 
 		self.portfolio_page = PortfolioPage(notebook)
-		notebook.AddPage(self.portfolio_page, "Portfolio")
+		notebook.AddPage(self.portfolio_page, "Portfolios")
 
 		self.stock_data_page = StockDataPage(notebook)
 		notebook.AddPage(self.stock_data_page, "Ticker Data")
@@ -271,6 +271,7 @@ class TickerPage(Tab):
 		for ticker in config.GLOBAL_STOCK_DICT:
 			if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
 				ticker_list.append(ticker)
+		ticker_list.sort()
 		self.displayTickers(ticker_list)
 		self.Show()
 		print line_number(), "Done"
@@ -807,12 +808,7 @@ class RankPage(Tab):
 		self.lists_in_ticker_list = [] # currently unused
 
 		self.full_attribute_list = []
-		
-		self.irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
-
-		self.held_ticker_list = []
-		self.screen_ticker_list = []
-
+		self.relevant_attribute_list = []
 
 		rank_page_text = wx.StaticText(self, -1, 
 							 "Rank", 
@@ -828,17 +824,17 @@ class RankPage(Tab):
 		load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
 		load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
 
-		update_annual_data_button = wx.Button(self, label="update annual data", pos=(5,5), size=(-1,-1))
-		update_annual_data_button.Bind(wx.EVT_BUTTON, self.updateAnnualData, update_annual_data_button)
+		#update_annual_data_button = wx.Button(self, label="update annual data", pos=(5,5), size=(-1,-1))
+		#update_annual_data_button.Bind(wx.EVT_BUTTON, self.updateAnnualData, update_annual_data_button)
 
-		update_analyst_estimates_button = wx.Button(self, label="update analysts estimates", pos=(5,30), size=(-1,-1))
-		update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.updateAnalystEstimates, update_analyst_estimates_button)
+		#update_analyst_estimates_button = wx.Button(self, label="update analysts estimates", pos=(5,30), size=(-1,-1))
+		#update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.updateAnalystEstimates, update_analyst_estimates_button)
 
 
 
 		self.existing_screen_name_list = []
 		if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
-			self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+			self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
 		self.drop_down = wx.ComboBox(self, 
 									 pos=(305, 6), 
 									 choices=self.existing_screen_name_list,
@@ -874,19 +870,19 @@ class RankPage(Tab):
 		self.sort_button.Hide()
 		self.sort_drop_down.Hide()
 
-		
+		self.fade_opacity = 255
 		self.screen_grid = None
 
 		print line_number(), "RankPage loaded"
 
-	def createSpreadSheet(self, ticker_list):
-		held_ticker_list = self.held_ticker_list
-		self.screen_grid = create_spread_sheet(self, ticker_list, held_ticker_list = held_ticker_list)
+	def createSpreadSheet(self, stock_list=config.RANK_PAGE_ALL_RELEVANT_STOCKS):
+		held_ticker_list = config.HELD_STOCK_TICKER_LIST
+		self.screen_grid = create_spread_sheet(self, stock_list, held_ticker_list = held_ticker_list)
 		try:
 			self.sort_drop_down.Destroy()
 			self.sort_drop_down = wx.ComboBox(self, 
 											 pos=(520, 31), 
-											 choices = self.full_attribute_list,
+											 choices = self.relevant_attribute_list,
 											 style = wx.TE_READONLY
 											 )
 		except Exception, exception:
@@ -896,6 +892,7 @@ class RankPage(Tab):
 		self.sort_button.Show()
 		self.sort_drop_down.Show()
 
+	# these may be irrelevant
 	def updateAnnualData(self, event):
 		scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
 		#if self.full_ticker_list:
@@ -904,6 +901,7 @@ class RankPage(Tab):
 		scrape_analyst_estimates(self.full_ticker_list)
 		if self.full_ticker_list:
 			self.spreadSheetFill(self.full_ticker_list)
+	###
 	def clearGrid(self, event):
 		confirm = wx.MessageDialog(None, 
 								   "You are about to clear this grid.", 
@@ -916,11 +914,9 @@ class RankPage(Tab):
 		if yesNoAnswer != wx.ID_YES:
 			return
 
-		self.full_ticker_list = []
-		self.sorted_full_ticker_list = []
+		config.RANK_PAGE_ALL_RELEVANT_STOCKS = []
 		self.full_attribute_list = []
-		self.held_ticker_list = []
-		self.screen_ticker_list = []
+		self.relevant_attribute_list = []
 		
 		self.spreadSheetFill(self.full_ticker_list)
 
@@ -977,9 +973,7 @@ class RankPage(Tab):
 
 		self.currently_viewed_screen = selected_screen_name
 		for stock in saved_screen:
-			if str(stock.symbol) not in self.screen_ticker_list:
-				self.screen_ticker_list.append(str(stock.symbol))
-			if str(stock.symbol) not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
+			if stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
 				config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
 
 		if self.screen_grid:
@@ -988,7 +982,7 @@ class RankPage(Tab):
 			except Exception, exception:
 				print line_number(), exception
 
-		self.createSpreadSheet(config.RANK_PAGE_ALL_RELEVANT_STOCKS)
+		self.createSpreadSheet()
 
 	def loadAccount(self, event):
 		selected_account_name = self.accounts_drop_down.GetValue()
@@ -1034,17 +1028,8 @@ class RankPage(Tab):
 		#self.spreadSheetFill(self.full_ticker_list)
 		self.createSpreadSheet(self.full_ticker_list)
 
-	def spreadSheetFill(self, ticker_list):
-		for ticker in ticker_list:
-			pass
-			
-
-			
-
-		self.full_attribute_list = [] # Reset root attribute list
+	def spreadSheetFill(self, stock_list):
 		attribute_list = []
-
-
 		num_rows = len(stock_list)
 		num_columns = 0
 		for stock in stock_list:
@@ -1180,7 +1165,7 @@ class RankPage(Tab):
 		self.sort_drop_down.Show()
 	def sortStocks(self, event):
 		sort_field = self.sort_drop_down.GetValue()
-		do_not_sort_reversed = ["symbol"]
+		do_not_sort_reversed = ["symbol", "firm_name"]
 		if sort_field in do_not_sort_reversed:
 			reverse_var = False
 		else:
@@ -1189,22 +1174,19 @@ class RankPage(Tab):
 		num_stock_value_list = []
 		str_stock_value_list = []
 		incompatible_stock_list = []
-		self.full_ticker_list = remove_list_duplicates(self.full_ticker_list)
-		for ticker in self.full_ticker_list:
-			stock = return_stock_by_symbol(ticker)
-			if stock:
+		for stock in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
+			try:
+				val = getattr(stock, sort_field)
 				try:
-					val = getattr(stock, sort_field)
-					try:
-						float(val)
-						num_stock_value_list.append(stock)
-					except:
-						str_stock_value_list.append(stock)
-				except Exception, exception:
-					#print line_number(), exception
-					incompatible_stock_list.append(stock)
+					float(val.replace("%",""))
+					num_stock_value_list.append(stock)
+				except:
+					str_stock_value_list.append(stock)
+			except Exception, exception:
+				#print line_number(), exception
+				incompatible_stock_list.append(stock)
 
-		num_stock_value_list.sort(key = lambda x: float(getattr(x, sort_field)), reverse=reverse_var)
+		num_stock_value_list.sort(key = lambda x: float(getattr(x, sort_field).replace("%","")), reverse=reverse_var)
 		
 		str_stock_value_list.sort(key = lambda x: getattr(x, sort_field))
 
@@ -1212,12 +1194,13 @@ class RankPage(Tab):
 
 		self.sorted_full_ticker_list = []
 		for stock in num_stock_value_list:
-			self.sorted_full_ticker_list.append(str(stock.symbol))
+			self.sorted_full_ticker_list.append(stock)
 		for stock in str_stock_value_list:
-			self.sorted_full_ticker_list.append(str(stock.symbol))
+			self.sorted_full_ticker_list.append(stock)
 		for incompatible_stock in incompatible_stock_list:
-			self.sorted_full_ticker_list.append(str(incompatible_stock.symbol))
-		self.spreadSheetFill(self.sorted_full_ticker_list)
+			self.sorted_full_ticker_list.append(incompatible_stock)
+		#self.spreadSheetFill(self.sorted_full_ticker_list)
+		self.createSpreadSheet(self.sorted_full_ticker_list)
 		self.sort_drop_down.SetStringSelection(sort_field)
 
 class SalePrepPage(Tab):
@@ -2394,33 +2377,33 @@ class PortfolioPage(Tab):
 		wx.Panel.__init__(self, parent)
 		####
 		portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
-
 		portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
-		
-		
+				
+		print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
 		portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
 				
-		portfolio_names = ["Primary", "Secondary", "Tertiary"]
-
+		default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
 		if not portfolios_that_already_exist:
+			config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
 			new_portfolio_name_list = []
 			for i in range(config.NUMBER_OF_PORTFOLIOS):
-				#print line_number(), i
+				print line_number(), i
 				portfolio_name = None
 				if config.NUMBER_OF_PORTFOLIOS < 10:
 					portfolio_name = "Portfolio %d" % (i+1)
 				else:
 					portfolio_name = "%dth" % (i+1)
-				if i in range(len(portfolio_names)):
-					portfolio_name = portfolio_names[i]
+				if i in range(len(default_portfolio_names)):
+					portfolio_name = default_portfolio_names[i]
 				portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
 				portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 
 				new_portfolio_name_list.append(portfolio_name)
 
+				config.DATA_ABOUT_PORTFOLIOS[0] = config.NUMBER_OF_PORTFOLIOS
 				config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
-				
-				db.save_DATA_ABOUT_PORTFOLIOS()
+				print line_number(), config.DATA_ABOUT_PORTFOLIOS
+			db.save_DATA_ABOUT_PORTFOLIOS()
 		else:
 			need_to_save = False
 			for i in range(config.NUMBER_OF_PORTFOLIOS):
@@ -2440,14 +2423,8 @@ class PortfolioPage(Tab):
 				portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
 				portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 			if need_to_save == True:
-
 				config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
 				db.save_DATA_ABOUT_PORTFOLIOS()
-				
-
-		if not portfolios_that_already_exist:
-			config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
-			db.save_DATA_ABOUT_PORTFOLIOS()
 
 		sizer2 = wx.BoxSizer()
 		sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
@@ -2462,29 +2439,52 @@ class PortfolioAccountTab(Tab):
 		
 		self.portfolio_id = tab_number
 		#print line_number(), self.portfolio_id
-		print line_number(), config.PORTFOLIO_OBJECTS_DICT
-		portfolio_file = config.PORTFOLIO_OBJECTS_DICT["%s" % str(self.portfolio_id)]
+		self.portfolio_obj = db.load_portfolio_object(self.portfolio_id, )
 
-		
-		try:
-			self.account_obj = config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)]
-		except Exception, e:
-			print line_number(), e
-			try:
-				portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'rb')
-				self.account_obj = pickle.load(portfolio_account_obj_file)
-				config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
-				portfolio_account_obj_file.close()
-			except Exception, e:
-				print line_number(), e
-				self.account_obj = None
-			# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'wb')
-			# 	portfolio_account_obj = []
-			# 	with open('portfolio_%d_data.pk' % self.portfolio_id, 'wb') as output:
-			# 		pickle.dump(portfolio_account_obj, output, pickle.HIGHEST_PROTOCOL)
-			# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'rb')
-			# # Why does this error!!!
-			
+		self.load_button = wx.Button(self, label="load account", pos=(355,0), size=(-1,-1))
+		self.load_button.Bind(wx.EVT_BUTTON, self.check_if_pw_needed, self.load_button) 
+
+		if self.portfolio_obj:
+			self.finish_init()
+
+
+	def check_if_pw_needed(self, event):
+		if self.load_button:
+			self.load_button.Destroy()
+		password = None
+		if config.ENCRYPTION_POSSIBLE:
+			password = self.get_password()
+		self.finish_init(password = password)
+	def get_password(self):
+		password_attempt = wx.TextEntryDialog(None,
+								  "Please enter a secure password.", 
+								  "Enter Password",
+								  ""
+								  )
+		password_attempt.ShowModal()
+		password = password_attempt.GetValue()
+		print str(password)
+		password_hash = db.make_sha256_hash(str(password))
+		print password_hash
+		return password_hash
+	def finish_init(self, password = None):
+		if not self.portfolio_obj:
+			print line_number(), "Fix intentionally thrown negation one line below this"
+			if config.ENCRYPTION_POSSIBLE:
+				pass
+			else:
+				try:
+					db.load_portfolio_object(self.portfolio_id)
+				except Exception, e:
+					print line_number(), e
+					self.portfolio_obj = None
+				# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'wb')
+				# 	portfolio_account_obj = []
+				# 	with open('portfolio_%d_data.pk' % self.portfolio_id, 'wb') as output:
+				# 		pickle.dump(portfolio_account_obj, output, pickle.HIGHEST_PROTOCOL)
+				# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'rb')
+				# # Why does this error!!!
+				
 
 	
 
@@ -2509,9 +2509,11 @@ class PortfolioAccountTab(Tab):
 		#print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button) 
 
 		self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-		self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
+		if self.portfolio_obj:
+			self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_obj)
 
 		print line_number(), "PortfolioAccountTab loaded"
+
 
 	def printData(self, event):
 		if self.account_obj:
@@ -2552,41 +2554,57 @@ class PortfolioAccountTab(Tab):
 								 )
 		confirm.ShowModal()
 		confirm.Destroy()
-	def spreadSheetFill(self, spreadsheet, account_data):
-		self.current_account_spreadsheet.Destroy()
+	def spreadSheetFill(self, spreadsheet, portfolio_obj):
+		if self.current_account_spreadsheet:
+			self.current_account_spreadsheet.Destroy()
+		self.screen_grid = create_account_spread_sheet(self, portfolio_obj)
+		self.screen_grid.Show()
+		return
+		
+		#####################################################
 
-		num_rows = len(account_data)
-		columns = 0
-		for row in account_data:
-			num_cells = 0
-			for cell in row:
-				num_cells += 1
-			if num_cells > columns:
-				columns = num_cells
-		num_columns = columns
+		num_rows = len(portfolio_obj.stock_shares_dict) + 2
+		num_columns = 0
+
+		attribute_list = []
+		# get all possible attributes
+		for ticker in portfolio_obj.stock_shares_dict:
+			if config.GLOBAL_STOCK_DICT.get(ticker):
+				for attribute in dir(config.GLOBAL_STOCK_DICT[ticker]):
+					if not attribute.startswith("_"):
+						if attribute not in attribute_list:
+							attribute_list.append(attribute)
+		if not attribute_list:
+			print line_number(), "Portfolio empty"
+			num_columns = 0
+		else:
+			num_columns = len(attribute_list)
+		
+		# build spreadsheet
 		spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
 		spreadsheet.CreateGrid(num_rows, num_columns)
 		spreadsheet.EnableEditing(False)
 
 		row_count = 0
 		col_count = 0
-		for row in account_data:
-			for cell in row:
-				#if not attribute.startswith('_'):
+		for ticker in portfolio_obj.stock_shares_dict:
+			for attribute in attribute_list:
 				if row_count == 0:
-					pass
-				elif row_count == 1:
-					spreadsheet.SetColLabelValue(col_count, str(cell))
+					spreadsheet.SetColLabelValue(col_count, attribute)
 				else:
 					try:
-						spreadsheet.SetCellValue(row_count - 2, col_count, str(cell))
-					except:
+						spreadsheet.SetCellValue(row_count, col_count, getattr(config.GLOBAL_STOCK_DICT[ticker], attribute))
+					except Exception as e:
+						print line_number(), e
 						pass
 				col_count += 1
 			row_count += 1
 			col_count = 0
+		
+
 		spreadsheet.AutoSizeColumns()
 		self.current_account_spreadsheet = spreadsheet
+
 	def addAccountCSV(self, event):
 		'''append a csv to current ticker list'''
 		self.dirname = ''
@@ -2596,13 +2614,14 @@ class PortfolioAccountTab(Tab):
 			self.dirname = dialog.GetDirectory()
 			
 			new_account_file = open(os.path.join(self.dirname, self.filename), 'rb')
-			new_account_file_data = self.importSchwabCSV(new_account_file)
+			
+			# if file is schwab format:
+			new_account_file_data = utils.importSchwabCSV(new_account_file)
+			
 			self.portfolio_data = new_account_file_data
 			new_account_file.close()
 
-			with open('portfolio_%d.pk' % self.portfolio_id, 'wb') as output:
-				pickle.dump(self.portfolio_data, output, pickle.HIGHEST_PROTOCOL)
-
+			print line_number(), self.portfolio_data
 			new_account_stock_list = []
 			cash = "This should be changed"
 			count = 0
@@ -2615,40 +2634,34 @@ class PortfolioAccountTab(Tab):
 					if row[0] and row[11]:
 						if str(row[11]) == "Cash & Money Market":
 							cash = row[5]
-							print line_number(),'cash'
+							print line_number(),'cash =', cash
 						elif str(row[11]) == "Equity":
 							# format: ticker(0), name(1), quantity(2), price(3), change(4), market value(5), day change$(6), day change%(7), reinvest dividends?(8), capital gain(9), percent of account(10), security type(11)
 							# HeldStock.__init__(self, symbol, quantity, security_type)
-							stock_to_add = HeldStock(row[0], row[2], row[11])
-							new_account_stock_list.append(stock_to_add)
+							stock_shares_tuple = [row[0], row[2]]
+							print line_number(), stock_shares_tuple
+							new_account_stock_list.append(stock_shares_tuple)
 							print line_number(),"stock"
 				except Exception, exception:
 					print line_number(),exception
 					print line_number(),row
 				count += 1
 			if cash == "This should be changed":
+				print line_number()
 				logging.error('Formatting error in CSV import')
 			# Account.__init__(self, cash, stock_list)
 			self.account_obj = Account(self.portfolio_id, cash, new_account_stock_list)
-			with open('portfolio_%d_data.pk' % self.portfolio_id, 'wb') as output:
-				pickle.dump(self.account_obj, output, pickle.HIGHEST_PROTOCOL)
-			self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
-			config.PORTFOLIO_OBJECTS_DICT[(int(self.portfolio_id) - 1)] = self.account_obj
+
+			password = None
+			print line_number(), "config.ENCRYPTION_POSSIBLE =", config.ENCRYPTION_POSSIBLE
+			if config.ENCRYPTION_POSSIBLE:
+				password = db.get_password()
+			db.save_portfolio_object(self.account_obj, self.portfolio_id, password = password)
+
+			self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
+			config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
 		dialog.Destroy()
-	def importSchwabCSV(self, csv_file):
-		reader = csv.reader(csv_file)
-		row_list = []
-		for row in reader:
-			row_list.append(row)
-		washed_row_list = []
-		for row in row_list:
-			if row:
-				washed_row = []
-				for cell in row:
-					washed_cell = strip_string_whitespace(cell)
-					washed_row.append(washed_cell)
-				washed_row_list.append(washed_row)
-		return washed_row_list
+
 	def changeTabName(self, event):
 		old_name = self.GetLabel()
 		rename_popup = wx.TextEntryDialog(None,
@@ -2671,8 +2684,12 @@ class PortfolioAccountTab(Tab):
 					else:
 						new_portfolio_names.append(i)
 				config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
+
+				print ""
+				print line_number(), "This file opening needs to be removed."
 				with open('portfolios.pk', 'wb') as output:
 					pickle.dump(config.DATA_ABOUT_PORTFOLIOS, output, pickle.HIGHEST_PROTOCOL)
+				print ""
 				print line_number(),config.DATA_ABOUT_PORTFOLIOS
 				confirm = wx.MessageDialog(self,
 										 "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
@@ -2924,39 +2941,36 @@ def create_spreadsheet_from_stock_list(spreadsheet, stock_list):
 def create_spread_sheet(
 	wxWindow, 
 	stock_list, 
-	held_ticker_list = [], 
-	include_basic_stock_data = True, 
-	include_annual_data = True, 
-	include_analyst_estimates = True, 
-	height = 637, 
-	width = 980, 
-	position = (0,60), 
-	enable_editing = False
+	held_ticker_list = [] # not used currentl  
+	, height = 637
+	, width = 980
+	, position = (0,60)
+	, enable_editing = False
 	):
 	
 	irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
 
 	for stock in stock_list:
 
-		print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
+		#print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
 		
 		for update_attribute in config.STOCK_SCRAPE_UPDATE_ATTRIBUTES:
 
 			if not getattr(stock, update_attribute):
 				config.TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST.append([stock.symbol, update_attribute])
-				logging.error("Stock %s's %s attribute is not up to date, you should consider updating" % (stock.symbol, update_attribute))
+				#print "Stock %s's %s attribute is not up to date, you should consider updating" % (stock.symbol, update_attribute)
 
 	print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
 
 
-		# if include_analyst_estimates:
-		# 	analyst_estimate_data_absent = True
-		# 	for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
-		# 		if str(ticker) == str(analyst_estimate_data.symbol):
-		# 			analyst_estimate_list.append(analyst_estimate_data)
-		# 			analyst_estimate_data_absent = False
-		# 	if analyst_estimate_data_absent:
-		# 		logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
+	# if include_analyst_estimates:
+	# 	analyst_estimate_data_absent = True
+	# 	for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
+	# 		if str(ticker) == str(analyst_estimate_data.symbol):
+	# 			analyst_estimate_list.append(analyst_estimate_data)
+	# 			analyst_estimate_data_absent = False
+	# 	if analyst_estimate_data_absent:
+	# 		logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
 
 
 
@@ -3014,6 +3028,7 @@ def create_spread_sheet(
 		logging.warning('attribute list empty')
 		return
 
+
 	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
 	screen_grid.CreateGrid(num_rows, num_columns)
 	screen_grid.EnableEditing(enable_editing)
@@ -3023,6 +3038,11 @@ def create_spread_sheet(
 	# adjust list order for important terms
 	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
 	attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+
+	wxWindow.full_attribute_list = attribute_list
+	wxWindow.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
+
+
 
 	# fill in grid
 	row_count = 0
@@ -3044,14 +3064,142 @@ def create_spread_sheet(
 					if utils.stock_value_is_negative(stock, attribute):
 						screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
 				except Exception as exception:
-					print line_number(), exception
+					pass
+					#print line_number(), exception
 			except Exception as exception:
-				print line_number(), exception
+				pass
+				#print line_number(), exception
 			col_count += 1
 		row_count += 1
 	screen_grid.AutoSizeColumns()
 
 	return screen_grid
+
+def create_account_spread_sheet(
+	wxWindow, 
+	account_obj,
+	held_ticker_list = [] # not used currentl  
+	, height = 637
+	, width = 980
+	, position = (0,60)
+	, enable_editing = False
+	):
+	stock_shares_dict = account_obj.stock_shares_dict
+	print line_number(), "Stock shares dict:", stock_shares_dict
+
+	cash = account_obj.availble_cash
+	print line_number(), "Available cash:", cash
+
+	stock_list = []
+	for ticker in stock_shares_dict:
+		print line_number(), ticker
+		stock = config.GLOBAL_STOCK_DICT.get(ticker)
+		if stock:
+			print line_number(), "Stock:", stock.symbol
+			if stock not in stock_list:
+				stock_list.append(stock)
+		else:
+			print line_number(), "Ticker:", ticker, "not found..."
+	print line_number(), "Stock list:", stock_list
+
+	irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
+
+	print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
+
+
+	# if include_analyst_estimates:
+	# 	analyst_estimate_data_absent = True
+	# 	for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
+	# 		if str(ticker) == str(analyst_estimate_data.symbol):
+	# 			analyst_estimate_list.append(analyst_estimate_data)
+	# 			analyst_estimate_data_absent = False
+	# 	if analyst_estimate_data_absent:
+	# 		logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
+
+
+
+	num_rows = len(stock_list)
+	num_columns = 0
+
+
+	attribute_list = []
+	# Here we make columns for each attribute to be included
+	for stock in stock_list:
+		for attribute in dir(stock):
+			if not attribute.startswith('_'):
+				if attribute not in config.IRRELEVANT_ATTRIBUTES:
+					if attribute not in attribute_list:
+						attribute_list.append(str(attribute))
+		if num_columns < len(attribute_list):
+			num_columns = len(attribute_list)	
+	
+	num_columns += 1 # for number of shares held
+	num_rows += 1 	# for cash
+									
+	
+	if not attribute_list:
+		print line_number(), 'attribute list empty'
+		return
+
+
+	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+	screen_grid.CreateGrid(num_rows, num_columns)
+	screen_grid.EnableEditing(enable_editing)
+
+
+	attribute_list.sort(key = lambda x: x.lower())
+	# adjust list order for important terms
+	stock_list.insert(0, "cash")
+	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+	attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+	attribute_list.insert(2, "Shares Held")
+
+	wxWindow.full_attribute_list = attribute_list
+	wxWindow.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
+
+
+
+	# fill in grid
+	row_count = 0
+	for stock in stock_list:
+		col_count = 0
+		for attribute in attribute_list:
+			# set attributes to be labels if it's the first run through
+			if row_count == 0:
+				screen_grid.SetColLabelValue(col_count, str(attribute))
+				if col_count == 0:
+					screen_grid.SetCellValue(row_count, col_count, "Cash:")
+				elif col_count == 1:
+					screen_grid.SetCellValue(row_count, col_count, cash)
+
+
+			else:
+				if col_count == 2:
+					screen_grid.SetCellValue(row_count, col_count, stock_shares_dict.get(stock.symbol))
+				else:
+					try:
+						# Try to add basic data value
+						screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
+						# Add color if relevant
+						if str(stock.ticker) in config.HELD_STOCK_TICKER_LIST:
+							screen_grid.SetCellBackgroundColour(row_count, col_count, config.HELD_STOCK_COLOR_HEX)
+						# Change text red if value is negative
+						try:
+							if utils.stock_value_is_negative(stock, attribute):
+								screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+						except Exception as exception:
+							pass
+							#print line_number(), exception
+					except Exception as exception:
+						pass
+						#print line_number(), exception
+			col_count += 1
+		row_count += 1
+	screen_grid.AutoSizeColumns()
+
+	return screen_grid
+
+
 def create_spread_sheet_for_one_stock(
 	wxWindow, 
 	ticker, 

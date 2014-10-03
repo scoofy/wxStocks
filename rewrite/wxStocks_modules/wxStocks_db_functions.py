@@ -1,6 +1,8 @@
+import wx
 import config
-import inspect, logging, os
+import inspect, logging, os, hashlib
 import cPickle as pickle
+from modules.pybcrypt import bcrypt
 
 import wxStocks_classes
 
@@ -11,9 +13,8 @@ all_stocks_path = 'wxStocks_modules/wxStocks_data/all_stocks_dict.pk'
 screen_dict_path = 'wxStocks_modules/wxStocks_data/screen_dict.pk'
 named_screen_path = 'wxStocks_modules/wxStocks_data/screen-%s.pk'
 screen_name_and_time_created_tuple_list_path = 'wxStocks_modules/wxStocks_data/screen_names_and_times_tuple_list.pk'
-portfolios_path = 'wxStocks_modules/wxStocks_data/portfolios.pk'
-portfolio_account_obj_file_path = 'wxStocks_modules/wxStocks_data/portfolio_%d_data.pk'
-
+portfolios_path = 'DO_NOT_COPY/portfolios.%s'
+portfolio_account_obj_file_path = 'DO_NOT_COPY/portfolio_%d_data.%s'
 
 ####################### Data Loading ###############################################
 def load_all_data():
@@ -142,7 +143,7 @@ def save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
 ###
 
 ### Portfolio functions need encryption/decryption
-def save_DATA_ABOUT_PORTFOLIOS(password = None):
+def save_DATA_ABOUT_PORTFOLIOS(password=""):
 	data = config.DATA_ABOUT_PORTFOLIOS
 	if config.ENCRYPTION_POSSIBLE:
 		try:
@@ -154,14 +155,16 @@ def save_DATA_ABOUT_PORTFOLIOS(password = None):
 			return
 		unencrypted_pickle_string = pickle.dumps(data)
 		encrypted_string = encrypt(password, unencrypted_pickle_string)
-		with open(portfolios_path, 'w') as output:
+		print line_number(), "Saving encrypted DATA_ABOUT_PORTFOLIOS."
+		with open(portfolios_path % "txt", 'w') as output:
 			output.write(encrypted_string)
 	else:
-		unencrypted_pickle_string = pickle.dumps(data)
-		with open(portfolios_path, 'w') as output:
-			output.write(unencrypted_pickle_string)
-def decrypt_if_possible(path, password=None):
+		print line_number(), "Saving unencrypted DATA_ABOUT_PORTFOLIOS."
+		with open(portfolios_path % "pk", 'w') as output:
+			pickle.dump(data, output, pickle.HIGHEST_PROTOCOL)
+def decrypt_if_possible(path, password=""):
 	error = False
+	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
 	if config.ENCRYPTION_POSSIBLE:
 		try:
 			import Crypto
@@ -169,8 +172,13 @@ def decrypt_if_possible(path, password=None):
 		except:
 			config.ENCRYPTION_POSSIBLE = False
 			print line_number(), "Error: DATA_ABOUT_PORTFOLIOS did not load"
-			return None
-		encrypted_file = open(path, 'r')
+			return
+		try:
+			encrypted_file = open(path, 'r')
+		except Exception as e:
+			print line_number(), e
+			print line_number(), "Decryption not possible, account file doesn't exist"
+			error = True
 		encrypted_string = encrypted_file.read()
 		ercrypted_file.close()
 		pickled_string = decrypt(password, encrypted_string)
@@ -178,9 +186,8 @@ def decrypt_if_possible(path, password=None):
 	else:
 		try:
 			unencrypted_pickle_file = open(path, 'r')
-			pickle_string = unencrypted_pickle_file.read()
+			data = pickle.load(unencrypted_pickle_file)
 			unencrypted_pickle_file.close()
-			data = pickle.loads(pickle_string)
 		except Exception as e:
 			print e
 			error = True
@@ -194,16 +201,33 @@ def decrypt_if_possible(path, password=None):
 			print line_number(), "Error loading unencrypted file"
 			print line_number(), path
 		return None
-def load_DATA_ABOUT_PORTFOLIOS(password = None):	
-	# add encrypt + decryption to this function
-	try:
-		DATA_ABOUT_PORTFOLIOS_file_exists = open(portfolios_path, 'r')
-	except Exception, e:
-		print line_number(), "DATA_ABOUT_PORTFOLIOS does not exist."
-		return "DATA_ABOUT_PORTFOLIOS does not exist."
 
-	data = decrypt_if_possible(path = portfolios_path, password = password)
+
+def load_DATA_ABOUT_PORTFOLIOS(password=""):
+	# add encrypt + decryption to this function
+	password = ""
+	data = None
+	print line_number(), "fix default password"
+
+	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
+	if not config.ENCRYPTION_POSSIBLE:
+		print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
+		try:
+			DATA_ABOUT_PORTFOLIOS_file_exists = open(portfolios_path % "pk", 'r')
+			data = pickle.load(DATA_ABOUT_PORTFOLIOS_file_exists)
+			DATA_ABOUT_PORTFOLIOS_file_exists.close()
+			config.DATA_ABOUT_PORTFOLIOS = data
+		except Exception, e:
+			print line_number(), "DATA_ABOUT_PORTFOLIOS does not exist."
+			return config.DEFAULT_DATA_ABOUT_PORTFOLIOS
+	else:
+		print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
+		try:
+			data = decrypt_if_possible(path = portfolios_path % "txt", password = password)
+		except:
+			pass
 	if data:
+		print line_number(), data
 		config.DATA_ABOUT_PORTFOLIOS = data
 	else:
 		return
@@ -227,19 +251,60 @@ def load_DATA_ABOUT_PORTFOLIOS(password = None):
 				print config.PORTFOLIO_OBJECTS_DICT
 		except Exception, e:
 			print line_number(), e
-def load_account_object(id_number, password = None):
-	data = decrypt_if_possible(path = portfolio_account_obj_file_path % id_number, password = password)
-	if data:
-		portfolio_obj = data
-		return account
+def save_portfolio_object(portfolio_data, id_number, password=hashlib.sha256("").hexdigest()):
+	encryption_possible = False
+	if config.ENCRYPTION_POSSIBLE:
+		try:
+			import Crypto
+			from modules.simplecrypt import encrypt, decrypt
+			encryption_possible = True
+			config.ENCRYPTION_POSSIBLE = True
+		except Exception as e:
+			pass
+	if encryption_possible:
+		path = portfolio_account_obj_file_path % (id_number, "txt")
+		unencrypted_pickle_string = pickle.dumps(portfolio_data)
+		encrypted_string = encrypt(password, unencrypted_pickle_string)
+		with open(path, 'w') as output:
+			output.write(encrypted_string, output)
+	else:
+		path = portfolio_account_obj_file_path % (id_number, "pk")
+		with open(path, 'w') as output:
+			pickle.dump(portfolio_data, output, pickle.HIGHEST_PROTOCOL)
+
+
+def load_portfolio_object(id_number, password=hashlib.sha256("").hexdigest()):
+	if config.ENCRYPTION_POSSIBLE:
+		path = portfolio_account_obj_file_path % (id_number, "txt")
+	else:
+		path = portfolio_account_obj_file_path % (id_number, "pk")
+	portfolio_object = decrypt_if_possible(path = path, password = password)
+
+	if portfolio_object:
+		return portfolio_object
 	else:
 		print line_number(), "Account object failed to load."
-		return None
+		return
 
 
 
 
 ############################################################################################
+
+####################### Hashing Functions #######################
+def make_sha256_hash(pw):
+	return hashlib.sha256(pw).hexdigest()
+
+####################### Bcrypt
+def make_pw_hash(pw, salt=None):
+	if not salt:
+		salt = bcrypt.gensalt(4) # this should be 10-12
+	pw_hashed = bcrypt.hashpw(pw, salt)
+	return '%s|%s' % (pw_hashed, salt)
+def valid_pw(pw, h):
+	return h == make_pw_hash(pw, h.split('|')[1])
+#########################################################
+
 
 ############################################################################################
 def line_number():
@@ -247,3 +312,5 @@ def line_number():
 	line_number = inspect.currentframe().f_back.f_lineno
 	line_number_string = "Line %d:" % line_number
 	return line_number_string
+
+# End of line...

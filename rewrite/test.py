@@ -1,53 +1,58 @@
-from modules.simplecrypt import encrypt, decrypt
-import cPickle as pickle
+import wx
 import sys
-
-
-big_dict = {"key": "value","key2": "value2","key3": "value3","key4": "value4"}
-
-print big_dict.keys()
-
-
-
-
-
-
-test_path = 'wxStocks_modules/wxStocks_data/test_data.txt'
-password = "blah"
-
-class TestObj(object):
+ 
+class Fader(wx.Frame):
 	def __init__(self):
-		self.a = "a"
-		self.b = "boomtown"
+		wx.Frame.__init__(self, None, title='Test')
+		self.amount = 255
+		self.delta = 5
+		panel = wx.Panel(self, wx.ID_ANY)
 
-def encrypt_file():
-	a = TestObj()
+		self.SetTransparent(self.amount)
+		self.timer = None
+
+		refresh_screen_button = wx.Button(self, label="refresh", pos=(150,90), size=(-1,-1))
+		refresh_screen_button.Bind(wx.EVT_BUTTON, self.fadeOutThenIn, refresh_screen_button)
+
+		self.quit_button = None
+
+		self.first_cycle = True
 
 
-	b = pickle.dumps(a)
+	def fadeOutThenIn(self, event):
+		## ------- Fade out Timer -------- ##
+		self.timer = wx.Timer(self, wx.ID_ANY)
+		self.timer.Start(30)
+		self.Bind(wx.EVT_TIMER, self.AlphaCycle)
+		## ---------------------------- ##
 
-	print type(b)
-	print b
+	def AlphaCycle(self, evt):
+		self.amount -= self.delta
+		if not self.first_cycle:
+			return
+		if self.amount >= 255:
+			self.delta = -self.delta
+			self.amount = 255
+		if self.amount <= 0:
+			self.delta = -self.delta
+			self.amount = 0
+		self.SetTransparent(self.amount)
+		if self.amount == 255:
+			self.first_cycle = False
+			self.timer.Stop()
+			self.quit_button = wx.Button(self, label="quit", pos=(150,120), size=(-1,-1))
+			self.quit_button.Bind(wx.EVT_BUTTON, self.quit, self.quit_button)
+	def quit(self, event):
+		sys.exit()
 
-	c = encrypt(password, b)
+# if __name__ == '__main__':
+# 	app = wx.App(False)
+# 	frm = Fader()
+# 	frm.Show()
+# 	app.MainLoop()
 
-	print type(c)
-	print c
+import hashlib
+def make_sha256_hash(pw):
+	return hashlib.sha256(pw).hexdigest()
 
-	with open(test_path, 'w') as output:
-		output.write(c)
-def decrypt_file():
-	a = open(test_path, 'r')
-	a = a.read()
-
-	b = decrypt(password, a)
-
-	print b
-
-	c = pickle.loads(b)
-
-	print type(c)
-
-	print c.b
-
-#print "end"
+print make_sha256_hash("blah")

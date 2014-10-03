@@ -114,14 +114,17 @@ STOCK_SCRAPE_UPDATE_ATTRIBUTES = ["last_yql_basic_scrape_update",
 HELD_STOCK_COLOR_HEX = "#FAEFCF"
 NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX = "#8A0002"
 
+NUMBER_OF_DEFAULT_PORTFOLIOS = 3
 
-### Do not edit below, all are reset to saved values on startup ###
+###################################################################################################
+################# Do not edit below, all are reset to saved values on startup #####################
+###################################################################################################
 GLOBAL_STOCK_DICT = {}
 
 GLOBAL_TICKER_LIST = []
 
 ENCRYPTION_POSSIBLE = False
-DATA_ABOUT_PORTFOLIOS = [] 
+DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS,[]] 
 # Structure of this variable below, 
 # see "wxStocks_db_functions.load_DATA_ABOUT_PORTFOLIOS" for more info about loading.
 
@@ -132,11 +135,12 @@ DATA_ABOUT_PORTFOLIOS = []
 #									etc...
 #								]
 #							]
+DEFAULT_DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS, []]
 
-NUMBER_OF_PORTFOLIOS = 3 
-# Default loads to 1
-PORTFOLIO_NAMES = []
 # Default name is "Primary"
+NUMBER_OF_PORTFOLIOS = 0
+PORTFOLIO_NAMES = []
+
 
 PORTFOLIO_OBJECTS_DICT = {}
 

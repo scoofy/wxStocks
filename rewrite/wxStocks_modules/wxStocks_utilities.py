@@ -1,4 +1,4 @@
-import inspect, logging, time
+import inspect, logging, time, csv
 import config
 def line_number():
 	"""Returns the current line number in our program."""
@@ -76,11 +76,25 @@ def stock_value_is_negative(stock_obj, attribute_str):
 		getattr(stock_obj, attribute_str)
 	except:
 		return False
-	print line_number(), "Is %s.%s:" % (stock_obj.symbol, attribute_str), str(getattr(stock_obj, attribute_str)), "negative?"
-	print str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
-	print ""
+	#print line_number(), "Is %s.%s:" % (stock_obj.symbol, attribute_str), str(getattr(stock_obj, attribute_str)), "negative?"
+	#print str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
+	#print ""
 	return str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
-
+####################### Stock utility functions #################################################
+def importSchwabCSV(csv_file):
+	reader = csv.reader(csv_file)
+	row_list = []
+	for row in reader:
+		row_list.append(row)
+	washed_row_list = []
+	for row in row_list:
+		if row:
+			washed_row = []
+			for cell in row:
+				washed_cell = strip_string_whitespace(cell)
+				washed_row.append(washed_cell)
+			washed_row_list.append(washed_row)
+	return washed_row_list
 
 ####################### General utility functions #################################################
 def gen_ticker_list(csv_file):
