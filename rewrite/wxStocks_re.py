@@ -10,7 +10,7 @@ import wx, numpy # pycrypto, simplecrypt
 from modules.BeautifulSoup import BeautifulSoup
 
 # Standard Libraries
-import sys, os, logging, math, inspect, urllib2, json
+import sys, os, logging, math, inspect, urllib2, json, hashlib
 import pprint as pp
 import cPickle as pickle
 from wx.lib import sheet
@@ -25,23 +25,51 @@ import wxStocks_modules.wxStocks_gui as gui
 # True globals are in config
 import config
 
-# Encryption
-def encryption_possible():
-	try:
-		import Crypto
-		from modules.simplecrypt import encrypt, decrypt
-		config.ENCRYPTION_POSSIBLE = True
-	except:
-		print "Encryption not possible"
-		config.ENCRYPTION_POSSIBLE = False
-	return config.ENCRYPTION_POSSIBLE
-
 # Necessary in-module functions
 def line_number():
     """Returns the current line number in our program."""
     line_number = inspect.currentframe().f_back.f_lineno
     line_number_string = "Line %d:" % line_number
     return line_number_string
+
+try:
+	import Crypto
+	from modules.simplecrypt import encrypt, decrypt
+	config.ENCRYPTION_POSSIBLE = True
+except:
+	config.ENCRYPTION_POSSIBLE = False
+
+################################################################################################
+# This is due to a serious error in wxPython that exists right now.
+# There should be a popup that prompts this password AFTER the mainloop begins, in the init section.
+# That does not appear to be functioning, as it freezes all dropdowns and causes other bits of havoc.
+# This is a work around to prevent needing to constantly be entering your password.
+# It's not the most secure solution, but for all intents and purposes here, it should be fine.
+
+####################### Bcrypt
+from modules.pybcrypt import bcrypt
+#########################################################
+if config.ENCRYPTION_POSSIBLE:
+	import getpass
+	print "\n"
+	saved_hash = db.is_saved_password_hash()
+	if saved_hash:
+		# verify
+		password = getpass.getpass("Enter your wxStocks encryption password: ")
+		if not db.valid_pw(password, saved_hash):
+			print "\nPassword invalid, you are not authorized to view this account.\n"
+			reset =  raw_input('If you would like to delete all secure data and start over, please enter "reset":')
+			if reset == "reset":
+				db.delete_all_secure_files()
+				print "\nSecure files have been removed. Resart wxStocks to set a new password\n"
+			else:
+				print "\nSorry, but you are not authorized to view this account.\n"
+			sys.exit()
+	else:
+		password = db.set_password()
+	config.PASSWORD = hashlib.sha256(password).hexdigest()
+	print "\n"
+################################################################################################
 
 # Load data
 db.load_all_data()
@@ -55,9 +83,7 @@ db.load_all_data()
 
 
 ### START ###################################################################
-app = None
 def main():
-	global app
 	app = wx.App()
 	gui.MainFrame(size=(1020,800), #style = wx.MINIMIZE_BOX | wx.CLOSE_BOX
 			  ).Show()

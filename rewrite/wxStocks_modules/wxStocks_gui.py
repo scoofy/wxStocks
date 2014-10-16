@@ -161,7 +161,82 @@ class WelcomePage(Tab):
 									instructions_text, 
 									(10,20)
 									)
+
+		# encryption_text_vertical_position = 550
+		# encryption_button_vertical_position = encryption_text_vertical_position - 5
+		# encryption_text_horizontal_position = 10
+		# encryption_button_horizontal_position = encryption_text_horizontal_position + 160
+
+		# self.turn_encryption_off_button = wx.Button(self, label="Turn encryption off.", pos=(encryption_button_horizontal_position, encryption_button_vertical_position), size=(-1,-1))
+		# self.turn_encryption_off_button.Bind(wx.EVT_BUTTON, self.toggleEncryption, self.turn_encryption_off_button)
+
+		# self.turn_encryption_on_button = wx.Button(self, label="Turn encryption on.", pos=(encryption_button_horizontal_position, encryption_button_vertical_position), size=(-1,-1))
+		# self.turn_encryption_on_button.Bind(wx.EVT_BUTTON, self.toggleEncryption, self.turn_encryption_on_button)
+
+
+
+		# self.encryption_message_default = "Encryption is turned "
+
+		# if config.ENCRYPTION_POSSIBLE:
+		# 	self.encryption_status = "ON:"
+		# 	try:
+		# 		import Crypto
+		# 		from modules.simplecrypt import encrypt, decrypt
+		# 	except:
+		# 		print line_number(), "Encryption not possible"
+		# 		self.encryption_message_default = "Encryption is not possible. You should make sure pyCrypto and simplecrypt are installed to use encryption for your personal data."
+		# 		self.encryption_status = ""
+		# 		self.turn_encryption_off_button.Hide()
+		# 	self.turn_encryption_on_button.Hide()
+		# else:
+		# 	self.encryption_status = "OFF:"
+		# 	try:
+		# 		import Crypto
+		# 		from modules.simplecrypt import encrypt, decrypt
+		# 	except:
+		# 		print line_number(), "Encryption not possible"
+		# 		self.encryption_message_default = "Encryption is not possible. You should make sure pyCrypto and simplecrypt are installed to use encryption for your personal data."
+		# 		self.encryption_status = ""
+		# 		self.turn_encryption_on_button.Hide()
+		# 	self.turn_encryption_off_button.Hide()
+
+
+		# self.encryption_message = wx.StaticText(self, -1, 
+		# 							self.encryption_message_default + self.encryption_status, 
+		# 							(encryption_text_horizontal_position, encryption_text_vertical_position)
+		# 							)
+
 		print line_number(), "WelcomePage loaded"
+
+	def toggleEncryption(self, event):
+		if config.ENCRYPTION_POSSIBLE:
+			remove = self.checkRemoveEncryption()
+			if not remove:
+				return
+		config.ENCRYPTION_POSSIBLE = not config.ENCRYPTION_POSSIBLE
+		if config.ENCRYPTION_POSSIBLE:
+			self.turn_encryption_on_button.Hide()
+			self.turn_encryption_off_button.Show()
+			self.encryption_status = "ON:"
+		else:
+			self.turn_encryption_off_button.Hide()
+			self.turn_encryption_on_button.Show()
+			self.encryption_status = "OFF:"
+		print line_number(), "Encryption has been turned %s." % self.encryption_status
+		self.encryption_message.SetLabel(self.encryption_message_default + self.encryption_status)
+
+
+	def checkRemoveEncryption(self):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you want to remove automatic encryption?", 
+								   'Remove Encryption?', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Yes, Remove Encryption"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+		return yesNoAnswer == wx.ID_YES
+
 class TickerPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -2438,40 +2513,39 @@ class PortfolioAccountTab(Tab):
 		tab_panel = wx.Panel.__init__(self, parent, tab_number)
 		
 		self.portfolio_id = tab_number
-		#print line_number(), self.portfolio_id
-		self.portfolio_obj = db.load_portfolio_object(self.portfolio_id, )
+		print line_number(), "self.portfolio_id =", self.portfolio_id
+		self.portfolio_obj = db.load_portfolio_object(self.portfolio_id)
 
-		self.load_button = wx.Button(self, label="load account", pos=(355,0), size=(-1,-1))
-		self.load_button.Bind(wx.EVT_BUTTON, self.check_if_pw_needed, self.load_button) 
+		#self.load_button = wx.Button(self, label="load account", pos=(355,0), size=(-1,-1))
+		#self.load_button.Bind(wx.EVT_BUTTON, self.check_if_pw_needed, self.load_button) 
 
-		if self.portfolio_obj:
-			self.finish_init()
-
-
-	def check_if_pw_needed(self, event):
-		if self.load_button:
-			self.load_button.Destroy()
-		password = None
-		if config.ENCRYPTION_POSSIBLE:
-			password = self.get_password()
-		self.finish_init(password = password)
-	def get_password(self):
-		password_attempt = wx.TextEntryDialog(None,
-								  "Please enter a secure password.", 
-								  "Enter Password",
-								  ""
-								  )
-		password_attempt.ShowModal()
-		password = password_attempt.GetValue()
-		print str(password)
-		password_hash = db.make_sha256_hash(str(password))
-		print password_hash
-		return password_hash
-	def finish_init(self, password = None):
+		# if self.portfolio_obj:
+		# 	self.finish_init()
+		# 
+		# 
+		# def check_if_pw_needed(self, event): # Untab to use again
+		# if self.load_button:
+		# 	self.load_button.Destroy()
+		# password = None
+		# if config.ENCRYPTION_POSSIBLE:
+		# 	password = self.get_password()
+		# self.finish_init(password = password)
+		# def get_password(self): # Untab to use again
+		# password_attempt = wx.TextEntryDialog(None,
+		# 						  "Please enter a secure password.", 
+		# 						  "Enter Password",
+		# 						  ""
+		# 						  )
+		# password_attempt.ShowModal()
+		# password = password_attempt.GetValue()
+		# print str(password)
+		# password_hash = db.make_sha256_hash(str(password))
+		# print password_hash
+		# return password_hash
+		# def finish_init(self, password = None):
 		if not self.portfolio_obj:
-			print line_number(), "Fix intentionally thrown negation one line below this"
 			if config.ENCRYPTION_POSSIBLE:
-				pass
+				db.load_portfolio_object(self.portfolio_id)
 			else:
 				try:
 					db.load_portfolio_object(self.portfolio_id)
@@ -2496,8 +2570,8 @@ class PortfolioAccountTab(Tab):
 		add_button = wx.Button(self, label="Add account (Schwab positions .csv)", pos=(100,0), size=(-1,-1))
 		add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, add_button) 
 
-		clear_button = wx.Button(self, label="Clear this portfolio", pos=(830,0), size=(-1,-1))
-		clear_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, clear_button) 
+		delete_button = wx.Button(self, label="Delete this portfolio", pos=(830,0), size=(-1,-1))
+		delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, delete_button) 
 
 		rename_button = wx.Button(self, label="Rename this portfolio", pos=(355,0), size=(-1,-1))
 		rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, rename_button) 
@@ -2545,8 +2619,10 @@ class PortfolioAccountTab(Tab):
 
 		config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
 		config.DATA_ABOUT_PORTFOLIOS[0] = new_number_of_portfolios
-		with open('portfolios.pk', 'wb') as output:
-			pickle.dump(config.DATA_ABOUT_PORTFOLIOS, output, pickle.HIGHEST_PROTOCOL)
+		# password = ""
+		# if config.ENCRYPTION_POSSIBLE:
+		# 	password = self.get_password()
+		db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
 		confirm = wx.MessageDialog(self,
 								 "The number of portfolios has changed. The change will be applied the next time you launch this program.",
 								 'Restart Required',
@@ -2652,11 +2728,11 @@ class PortfolioAccountTab(Tab):
 			# Account.__init__(self, cash, stock_list)
 			self.account_obj = Account(self.portfolio_id, cash, new_account_stock_list)
 
-			password = None
-			print line_number(), "config.ENCRYPTION_POSSIBLE =", config.ENCRYPTION_POSSIBLE
-			if config.ENCRYPTION_POSSIBLE:
-				password = db.get_password()
-			db.save_portfolio_object(self.account_obj, self.portfolio_id, password = password)
+			# password = None
+			# print line_number(), "config.ENCRYPTION_POSSIBLE =", config.ENCRYPTION_POSSIBLE
+			# if config.ENCRYPTION_POSSIBLE:
+			# 	password = db.get_password()
+			db.save_portfolio_object(self.account_obj, self.portfolio_id) #, password = password)
 
 			self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
 			config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
@@ -2687,10 +2763,12 @@ class PortfolioAccountTab(Tab):
 
 				print ""
 				print line_number(), "This file opening needs to be removed."
-				with open('portfolios.pk', 'wb') as output:
-					pickle.dump(config.DATA_ABOUT_PORTFOLIOS, output, pickle.HIGHEST_PROTOCOL)
+				# password = ""
+				# if config.ENCRYPTION_POSSIBLE:
+				# 	password = self.get_password()
+				db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
 				print ""
-				print line_number(),config.DATA_ABOUT_PORTFOLIOS
+				print line_number(), config.DATA_ABOUT_PORTFOLIOS
 				confirm = wx.MessageDialog(self,
 										 "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
 										 'Restart Required',
@@ -2707,6 +2785,7 @@ class PortfolioAccountTab(Tab):
 										 )
 				error.ShowModal()
 				error.Destroy()
+	
 	def confirmDeleteAccount(self, event):
 		confirm = wx.MessageDialog(None, 
 								   "You are about to delete your current account data. Are you sure you want to delete this data?", 
@@ -2719,18 +2798,38 @@ class PortfolioAccountTab(Tab):
 
 		if yesNoAnswer == wx.ID_YES:
 			self.deleteAccountList()
-
 	def deleteAccountList(self):
 		'''delete account'''
-		self.portfolio_data = []
-		# opening the file with w+ mode truncates the file
-		with open('portfolio_%d.pk' % self.portfolio_id, 'wb') as output:
-			pickle.dump(self.portfolio_data, output, pickle.HIGHEST_PROTOCOL)
-		self.current_account_spreadsheet.Destroy()
-		self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-		self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
+		# password = ""
+		# if config.ENCRYPTION_POSSIBLE:
+		# 	password = self.get_password()
+		db.delete_portfolio_object(self.portfolio_id) #, password = password)
+
+
+		# Reset to default name in data about portfolios
+		default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
+		if self.portfolio_id < 10:
+			portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
+		else:
+			portfolio_name = "%dth" % (self.portfolio_id+1)
+		if self.portfolio_id in range(len(default_portfolio_names)):
+			portfolio_name = default_portfolio_names[self.portfolio_id]
+		config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
+		# password = ""
+		# if config.ENCRYPTION_POSSIBLE:
+		# 	password = self.get_password()
+		db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+
+		self.delete_button.Hide()
+
+		self.portfolio_data = Account(self.portfolio_id)
+
+		if self.current_account_spreadsheet:
+			self.current_account_spreadsheet.Destroy()
+			self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
+			self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
 		self.account_obj = None
-		config.PORTFOLIO_OBJECTS_DICT[(int(self.portfolio_id) - 1)] = self.account_obj
+		return
 
 class StockDataPage(Tab):
 	def __init__(self, parent):

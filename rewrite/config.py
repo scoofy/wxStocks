@@ -123,7 +123,11 @@ GLOBAL_STOCK_DICT = {}
 
 GLOBAL_TICKER_LIST = []
 
-ENCRYPTION_POSSIBLE = False
+ENCRYPTION_POSSIBLE = None
+
+# Portfolio globals
+PASSWORD = None
+
 DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS,[]] 
 # Structure of this variable below, 
 # see "wxStocks_db_functions.load_DATA_ABOUT_PORTFOLIOS" for more info about loading.
@@ -141,14 +145,16 @@ DEFAULT_DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS, []]
 NUMBER_OF_PORTFOLIOS = 0
 PORTFOLIO_NAMES = []
 
-
 PORTFOLIO_OBJECTS_DICT = {}
+###
 
+# Screen globals
 GLOBAL_STOCK_SCREEN_DICT = {}
 SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST = []
 CURRENT_SCREEN_LIST = []
 CURRENT_SAVED_SCREEN_LIST = []
 RANK_PAGE_ALL_RELEVANT_STOCKS = []
+###
 
 SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE = [[],[]] # description below
 # [[relevant portfolios list], [sale ticker|#shares tuple list]]
