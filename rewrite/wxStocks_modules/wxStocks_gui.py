@@ -7,9 +7,11 @@
 # 		4: Grid objects 										#
 #################################################################
 import wx, numpy
-import config, threading, logging, sys, time, os
+import config, threading, logging, sys, time, os, math
 import inspect
 import pprint as pp
+
+from wx.lib import sheet
 
 from wxStocks_classes import Stock, Account
 import wxStocks_db_functions as db
@@ -1280,21 +1282,15 @@ class RankPage(Tab):
 
 class SalePrepPage(Tab):
 	def __init__(self, parent):
+		self.default_last_trade_price_attribute_name = "LastTradePriceOnly_yf"
+		self.default_average_daily_volume_attribute_name = "AverageDailyVolume_yf"
+
 		wx.Panel.__init__(self, parent)
 		trade_page_text = wx.StaticText(self, -1, 
 							 "Sale Prep", 
 							 (10,10)
 							 )
-		self.ticker_list = []
-
-
-
-		
-		
-
-		
-		self.portfolio_obj_list = config.PORTFOLIO_OBJECTS_DICT
-		
+		self.ticker_list = []		
 		self.checkbox_list = []
 		for i in range(config.NUMBER_OF_PORTFOLIOS):
 			horizontal_offset = 0
@@ -1305,11 +1301,9 @@ class SalePrepPage(Tab):
 										  pos=((600+ horizontal_offset), (16*i)), 
 										  size=(-1,-1)
 										  )
-			try:
-				throw_error = config.PORTFOLIO_OBJECTS_DICT[i].stock_list
+			portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
+			if portfolio_exists:
 				checkbox_to_add.SetValue(True)
-			except Exception, exception:
-				pass#print line_number(), exception
 			self.checkbox_list.append(checkbox_to_add)
 		
 		line = wx.StaticLine(self, -1, pos=(0,83), size=(1000,-1))
@@ -1349,8 +1343,7 @@ class SalePrepPage(Tab):
 		num_columns = self.grid.GetNumberCols()
 		num_rows = self.grid.GetNumberRows()
 
-		global DEFAULT_ROWS_ON_SALES_PREP_PAGE
-		default_rows = DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		default_rows = config.DEFAULT_ROWS_ON_SALES_PREP_PAGE
 		
 		sell_tuple_list = [] # this will end up being a list of tuples for each stock to sell
 		for column_num in range(num_columns):
@@ -1369,7 +1362,7 @@ class SalePrepPage(Tab):
 						sell_tuple = (ticker, number_of_shares_to_sell)
 						sell_tuple_list.append(sell_tuple)
 					elif error:
-						print "ERROR: Could not save sell list. There are errors in quantity syntax."
+						print line_number(), "ERROR: Could not save sell list. There are errors in quantity syntax."
 						return
 
 		for i in sell_tuple_list:
@@ -1381,20 +1374,18 @@ class SalePrepPage(Tab):
 			box = self.checkbox_list[i]
 			is_checked = box.GetValue()
 			if is_checked:
-				relevant_portfolios_list.append(self.portfolio_obj_list[i])
+				relevant_portfolios_list.append(config.PORTFOLIO_OBJECTS_DICT[str(i+1)])
 
-		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
-		SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE= [
-															relevant_portfolios_list,
-															sell_tuple_list
-														]
-
+		config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE= [
+																relevant_portfolios_list,
+																sell_tuple_list
+																]
+		print config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
 		self.saved_text.Show()
 		
 	def refreshAccountData(self, event):
 		######## Rebuild Checkbox List in case of new accounts
 		
-		self.portfolio_obj_list = config.PORTFOLIO_OBJECTS_DICT
 		for i in self.checkbox_list:
 			try:
 				i.Destroy()
@@ -1410,12 +1401,11 @@ class SalePrepPage(Tab):
 										  pos=((600 + horizontal_offset), (16*i)), 
 										  size=(-1,-1)
 										  )
-			try:
-				throw_error = config.PORTFOLIO_OBJECTS_DICT[i].stock_list
+			
+			portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
+			if portfolio_obj:
 				checkbox_to_add.SetValue(True)
-			except Exception, exception:
-				pass#print line_number(), exception
-			self.checkbox_list.append(checkbox_to_add)
+				self.checkbox_list.append(checkbox_to_add)
 		self.spreadSheetFill("event")
 
 	def hideSaveButtonWhileEnteringData(self, event):
@@ -1433,7 +1423,7 @@ class SalePrepPage(Tab):
 		pass
 
 
-	def spreadSheetFill(self, event):
+	def spreadSheetFill(self, event):		
 		try:
 			self.grid.Destroy()
 		except Exception, exception:
@@ -1445,22 +1435,20 @@ class SalePrepPage(Tab):
 			box = self.checkbox_list[i]
 			is_checked = box.GetValue()
 			if is_checked:
-				relevant_portfolios_list.append(self.portfolio_obj_list[i])
+				relevant_portfolios_list.append(config.PORTFOLIO_OBJECTS_DICT[str(i+1)])
 
 		num_columns = 17
-		
-		global DEFAULT_ROWS_ON_SALES_PREP_PAGE
-		default_rows = DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		default_rows = config.DEFAULT_ROWS_ON_SALES_PREP_PAGE
 		
 		num_rows = default_rows
 		for account in relevant_portfolios_list:
 			try:
 				num_rows += 1 # for account name
-				num_stocks = len(account.stock_list)
+				num_stocks = len(account.stock_shares_dict)
 				num_rows += num_stocks
 				#print line_number(), num_rows
 			except Exception, exception:
-				pass#print line_number(), exception
+				print line_number(), exception
 
 		self.grid = SalePrepGrid(self, -1, size=(1000,650), pos=(0,83))
 		self.grid.CreateGrid(num_rows, num_columns)
@@ -1519,7 +1507,7 @@ class SalePrepPage(Tab):
 		col_count = 0
 		for account in relevant_portfolios_list:
 			try:
-				throw_error = account.stock_list
+				throw_error = account.stock_shares_dict
 				# intentionally throws an error if account hasn't been imported
 
 				self.grid.SetCellValue(row_count, 0, config.PORTFOLIO_NAMES[portfolio_num])
@@ -1530,33 +1518,34 @@ class SalePrepPage(Tab):
 				portfolio_num += 1
 				row_count += 1
 
-				for stock in account.stock_list:
+				for ticker, quantity in account.stock_shares_dict.iteritems():
 					#if row_count == 0:
 					#	self.screen_grid.SetColLabelValue(col_count, str(attribute))
-					stock_data = return_stock_by_symbol(stock.symbol)
+					stock = utils.return_stock_by_symbol(ticker)
 
 					self.grid.SetCellValue(row_count, 3, stock.symbol)
 					try:
-						self.grid.SetCellValue(row_count, 5, stock_data.Name)
+						self.grid.SetCellValue(row_count, 5, stock.firm_name)
 					except Exception, exception:
 						print line_number(), exception
-					self.grid.SetCellValue(row_count, 9, stock.quantity)
+					self.grid.SetCellValue(row_count, 9, quantity)
 					try:
-						self.grid.SetCellValue(row_count, 10, stock_data.LastTradePriceOnly)
+						self.grid.SetCellValue(row_count, 10, getattr(stock, self.default_last_trade_price_attribute_name))
 					except Exception, exception:
 						print line_number(), exception
-					self.grid.SetCellValue(row_count, 15, str(float(stock.quantity.replace(",","")) * float(stock_data.LastTradePriceOnly)))
+					self.grid.SetCellValue(row_count, 15, str(float(quantity.replace(",","")) * float(getattr(stock, self.default_last_trade_price_attribute_name))))
 					row_count += 1
 			except Exception, exception:
 				print line_number(), exception, "\nAn account appears to not be loaded with a .csv, but this isn't a problem."
 		self.grid.AutoSizeColumns()
+	
 	def updateGrid(self, event):
 		row = event.GetRow()
 		column = event.GetCol()
 		value = self.grid.GetCellValue(row, column)
 		num_shares = str(self.grid.GetCellValue(row, 9))
 		num_shares = num_shares.replace(",","")
-		value = strip_string_whitespace(value)
+		value = utils.strip_string_whitespace(value)
 		price = self.grid.GetCellValue(row, 10)
 		if column == 1:
 			try:
@@ -1654,6 +1643,10 @@ class SalePrepPage(Tab):
 		self.grid.SetCellValue(row, 12, "")
 class TradePage(Tab):
 	def __init__(self, parent):
+		self.default_last_trade_price_attribute_name = "LastTradePriceOnly_yf"
+		self.default_average_daily_volume_attribute_name = "AverageDailyVolume_yf"
+
+
 		wx.Panel.__init__(self, parent)
 		trade_page_text = wx.StaticText(self, -1, 
 							 "Set up trades", 
@@ -1687,16 +1680,13 @@ class TradePage(Tab):
 
 	def importSaleCandidates(self, event):
 		print line_number(), "Boom goes the boom!!!!!!!!"
-		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
 
-		self.relevant_portfolios_list = SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
-		self.sale_tuple_list = SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]
+		self.relevant_portfolios_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
+		self.sale_tuple_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]
 		
 		for portfolio in self.relevant_portfolios_list:
 			id_number = portfolio.id_number
-			print line_number(), id_number
-			
-			print line_number(), config.PORTFOLIO_NAMES[id_number - 1]
+			print line_number(), "Portfolio %d:" % id_number, config.PORTFOLIO_NAMES[id_number - 1]
 		print line_number(), self.sale_tuple_list
 
 		# Now, how to refresh only parts of the list... hmmmm
@@ -2038,7 +2028,7 @@ class TradePage(Tab):
 				#print row
 				ticker = grid.GetCellValue(row, self.default_buy_candidate_column)
 				#print ticker
-				stock = return_stock_by_symbol(str(ticker).upper())
+				stock = utils.return_stock_by_symbol(ticker)
 				if stock:
 					self.buy_candidates.append(str(stock.symbol))
 					quantity = grid.GetCellValue(row, self.default_buy_candidate_quantity_column)
@@ -2060,19 +2050,17 @@ class TradePage(Tab):
 		# CREATE A GRID HERE
 		new_grid = TradeGrid(self, -1, size=(1000,650), pos=(0,83))
 		# calc rows
-		global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
 		
 		relevant_portfolio_name_list = []
 		try:
 			self.relevant_portfolios_list = []
-			for account in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]:
+			for account in config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]:
 				id_number = account.id_number
 				self.relevant_portfolios_list.append(account)
 				relevant_portfolio_name_list.append(config.PORTFOLIO_NAMES[(id_number - 1)])
 
-			num_rows = len(SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1])
-			global DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
-			num_rows += DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
+			num_rows = len(config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1])
+			num_rows += config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
 		except Exception, exception:
 			print line_number(), exception
 			num_rows = 0
@@ -2238,12 +2226,12 @@ class TradePage(Tab):
 
 			# Column 0-2 data:
 			this_column_number = 0
-			default_rows = DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS # called globally above
+			default_rows = config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
 			counter = 0
-			for stock_tuple in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
+			for stock_tuple in config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
 				ticker = stock_tuple[0]
 				number_of_shares_to_sell = stock_tuple[1]
-				stock = return_stock_by_symbol(ticker)
+				stock = utils.return_stock_by_symbol(ticker)
 				correct_row = counter + default_rows
 				
 				ticker_cell = [correct_row, this_column_number, ticker]
@@ -2253,7 +2241,7 @@ class TradePage(Tab):
 				spreadsheet_cell_list.append(number_of_shares_to_sell_cell)
 
 				try:
-					avg_daily_volume = stock.AverageDailyVolume
+					avg_daily_volume = getattr(stock, self.default_average_daily_volume_attribute_name)
 					volume_cell = [correct_row, (this_column_number + 2), str(avg_daily_volume)]
 					spreadsheet_cell_list.append(volume_cell)
 				except Exception, exception:
@@ -2270,10 +2258,10 @@ class TradePage(Tab):
 			total_asset_value = 0.00
 			for account in self.relevant_portfolios_list:
 				total_asset_value += float(account.availble_cash.replace("$",""))
-				for stock in account.stock_list:
-					stock_data = return_stock_by_symbol(stock.symbol)
-					quantity = float(stock.quantity.replace(",",""))
-					last_price = float(stock_data.LastTradePriceOnly)
+				for ticker, quantity in account.stock_shares_dict.iteritems():
+					stock = utils.return_stock_by_symbol(ticker)
+					quantity = float(quantity.replace(",",""))
+					last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
 					value_of_held_stock = last_price * quantity
 					total_asset_value += value_of_held_stock
 
@@ -2284,11 +2272,11 @@ class TradePage(Tab):
 			approximate_surplus_cash_row = 4
 
 			value_of_all_stock_to_sell = 0.00
-			for stock_tuple in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
+			for stock_tuple in config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
 				ticker = stock_tuple[0]
 				number_of_shares_to_sell = int(stock_tuple[1])
-				stock_data = return_stock_by_symbol(ticker)
-				last_price = float(stock_data.LastTradePriceOnly)
+				stock = utils.return_stock_by_symbol(ticker)
+				last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
 				value_of_single_stock_to_sell = last_price * number_of_shares_to_sell
 				value_of_all_stock_to_sell += value_of_single_stock_to_sell
 			surplus_cash_cell = [approximate_surplus_cash_row, this_column_number, ("$" + str(value_of_all_stock_to_sell))]
@@ -2354,10 +2342,11 @@ class TradePage(Tab):
 						new_grid.SetCellValue(row_num, column_num - 1, str(count + 1))
 						new_grid.SetCellValue(row_num, column_num, self.buy_candidates[count])
 						
-						stock = return_stock_by_symbol(self.buy_candidates[count])
-						new_grid.SetCellValue(row_num, column_num + 1, str(stock.Name))
+						stock = utils.return_stock_by_symbol(self.buy_candidates[count])
+						new_grid.SetCellValue(row_num, column_num + 1, str(stock.firm_name))
 
-						last_price = float(stock.LastTradePriceOnly)
+						throw error # AttributeError: 'Stock' object has no attribute 'LastTradePriceOnly_yf' happens here if stock has no yql data
+						last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
 						new_grid.SetCellValue(row_num, column_num + 2, "$" + str(last_price))
 
 						column_shift = 3
@@ -2386,7 +2375,7 @@ class TradePage(Tab):
 				if quantity:
 					ticker = str(new_grid.GetCellValue(row_num, buy_cost_column - 8))
 					print line_number(), ticker
-					stock = return_stock_by_symbol(ticker)
+					stock = utils.return_stock_by_symbol(ticker)
 					if stock:
 						quantity = int(quantity)
 						cost = float(stock.LastTradePriceOnly) * quantity
@@ -2514,35 +2503,8 @@ class PortfolioAccountTab(Tab):
 		
 		self.portfolio_id = tab_number
 		print line_number(), "self.portfolio_id =", self.portfolio_id
-		self.portfolio_obj = db.load_portfolio_object(self.portfolio_id)
+		self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
 
-		#self.load_button = wx.Button(self, label="load account", pos=(355,0), size=(-1,-1))
-		#self.load_button.Bind(wx.EVT_BUTTON, self.check_if_pw_needed, self.load_button) 
-
-		# if self.portfolio_obj:
-		# 	self.finish_init()
-		# 
-		# 
-		# def check_if_pw_needed(self, event): # Untab to use again
-		# if self.load_button:
-		# 	self.load_button.Destroy()
-		# password = None
-		# if config.ENCRYPTION_POSSIBLE:
-		# 	password = self.get_password()
-		# self.finish_init(password = password)
-		# def get_password(self): # Untab to use again
-		# password_attempt = wx.TextEntryDialog(None,
-		# 						  "Please enter a secure password.", 
-		# 						  "Enter Password",
-		# 						  ""
-		# 						  )
-		# password_attempt.ShowModal()
-		# password = password_attempt.GetValue()
-		# print str(password)
-		# password_hash = db.make_sha256_hash(str(password))
-		# print password_hash
-		# return password_hash
-		# def finish_init(self, password = None):
 		if not self.portfolio_obj:
 			if config.ENCRYPTION_POSSIBLE:
 				db.load_portfolio_object(self.portfolio_id)

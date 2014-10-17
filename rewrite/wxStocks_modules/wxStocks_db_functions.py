@@ -242,23 +242,24 @@ def load_DATA_ABOUT_PORTFOLIOS():
 	config.NUMBER_OF_PORTFOLIOS = config.DATA_ABOUT_PORTFOLIOS[0]
 	#print line_number(), config.NUMBER_OF_PORTFOLIOS
 	config.PORTFOLIO_NAMES = []
+	
+	# Set config.PORTFOLIO_NAMES
 	for i in range(config.NUMBER_OF_PORTFOLIOS):
 		try:
 			config.PORTFOLIO_NAMES.append(config.DATA_ABOUT_PORTFOLIOS[1][i])
 		except Exception, exception:
 			print line_number(), exception
 			logging.error('Portfolio names do not match number of portfolios')
-	for i in range(config.NUMBER_OF_PORTFOLIOS):
-		try:
-			data = decrypt_if_possible(path = portfolio_account_obj_file_path % (i+1))
-			if data:
-				portfolio_obj = data
-				config.PORTFOLIO_OBJECTS_DICT["%s" % str(portfolio_obj.id_number)] = portfolio_obj
-				print config.PORTFOLIO_OBJECTS_DICT
-		except Exception, e:
-			#print line_number(), e
-			pass
+	print config.PORTFOLIO_NAMES
+
+	# Load portfolio objects
+	print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
+	load_all_portfolio_objects()
+
 def save_portfolio_object(portfolio_obj, id_number):
+	# First, set this object into the portfolio dict, for the first time it's saved:
+	config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
+
 	encryption_possible = False
 	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
 	if config.ENCRYPTION_POSSIBLE:
@@ -284,13 +285,18 @@ def load_portfolio_object(id_number):
 		path = portfolio_account_obj_file_path % (id_number, "txt")
 	else:
 		path = portfolio_account_obj_file_path % (id_number, "pk")
-	portfolio_object = decrypt_if_possible(path = path)
+	portfolio_obj = decrypt_if_possible(path = path)
 
-	if portfolio_object:
-		return portfolio_object
+	if portfolio_obj:
+		config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
+		print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
+		return portfolio_obj
 	else:
 		print line_number(), "Account object failed to load."
 		return
+def load_all_portfolio_objects(number_of_portfolios = config.DATA_ABOUT_PORTFOLIOS[0]):
+	for i in range(number_of_portfolios):
+		load_portfolio_object(i+1)
 def delete_portfolio_object(id_number):
 	"delete account"
 	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE

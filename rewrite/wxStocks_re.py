@@ -6,19 +6,13 @@ print "Startup may take a few moments..."
 
 
 # Requirements that must be installed
-import wx, numpy # pycrypto, simplecrypt
-from modules.BeautifulSoup import BeautifulSoup
+import wx #, numpy, pycrypto, simplecrypt
 
 # Standard Libraries
-import sys, os, logging, math, inspect, urllib2, json, hashlib
-import pprint as pp
-import cPickle as pickle
-from wx.lib import sheet
+import sys, inspect, hashlib
 
 # Internal libraries
-from wxStocks_modules.wxStocks_classes import Stock
 import wxStocks_modules.wxStocks_db_functions as db
-import wxStocks_modules.wxStocks_formulas as formula
 import wxStocks_modules.wxStocks_testing
 import wxStocks_modules.wxStocks_gui as gui
 
@@ -46,9 +40,6 @@ except:
 # This is a work around to prevent needing to constantly be entering your password.
 # It's not the most secure solution, but for all intents and purposes here, it should be fine.
 
-####################### Bcrypt
-from modules.pybcrypt import bcrypt
-#########################################################
 if config.ENCRYPTION_POSSIBLE:
 	import getpass
 	print "\n"
