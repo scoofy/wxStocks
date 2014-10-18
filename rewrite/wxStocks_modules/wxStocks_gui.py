@@ -2345,19 +2345,29 @@ class TradePage(Tab):
 						stock = utils.return_stock_by_symbol(self.buy_candidates[count])
 						new_grid.SetCellValue(row_num, column_num + 1, str(stock.firm_name))
 
-						throw error # AttributeError: 'Stock' object has no attribute 'LastTradePriceOnly_yf' happens here if stock has no yql data
-						last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
-						new_grid.SetCellValue(row_num, column_num + 2, "$" + str(last_price))
+						try:
+							last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
+							new_grid.SetCellValue(row_num, column_num + 2, "$" + str(last_price))
+							update_error = False
+						except Exception as e:
+							print line_number(), e
+							new_grid.SetCellValue(row_num, column_num + 2, "(Error: Update %s)" % stock.symbol)
+							new_grid.SetCellTextColour(row_num, column_num + 2, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+							update_error = True
 
 						column_shift = 3
 						for percent in [0.03, 0.05, 0.10]:
-							# total_asset_value calculated above
-							#print total_asset_value
-							max_cost = total_asset_value * percent
-							#print max_cost
-							number_of_shares_to_buy = int(math.floor(max_cost / last_price))
-							#print number_of_shares_to_buy
-							new_grid.SetCellValue(row_num, column_num + column_shift, str(number_of_shares_to_buy))
+							if not update_error:
+								# total_asset_value calculated above
+								#print total_asset_value
+								max_cost = total_asset_value * percent
+								#print max_cost
+								number_of_shares_to_buy = int(math.floor(max_cost / last_price))
+								#print number_of_shares_to_buy
+								new_grid.SetCellValue(row_num, column_num + column_shift, str(number_of_shares_to_buy))
+							else: # If error...
+								new_grid.SetCellValue(row_num, column_num + column_shift, "-")
+								new_grid.SetCellTextColour(row_num, column_num + column_shift, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
 							column_shift += 1
 
 						for this_tuple in self.buy_candidate_tuples:

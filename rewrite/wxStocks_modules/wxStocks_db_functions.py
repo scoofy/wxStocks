@@ -341,13 +341,12 @@ def set_password():
 	if password:
 		check_password = getpass.getpass("\nPlease confirm your password by entering it again: ")
 	else:
-		check_password =  raw_input('\nFailing to enter a password will make your data insecure.\nPlease confirm no password by leaving the following entry blank.\nIf you want to use a password, type "retry" to reset your password: ')
+		check_password =  raw_input('\nFailing to enter a password will make your data insecure.\nPlease confirm no password by leaving the following entry blank.\nIf you want to use a password, type "retry" and press enter to reset your password: ')
 		
 	if password != check_password:
 		print "\nThe passwords you entered did not match.\nPlease try again\n"
 		set_password()
-	if password:
-		save_password(password)
+	save_password(password)
 	return password
 def save_password(password, path = password_path):
 	print "Generating a secure password hash, this may take a moment..."
