@@ -902,6 +902,11 @@ class RankPage(Tab):
 		load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
 		load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
 
+		update_additional_data_button = wx.Button(self, label="update additional data", pos=(5,30), size=(-1,-1))
+		update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalData, update_additional_data_button)
+
+
+
 		#update_annual_data_button = wx.Button(self, label="update annual data", pos=(5,5), size=(-1,-1))
 		#update_annual_data_button.Bind(wx.EVT_BUTTON, self.updateAnnualData, update_annual_data_button)
 
@@ -969,15 +974,19 @@ class RankPage(Tab):
 		self.sort_button.Show()
 		self.sort_drop_down.Show()
 
+
+	def updateAdditionalData(self, event):
+		print line_number(), "fix this effing shit"
+		sys.exit()
 	# these may be irrelevant
-	def updateAnnualData(self, event):
-		scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
-		#if self.full_ticker_list:
-		#	self.spreadSheetFill(self.full_ticker_list)
-	def updateAnalystEstimates(self, event):
-		scrape_analyst_estimates(self.full_ticker_list)
-		if self.full_ticker_list:
-			self.spreadSheetFill(self.full_ticker_list)
+	#def updateAnnualData(self, event):
+	#	scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
+	#	#if self.full_ticker_list:
+	#	#	self.spreadSheetFill(self.full_ticker_list)
+	#def updateAnalystEstimates(self, event):
+	#	scrape_analyst_estimates(self.full_ticker_list)
+	#	if self.full_ticker_list:
+	#		self.spreadSheetFill(self.full_ticker_list)
 	###
 	def clearGrid(self, event):
 		confirm = wx.MessageDialog(None, 
@@ -2836,34 +2845,48 @@ class StockDataPage(Tab):
 										  pos=(210,5), 
 										  size=(-1,-1)
 										  )
-		update_yql_basic_data_button = wx.Button(self, 
-										  label="update basic data", 
-										  pos=(300,5), 
-										  size=(-1,-1)
-										  )
-		update_annual_data_button = wx.Button(self, 
-										  label="update annual data", 
-										  pos=(430,5), 
-										  size=(-1,-1)
-										  )
-		update_analyst_estimates_button = wx.Button(self, 
-										  label="update analyst estimates", 
-										  pos=(570,5), 
-										  size=(-1,-1)
-										  )
+		#update_yql_basic_data_button = wx.Button(self, 
+		#								  label="update basic data", 
+		#								  pos=(300,5), 
+		#								  size=(-1,-1)
+		#								  )
+		#update_annual_data_button = wx.Button(self, 
+		#								  label="update annual data", 
+		#								  pos=(430,5), 
+		#								  size=(-1,-1)
+		#								  )
+		#update_analyst_estimates_button = wx.Button(self, 
+		#								  label="update analyst estimates", 
+		#								  pos=(570,5), 
+		#								  size=(-1,-1)
+		#								  )
 
 		load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
 		
-		update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
-		update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
-		update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
+		update_additional_data_button = wx.Button(self, 
+										  label="update additional data", 
+										  pos=(300,5), 
+										  size=(-1,-1)
+										  )
+		update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
+
+		#update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
+		#update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
+		#update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
 
 		print line_number(), "StockDataPage loaded"
+
+	def updateAdditionalDataForOneStock(self, event):
+		ticker = self.ticker_input.GetValue()
+		if str(ticker) == "ticker" or not ticker:
+			return
+
+		
 
 	
 	def createOneStockSpreadSheet(self, event):
 		ticker = self.ticker_input.GetValue()
-		if str(ticker) == "ticker":
+		if str(ticker) == "ticker" or not ticker:
 			return
 		self.screen_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper())
 
