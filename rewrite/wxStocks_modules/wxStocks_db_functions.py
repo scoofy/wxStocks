@@ -5,6 +5,7 @@ import cPickle as pickle
 from modules.pybcrypt import bcrypt
 
 import wxStocks_classes
+import wxStocks_utilities as utils
 
 import traceback, sys
 
@@ -104,16 +105,24 @@ def load_named_screen(screen_name):
 	print "Loading Screen: %s" % screen_name
 	try:
 		screen_file = open(named_screen_path % screen_name.replace(' ','_'), 'rb')
-		screen = pickle.load(screen_file)
+		screen_ticker_list = pickle.load(screen_file)
 		screen_file.close()
 	except Exception as e:
 		print line_number(), e
 		print "Screen: %s failed to load." % screen_name
-	return screen
+	stock_list = []
+	for ticker in screen_ticker_list:
+		stock = utils.return_stock_by_symbol(ticker)
+		if not stock in stock_list:
+			stock_list.append(stock)
+	return stock_list
 def save_named_screen(screen_name, stock_list):
 	print "Saving screen named: %s" % screen_name
+	ticker_list = []
+	for stock in stock_list:
+		ticker_list.append(stock.symbol)
 	with open(named_screen_path % screen_name.replace(' ','_'), 'wb') as output:
-		pickle.dump(stock_list, output, pickle.HIGHEST_PROTOCOL)
+		pickle.dump(ticker_list, output, pickle.HIGHEST_PROTOCOL)
 def delete_named_screen(screen_name):
 	print "Deleting named screen: %s" % screen_name
 

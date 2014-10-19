@@ -878,6 +878,7 @@ class RankPage(Tab):
 		wx.Panel.__init__(self, parent)
 
 		self.full_ticker_list = [] # this should hold all tickers in any spreadsheet displayed
+		self.held_ticker_list = [] # not sure if this is relevant anymore
 		# Changed to config.RANK_PAGE_ALL_RELEVANT_STOCKS
 		self.sorted_full_ticker_list = []
 
@@ -952,9 +953,8 @@ class RankPage(Tab):
 
 		print line_number(), "RankPage loaded"
 
-	def createSpreadSheet(self, stock_list=config.RANK_PAGE_ALL_RELEVANT_STOCKS):
-		held_ticker_list = config.HELD_STOCK_TICKER_LIST
-		self.screen_grid = create_spread_sheet(self, stock_list, held_ticker_list = held_ticker_list)
+	def createSpreadSheet(self, stock_list):
+		self.screen_grid = create_spread_sheet(self, stock_list)
 		try:
 			self.sort_drop_down.Destroy()
 			self.sort_drop_down = wx.ComboBox(self, 
@@ -991,11 +991,16 @@ class RankPage(Tab):
 		if yesNoAnswer != wx.ID_YES:
 			return
 
+		print line_number(), "Clearing the Grid"
+
 		config.RANK_PAGE_ALL_RELEVANT_STOCKS = []
 		self.full_attribute_list = []
 		self.relevant_attribute_list = []
-		
-		self.spreadSheetFill(self.full_ticker_list)
+
+		self.full_ticker_list = []
+		self.held_ticker_list = []
+
+		self.createSpreadSheet(stock_list= config.RANK_PAGE_ALL_RELEVANT_STOCKS)
 
 
 		self.clear_button.Hide()
@@ -1051,7 +1056,10 @@ class RankPage(Tab):
 		self.currently_viewed_screen = selected_screen_name
 		for stock in saved_screen:
 			if stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
+				print line_number(), stock.symbol, "added to config.RANK_PAGE_ALL_RELEVANT_STOCKS"
 				config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
+			else:
+				print line_number(), stock.symbol, "skipped"
 
 		if self.screen_grid:
 			try:
@@ -1059,7 +1067,7 @@ class RankPage(Tab):
 			except Exception, exception:
 				print line_number(), exception
 
-		self.createSpreadSheet()
+		self.createSpreadSheet(stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS)
 
 	def loadAccount(self, event):
 		selected_account_name = self.accounts_drop_down.GetValue()
@@ -1068,9 +1076,7 @@ class RankPage(Tab):
 			if selected_account_name == this_tuple[0]:
 				tuple_not_found = False
 				try:
-					saved_account_file = open('portfolio_%d_data.pk' % this_tuple[1], 'rb')
-					saved_account = pickle.load(saved_account_file)
-					saved_account_file.close()
+					saved_account = db.load_portfolio_object(id_number = this_tuple[1])
 				except Exception, exception:
 					print line_number(), exception
 					error = wx.MessageDialog(self,
@@ -1091,7 +1097,12 @@ class RankPage(Tab):
 			error.Destroy()
 			return
 
-		for stock in saved_account.stock_list:
+		for ticker in saved_account.stock_shares_dict:
+			stock = utils.return_stock_by_symbol(ticker)
+			
+			if stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
+				config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
+			
 			if str(stock.symbol) not in self.held_ticker_list:
 				self.held_ticker_list.append(str(stock.symbol))
 			if str(stock.symbol) not in self.full_ticker_list:
@@ -1103,143 +1114,144 @@ class RankPage(Tab):
 			print line_number(), exception
 
 		#self.spreadSheetFill(self.full_ticker_list)
-		self.createSpreadSheet(self.full_ticker_list)
+		self.createSpreadSheet(stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS)
 
 	def spreadSheetFill(self, stock_list):
-		attribute_list = []
-		num_rows = len(stock_list)
-		num_columns = 0
-		for stock in stock_list:
-			num_attributes = 0
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					if attribute not in self.irrelevant_attributes:
-						num_attributes += 1
-			for annual_data in annual_data_list:
-				if str(stock.symbol) == str(annual_data.symbol):
-					for attribute in dir(annual_data):
-						if not attribute.startswith('_'):
-							if attribute not in self.irrelevant_attributes:
-								if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
-									if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
-										num_attributes += 1
-			for estimate_data in analyst_estimate_list:
-				if str(stock.symbol) == str(estimate_data.symbol):
-					for attribute in dir(estimate_data):
-						if not attribute.startswith('_'):
-							if attribute not in self.irrelevant_attributes:
-								num_attributes += 1
-			if num_columns < num_attributes:
-				num_columns = num_attributes
-		self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,60))
+		pass
+		# attribute_list = []
+		# num_rows = len(stock_list)
+		# num_columns = 0
+		# for stock in stock_list:
+		# 	num_attributes = 0
+		# 	for attribute in dir(stock):
+		# 		if not attribute.startswith('_'):
+		# 			if attribute not in self.irrelevant_attributes:
+		# 				num_attributes += 1
+		# 	for annual_data in annual_data_list:
+		# 		if str(stock.symbol) == str(annual_data.symbol):
+		# 			for attribute in dir(annual_data):
+		# 				if not attribute.startswith('_'):
+		# 					if attribute not in self.irrelevant_attributes:
+		# 						if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+		# 							if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
+		# 								num_attributes += 1
+		# 	for estimate_data in analyst_estimate_list:
+		# 		if str(stock.symbol) == str(estimate_data.symbol):
+		# 			for attribute in dir(estimate_data):
+		# 				if not attribute.startswith('_'):
+		# 					if attribute not in self.irrelevant_attributes:
+		# 						num_attributes += 1
+		# 	if num_columns < num_attributes:
+		# 		num_columns = num_attributes
+		# self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,60))
 
-		self.screen_grid.CreateGrid(num_rows, num_columns)
-		self.screen_grid.EnableEditing(False)
+		# self.screen_grid.CreateGrid(num_rows, num_columns)
+		# self.screen_grid.EnableEditing(False)
 
 
-		for stock in stock_list:
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					if attribute not in self.irrelevant_attributes:
-						if attribute not in attribute_list:
-							attribute_list.append(str(attribute))
-							if str(attribute) not in self.full_attribute_list:
-								self.full_attribute_list.append(str(attribute)) # Reset root attribute list
-			for annual_data in annual_data_list:
-				if str(stock.symbol) == str(annual_data.symbol):
-					for attribute in dir(annual_data):
-						if not attribute.startswith('_'):
-							if attribute not in self.irrelevant_attributes:
-								if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
-									if attribute not in attribute_list:
-										attribute_list.append(str(attribute))
-										if str(attribute) not in self.full_attribute_list:
-											self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
-					break
-			for estimate_data in analyst_estimate_list:
-				if str(stock.symbol) == str(estimate_data.symbol):
-					for attribute in dir(estimate_data):
-						if not attribute.startswith('_'):
-							if attribute not in self.irrelevant_attributes:
-								if attribute not in attribute_list:
-									attribute_list.append(str(attribute))
-									if str(attribute) not in self.full_attribute_list:
-										self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
-					break
+		# for stock in stock_list:
+		# 	for attribute in dir(stock):
+		# 		if not attribute.startswith('_'):
+		# 			if attribute not in self.irrelevant_attributes:
+		# 				if attribute not in attribute_list:
+		# 					attribute_list.append(str(attribute))
+		# 					if str(attribute) not in self.full_attribute_list:
+		# 						self.full_attribute_list.append(str(attribute)) # Reset root attribute list
+		# 	for annual_data in annual_data_list:
+		# 		if str(stock.symbol) == str(annual_data.symbol):
+		# 			for attribute in dir(annual_data):
+		# 				if not attribute.startswith('_'):
+		# 					if attribute not in self.irrelevant_attributes:
+		# 						if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
+		# 							if attribute not in attribute_list:
+		# 								attribute_list.append(str(attribute))
+		# 								if str(attribute) not in self.full_attribute_list:
+		# 									self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
+		# 			break
+		# 	for estimate_data in analyst_estimate_list:
+		# 		if str(stock.symbol) == str(estimate_data.symbol):
+		# 			for attribute in dir(estimate_data):
+		# 				if not attribute.startswith('_'):
+		# 					if attribute not in self.irrelevant_attributes:
+		# 						if attribute not in attribute_list:
+		# 							attribute_list.append(str(attribute))
+		# 							if str(attribute) not in self.full_attribute_list:
+		# 								self.full_attribute_list.append(str(attribute)) # Reset root attribute list					
+		# 			break
 
-		#for i in self.full_attribute_list:
-		#	print line_number(), i
-		if not attribute_list:
-			logging.warning('attribute list empty')
-			return
-		attribute_list.sort()
-		# adjust list order for important terms
-		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-		attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-		#print line_number(), attribute_list
+		# #for i in self.full_attribute_list:
+		# #	print line_number(), i
+		# if not attribute_list:
+		# 	logging.warning('attribute list empty')
+		# 	return
+		# attribute_list.sort()
+		# # adjust list order for important terms
+		# attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+		# attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
+		# #print line_number(), attribute_list
 
-		row_count = 0
-		for stock in stock_list:
-			col_count = 0
-			stock_annual_data = return_existing_StockAnnualData(str(stock.symbol))
-			stock_analyst_estimate = return_existing_StockAnalystEstimates(str(stock.symbol))
-			for attribute in attribute_list:
-				#if not attribute.startswith('_'):
-				if row_count == 0:
-					self.screen_grid.SetColLabelValue(col_count, str(attribute))
-					#print str(attribute)
-				try:
-					self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-					if str(stock.symbol) in self.held_ticker_list:
-						self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-					if str(getattr(stock, attribute)).startswith("(") or str(getattr(stock, attribute)).startswith("-"):
-						self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-				except Exception, exception:
-					try:
-						self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
-						if str(stock.symbol) in self.held_ticker_list:
-							self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-						if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
-							self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-					except:
-						try:
-							self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_analyst_estimate, attribute)))
-							if str(stock.symbol) in self.held_ticker_list:
-								self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-							if str(getattr(stock_analyst_estimate, attribute)).startswith("(") or (str(getattr(stock_analyst_estimate, attribute)).startswith("-") and len(str(getattr(stock_analyst_estimate, attribute))) > 0):
-								self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-						except Exception, exception:
-							pass
-							print exception
-							print line_number()
-					#print line_number(), exception
-				# try:
-				# 	if str(getattr(stock, attribute)) in ["N/A", "-", "None"]:
-				# 		self.screen_grid.SetCellValue(row_count, col_count, "")
-				# except:
-				# 	try:
-				# 		if str(getattr(stock_annual_data, attribute)) in ["N/A", "-", "None"]:
-				# 			self.screen_grid.SetCellValue(row_count, col_count, "")
-				# 	except Exception, exception:
-				# 		pass
-				col_count += 1
-			row_count += 1
-		#print attribute_list
-		self.screen_grid.AutoSizeColumns()
+		# row_count = 0
+		# for stock in stock_list:
+		# 	col_count = 0
+		# 	stock_annual_data = return_existing_StockAnnualData(str(stock.symbol))
+		# 	stock_analyst_estimate = return_existing_StockAnalystEstimates(str(stock.symbol))
+		# 	for attribute in attribute_list:
+		# 		#if not attribute.startswith('_'):
+		# 		if row_count == 0:
+		# 			self.screen_grid.SetColLabelValue(col_count, str(attribute))
+		# 			#print str(attribute)
+		# 		try:
+		# 			self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
+		# 			if str(stock.symbol) in self.held_ticker_list:
+		# 				self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+		# 			if str(getattr(stock, attribute)).startswith("(") or str(getattr(stock, attribute)).startswith("-"):
+		# 				self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+		# 		except Exception, exception:
+		# 			try:
+		# 				self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
+		# 				if str(stock.symbol) in self.held_ticker_list:
+		# 					self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+		# 				if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
+		# 					self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+		# 			except:
+		# 				try:
+		# 					self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_analyst_estimate, attribute)))
+		# 					if str(stock.symbol) in self.held_ticker_list:
+		# 						self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
+		# 					if str(getattr(stock_analyst_estimate, attribute)).startswith("(") or (str(getattr(stock_analyst_estimate, attribute)).startswith("-") and len(str(getattr(stock_analyst_estimate, attribute))) > 0):
+		# 						self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+		# 				except Exception, exception:
+		# 					pass
+		# 					print exception
+		# 					print line_number()
+		# 			#print line_number(), exception
+		# 		# try:
+		# 		# 	if str(getattr(stock, attribute)) in ["N/A", "-", "None"]:
+		# 		# 		self.screen_grid.SetCellValue(row_count, col_count, "")
+		# 		# except:
+		# 		# 	try:
+		# 		# 		if str(getattr(stock_annual_data, attribute)) in ["N/A", "-", "None"]:
+		# 		# 			self.screen_grid.SetCellValue(row_count, col_count, "")
+		# 		# 	except Exception, exception:
+		# 		# 		pass
+		# 		col_count += 1
+		# 	row_count += 1
+		# #print attribute_list
+		# self.screen_grid.AutoSizeColumns()
 
-		try:
-			self.sort_drop_down.Destroy()
-			self.sort_drop_down = wx.ComboBox(self, 
-											 pos=(520, 31), 
-											 choices=self.full_attribute_list,
-											 style = wx.TE_READONLY
-											 )
-		except Exception, exception:
-			pass
-			#print line_number(), exception
-		self.clear_button.Show()
-		self.sort_button.Show()
-		self.sort_drop_down.Show()
+		# try:
+		# 	self.sort_drop_down.Destroy()
+		# 	self.sort_drop_down = wx.ComboBox(self, 
+		# 									 pos=(520, 31), 
+		# 									 choices=self.full_attribute_list,
+		# 									 style = wx.TE_READONLY
+		# 									 )
+		# except Exception, exception:
+		# 	pass
+		# 	#print line_number(), exception
+		# self.clear_button.Show()
+		# self.sort_button.Show()
+		# self.sort_drop_down.Show()
 	def sortStocks(self, event):
 		sort_field = self.sort_drop_down.GetValue()
 		do_not_sort_reversed = ["symbol", "firm_name"]
@@ -2388,7 +2400,7 @@ class TradePage(Tab):
 					stock = utils.return_stock_by_symbol(ticker)
 					if stock:
 						quantity = int(quantity)
-						cost = float(stock.LastTradePriceOnly) * quantity
+						cost = float(getattr(stock, self.default_last_trade_price_attribute_name)) * quantity
 						total_buy_cost += cost
 						cost_cell = [row_num, buy_cost_column, "$" + str(cost)]
 						spreadsheet_cell_list.append(cost_cell)
@@ -3012,19 +3024,19 @@ def create_spreadsheet_from_stock_list(spreadsheet, stock_list):
 def create_spread_sheet(
 	wxWindow, 
 	stock_list, 
-	held_ticker_list = [] # not used currentl  
+	held_ticker_list = [] # not used currentlly
 	, height = 637
 	, width = 980
 	, position = (0,60)
 	, enable_editing = False
 	):
-	
+
 	irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
 
-	for stock in stock_list:
 
-		#print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
-		
+	config.TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = [] # Clear update list
+	for stock in stock_list:
+		#print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'		
 		for update_attribute in config.STOCK_SCRAPE_UPDATE_ATTRIBUTES:
 
 			if not getattr(stock, update_attribute):
@@ -3095,20 +3107,20 @@ def create_spread_sheet(
 		# 						if attribute not in attribute_list:
 		# 							attribute_list.append(str(attribute))
 
-	if not attribute_list:
-		logging.warning('attribute list empty')
+	if stock_list and not attribute_list:
+		print line_number(), 'Warning: attribute list empty'
 		return
-
+	# else: loading blank list
 
 	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
 	screen_grid.CreateGrid(num_rows, num_columns)
 	screen_grid.EnableEditing(enable_editing)
 
-
-	attribute_list.sort(key = lambda x: x.lower())
-	# adjust list order for important terms
-	attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-	attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+	if attribute_list: # not empty screen loading:
+		attribute_list.sort(key = lambda x: x.lower())
+		# adjust list order for important terms
+		attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+		attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
 
 	wxWindow.full_attribute_list = attribute_list
 	wxWindow.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
