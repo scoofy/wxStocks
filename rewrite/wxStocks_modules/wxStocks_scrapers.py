@@ -2,6 +2,7 @@ import config, urllib2, inspect, threading, time, logging, sys, ast, datetime
 import pprint as pp
 
 from modules.pyql import pyql
+from modules.BeautifulSoup import BeautifulSoup
 
 import wxStocks_utilities as utils
 import wxStocks_db_functions as db
@@ -12,6 +13,46 @@ def line_number():
 	line_number_string = "Line %d:" % line_number
 	return line_number_string
 
+
+def scrape_all_additional_data(list_of_ticker_symbols): # Everything except basic yql and nasdaq
+	scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols)
+
+def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
+	one_day = (60 * 60 * 24)
+	yesterdays_epoch = float(time.time()) - one_day
+	ticker_list = list_of_ticker_symbols
+	edited_ticker_list = []
+	for ticker in ticker_list:
+		#stock = return_existing_StockAnnualData(ticker)
+		#if stock:
+		#	if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
+		#		print "%s is up to date (no need to update)" % ticker
+		#		continue # if all are up to date skip ahead, and don't append ticker
+		edited_ticker_list.append(ticker)
+	ticker_list = edited_ticker_list
+	if ticker_list:
+		print line_number(), "updating:", ticker_list
+
+	for i in range(len(ticker_list)):
+		# 2 second sleep per scrape
+		# timer = count * 6 + position of data needed, function, ticker
+		timer_1 = threading.Timer((i * 6)+1, yf_annual_balance_sheet_scrape, [ticker_list[i]])
+		timer_2 = threading.Timer((i * 6)+3, yf_annual_income_statement_scrape, [ticker_list[i]])
+		timer_3 = threading.Timer((i * 6)+5, yf_annual_cash_flow_scrape, [ticker_list[i]])
+		# these can be simultaneous because they are hitting different servers
+		# these large delays seem to be necessary for python to handle all the file reads... but i'm not totally sure if it's necessary.
+		timer_4 = threading.Timer((i * 45), ms_annual_balance_sheet_scrape, [ticker_list[i]])
+		timer_5 = threading.Timer((i * 45)+15, ms_annual_income_statement_scrape, [ticker_list[i]])
+		timer_6 = threading.Timer((i * 45)+30, ms_annual_cash_flow_scrape, [ticker_list[i]])
+
+		timer_1.start()
+		timer_2.start()
+		timer_3.start()
+		
+		timer_4.start()
+		timer_5.start()
+		timer_6.start()
+#################### Nasdaq Ticker Symbol Scraper ##############################################
 def download_ticker_symbols(): # from nasdaq.com
 	headers = {
 				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -33,7 +74,7 @@ def download_ticker_symbols(): # from nasdaq.com
 		try:
 			page = urllib2.urlopen(response)
 		except urllib2.HTTPError, e:
-			print e.fp.read()
+			print line_number(), e.fp.read()
 
 		content = page.read()
 		content = content.splitlines()
@@ -123,6 +164,7 @@ def prepareYqlScrape(): # from finance.yahoo.com
 	# 3600 seconds in an hour
 	# 3600 / 200 = 18 seconds pause per query to stay under the 200/hour limit
 	if chunk_length < 1:
+		print line_number()
 		logging.error("chunk_length too small, will create infinite loop")
 		return
 
@@ -137,6 +179,7 @@ def prepareYqlScrape(): # from finance.yahoo.com
 			last_loop = True
 		data = None
 		data2= None
+		print line_number()
 		logging.info('While loop #%d' % count)
 		ticker_chunk = yql_ticker_list[slice_start:slice_end]
 		chunk_list.append(ticker_chunk)
@@ -176,13 +219,14 @@ def executeYqlScrapePartOne(ticker_chunk_list, position_of_this_chunk):
 		try:
 			data = pyql.lookupQuote(ticker_chunk)
 		except:
+			print line_number()
 			logging.warning("Scrape didn't work. Nothing scraped.")
 			scrape_1_failed = True
 		if scrape_1_failed:
 			#time.sleep(sleep_time)
 			return
 		else:
-			logging.warning("Scrape 1 Success: mid-scrape sleep for %d seconds" % sleep_time)
+			print line_number(), "Scrape 1 Success: mid-scrape sleep for %d seconds" % sleep_time
 			return data
 def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data): # This is the big one
 	sleep_time = config.SCRAPE_SLEEP_TIME
@@ -194,6 +238,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 	try:
 		data2 = pyql.lookupKeyStats(ticker_chunk)
 	except:
+		print line_number()
 		logging.warning("Scrape 2 didn't work. Abort.")
 		time.sleep(sleep_time)
 		return
@@ -220,7 +265,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 					str(key) + "_yf", 
 					value
 					)
-		print "Success, saving %s: Data 1 (Yahoo Quote)" % new_stock.yql_ticker
+		print line_number(), "Success, saving %s: Data 1 (Yahoo Quote)" % new_stock.yql_ticker
 	#save
 	db.save_GLOBAL_STOCK_DICT()
 
@@ -327,6 +372,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 									content
 									)
 						except Exception, e:
+							line_number()
 							logging.warning(repr(i))
 							logging.warning("complex list method did not work")
 							logging.exception(e)
@@ -418,6 +464,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 								content
 								)
 					except Exception, e:
+						print line_number()
 						logging.warning("complex dict method did not work")
 						logging.exception(e)
 						setattr(new_stock, 
@@ -442,7 +489,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 	#save again
 	db.save_GLOBAL_STOCK_DICT()
 
-	logging.warning("This stock chunk finished successfully.")
+	print line_number(), "This stock chunk finished successfully."
 	#self.progress_bar.SetValue((float(slice_end)/float(num_of_tickers)) * 100)
 	#app.Yield()
 
@@ -451,13 +498,18 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 # ---- it seems that the data that is returned is not formatted properly for firms that are < 4 years old
 # ---- I'll need to account for this disparity and rewrite the scrape functions with more precision.
 ## --- Much has been improved, but i still need to do a re-write it for single year data.
-def yahoo_annual_cash_flow_scrape(ticker):
-	stock = return_existing_StockAnnualData(ticker)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
-			print "Cash flow data for %s is up to date." % ticker
-			return
+def yf_annual_cash_flow_scrape(ticker):
+	stock = utils.return_stock_by_symbol(ticker)
+
+	if not stock:
+		print line_number(), "Error: stock %s does not exist" % ticker
+			
+	most_recent_update = stock.last_cash_flow_update_yf
+	last_acceptable_update = float(time.time()) - config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	if  most_recent_update > last_acceptable_update: 
+		print line_number(), "YF Cash flow data for %s is up to date." % ticker
+		return
+
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	factor = 0
@@ -466,7 +518,7 @@ def yahoo_annual_cash_flow_scrape(ticker):
 		factor = 1000
 
 	if not factor:
-		print "Error: no factor... in need of review"
+		print line_number(), "Error: no factor... in need of review"
 
 	table = soup.find("table", { "class" : "yfnc_tabledata1" })
 
@@ -475,7 +527,7 @@ def yahoo_annual_cash_flow_scrape(ticker):
 	find_all_data_in_table(table, "td", data_list, factor)
 	find_all_data_in_table(table, "strong", data_list, factor)
 
-	create_or_update_StockAnnualData(ticker, data_list, "Cash_Flow")
+	create_or_update_yf_StockAnnualData(ticker, data_list, "Cash_Flow")
 
 	cash_flow_layout = 	['''
 					0	Period Ending
@@ -566,13 +618,17 @@ def yahoo_annual_cash_flow_scrape(ticker):
 					85	-
 					86	-
 						''']
-def yahoo_annual_income_statement_scrape(ticker):
-	stock = return_existing_StockAnnualData(ticker)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		if stock.last_income_statement_update > yesterdays_epoch: # if data is more than a day old
-			print "Income statement data for %s is up to date." % ticker
-			return
+def yf_annual_income_statement_scrape(ticker):
+	stock = utils.return_stock_by_symbol(ticker)
+	
+	if not stock:
+		print line_number(), "Error: stock %s does not exist" % ticker
+			
+	most_recent_update = stock.last_income_statement_update_yf
+	last_acceptable_update = float(time.time()) - config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	if  most_recent_update > last_acceptable_update: 
+		print line_number(), "YF income statement data for %s is up to date." % ticker
+		return
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	factor = 0
@@ -588,7 +644,7 @@ def yahoo_annual_income_statement_scrape(ticker):
 	find_all_data_in_table(table, "td", data_list, factor)
 	find_all_data_in_table(table, "strong", data_list, factor)
 
-	create_or_update_StockAnnualData(ticker, data_list, "Income_Statement")
+	create_or_update_yf_StockAnnualData(ticker, data_list, "Income_Statement")
 
 	income_statment_layout = 	['''
 							0	Period Ending
@@ -689,13 +745,18 @@ def yahoo_annual_income_statement_scrape(ticker):
 							95	-
 							96	-
 								''']
-def yahoo_annual_balance_sheet_scrape(ticker):
-	stock = return_existing_StockAnnualData(ticker)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		if stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
-			print "Balance sheet data for %s is up to date." % ticker
-			return
+def yf_annual_balance_sheet_scrape(ticker):
+	stock = utils.return_stock_by_symbol(ticker)
+	
+	
+	if not stock:
+		print line_number(), "Error: stock %s does not exist" % ticker
+			
+	most_recent_update = stock.last_balance_sheet_update_yf
+	last_acceptable_update = float(time.time()) - config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	if  most_recent_update > last_acceptable_update: 
+		print line_number(), "YF balance sheet data for %s is up to date." % ticker
+		return
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
 	factor = 0
@@ -709,7 +770,7 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 	find_all_data_in_table(table, "td", data_list, factor)
 	find_all_data_in_table(table, "strong", data_list, factor)
 
-	create_or_update_StockAnnualData(ticker, data_list, "Balance_Sheet")
+	create_or_update_yf_StockAnnualData(ticker, data_list, "Balance_Sheet")
 
 	balance_sheet_layout = 	['''
 							0	Period Ending
@@ -863,46 +924,13 @@ def yahoo_annual_balance_sheet_scrape(ticker):
 							148	-
 							''']
 
-def scrape_balance_sheet_income_statement_and_cash_flow(list_of_ticker_symbols):
-	one_day = (60 * 60 * 24)
-	yesterdays_epoch = float(time.time()) - one_day
-	ticker_list = list_of_ticker_symbols
-	edited_ticker_list = []
-	for ticker in ticker_list:
-		#stock = return_existing_StockAnnualData(ticker)
-		#if stock:
-		#	if stock.last_cash_flow_update > yesterdays_epoch and stock.last_income_statement_update > yesterdays_epoch and stock.last_balance_sheet_update > yesterdays_epoch: # if data is more than a day old
-		#		print "%s is up to date (no need to update)" % ticker
-		#		continue # if all are up to date skip ahead, and don't append ticker
-		edited_ticker_list.append(ticker)
-	ticker_list = edited_ticker_list
-	if ticker_list:
-		print "updating:", ticker_list
 
-	for i in range(len(ticker_list)):
-		# 2 second sleep per scrape
-		# timer = count * 6 + position of data needed, function, ticker
-		timer_1 = threading.Timer((i * 6)+1, yahoo_annual_balance_sheet_scrape, [ticker_list[i]])
-		timer_2 = threading.Timer((i * 6)+3, yahoo_annual_income_statement_scrape, [ticker_list[i]])
-		timer_3 = threading.Timer((i * 6)+5, yahoo_annual_cash_flow_scrape, [ticker_list[i]])
-		# these can be simultaneous because they are hitting different servers
-		# these large delays seem to be necessary for python to handle all the file reads... but i'm not totally sure if it's necessary.
-		timer_4 = threading.Timer((i * 45), morningstar_annual_balance_sheet_scrape, [ticker_list[i]])
-		timer_5 = threading.Timer((i * 45)+15, morningstar_annual_income_statement_scrape, [ticker_list[i]])
-		timer_6 = threading.Timer((i * 45)+30, morningstar_annual_cash_flow_scrape, [ticker_list[i]])
 
-		#timer_1.start()
-		#timer_2.start()
-		#timer_3.start()
-		
-		timer_4.start()
-		timer_5.start()
-		timer_6.start()
 def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor=1):
 	for cell in table.findAll(str_to_find):
 		text = cell.find(text=True)
 		if text:
-			text = strip_string_whitespace(text)
+			text = utils.strip_string_whitespace(text)
 			text = text.replace(u'\xa0', u' ')
 			text = str(text)
 			text = text.replace(',', "")
@@ -912,9 +940,9 @@ def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_fac
 					text_list[0] = "-"
 					text_list[-1] = ""
 					text = "".join(text_list)
-			if is_number(text):
+			if utils.is_number(text):
 				text_float = float(text) * table_factor
-				if relevant_float(text_float):
+				if utils.relevant_float(text_float):
 					text = str(text_float)
 				else:
 					text = str(int(text_float))
@@ -927,25 +955,17 @@ def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_fac
 			#print text
 			data_list_to_append_to.append(str(text))
 
-def return_existing_StockAnnualData(ticker_symbol):
-	global GLOBAL_ANNUAL_DATA_STOCK_LIST
-	for stock in GLOBAL_ANNUAL_DATA_STOCK_LIST:
-		if stock.symbol == ticker_symbol:
-			return stock
-	#if the function does not return a stock
-	return None
-def create_or_update_StockAnnualData(ticker, data_list, data_type):
-	print "--------------"
-	print data_type
-	print len(data_list)
+def create_or_update_yf_StockAnnualData(ticker, data_list, data_type):
+	print line_number(), "--------------"
+	print line_number(), data_type
+	print line_number(), len(data_list)
 	#print data_list
 
 	# ?????????????????????????
 
-	stock = return_existing_StockAnnualData(ticker)
+	stock = utils.return_stock_by_symbol(ticker)
 	if not stock:
-		stock = StockAnnualData(ticker)
-		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
+		print line_number(), "error in create_or_update_yf_StockAnnualData"
 
 
 	# yahoo balance sheet loop
@@ -963,7 +983,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 	# made simple by increasing the adjustment variable each pass.
 	#print "len(data_list) =", len(data_list), data_list
 	if data_type == "Balance_Sheet" and len(data_list) == 117:#96:
-		print "adjusting for 2 years worth of Balance_Sheet data"
+		print line_number(), "adjusting for 2 years worth of Balance_Sheet data"
 		default_amount_of_data = 2
 		adjusted_balance_sheet_data_positions = []
 		adjustment_variable = 0
@@ -973,7 +993,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 		balance_sheet_data_positions = adjusted_balance_sheet_data_positions
 		#print balance_sheet_data_positions
 	elif data_type == "Income_Statement" and len(data_list) == 74:#59:
-		print "adjusting for 2 years worth of Income_Statement data"
+		print line_number(), "adjusting for 2 years worth of Income_Statement data"
 		default_amount_of_data = 2
 		adjusted_income_statement_data_positions = []
 		adjustment_variable = 0
@@ -983,7 +1003,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 		income_statement_data_postitions = adjusted_income_statement_data_positions
 		#print income_statement_data_postitions
 	elif data_type == "Cash_Flow" and len(data_list) == 67:
-		print "adjusting for 2 years worth of Cash_Flow data"
+		print line_number(), "adjusting for 2 years worth of Cash_Flow data"
 		default_amount_of_data = 2
 		adjusted_cash_flow_data_positions = []
 		adjustment_variable = 0
@@ -996,17 +1016,17 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 	data_positions = []
 	if data_type == "Cash_Flow":
 		data_positions = cash_flow_data_positions
-		stock.last_cash_flow_update = float(time.time())
+		stock.last_cash_flow_update_yf = float(time.time())
 	elif data_type == "Balance_Sheet":
 		for i in data_list:
-			print i
+			print line_number(), i
 		data_positions = balance_sheet_data_positions
-		stock.last_balance_sheet_update = float(time.time())
+		stock.last_balance_sheet_update_yf = float(time.time())
 	elif data_type == "Income_Statement":
 		data_positions = income_statement_data_postitions
-		stock.last_income_statement_update = float(time.time())
+		stock.last_income_statement_update_yf = float(time.time())
 	else:
-		print "no data type selected"
+		print line_number(), "no data type selected"
 		return
 
 	# First, define period
@@ -1023,7 +1043,15 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 						#print data
 						data = data[-4:]
 						#print data
-						stock.periods[j] = data
+						try:
+							# if annual data periods for yahoo finance date doesn't exist, create it.
+							throw_error = stock.annual_data_periods_yf
+						except:
+							stock.annual_data_periods_yf = []
+							for k in range(default_amount_of_data):
+								stock.annual_data_periods_yf.append("")
+
+						stock.annual_data_periods_yf[j] = data
 	########
 
 	for i in range(len(data_list)):
@@ -1060,7 +1088,7 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 				year_list = ["", "_t1y", "_t2y"]
 				year = year_list[k]
 
-				setattr(stock, attribute + year, attribute_data_list[k])
+				setattr(stock, attribute + year + "_yf", attribute_data_list[k])
 				
 				### I abandoned the method of years below, 
 				### it seemed stupid in retrospect to put the years on the object.attributes
@@ -1076,10 +1104,9 @@ def create_or_update_StockAnnualData(ticker, data_list, data_type):
 
 	for attribute in dir(stock):
 		if not attribute.startswith("_"):
-			print ticker+"."+attribute+":" , getattr(stock, attribute)
+			print line_number(), ticker+"."+attribute+":" , getattr(stock, attribute)
 	
-	with open('all_annual_data_stocks.pk', 'wb') as output:
-		pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
+	db.save_GLOBAL_STOCK_DICT()
 
 # Stock Analyst Estimates Scraping Functions
 def return_existing_StockAnalystEstimates(ticker_symbol):
@@ -1098,7 +1125,7 @@ def yahoo_analyst_estimates_scrape(ticker):
 	if stock:
 		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
 		if stock.last_analyst_estimate_estimates_update > yesterdays_epoch: # if data is more than a day old
-			print "Analyst estimate data for %s is up to date." % ticker
+			print line_number(), "Analyst estimate data for %s is up to date." % ticker
 			#return
 
 	soup = BeautifulSoup(urllib2.urlopen('http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
@@ -1108,16 +1135,16 @@ def yahoo_analyst_estimates_scrape(ticker):
 
 	table = soup.findAll("table", { "class" : "yfnc_tableout1" })
 
-	print "table:", len(table), "rows"
+	print line_number(), "table:", len(table), "rows"
 	if int(len(table)) == 0:
-		print "there is either no data for %s, or something went wrong, you can check by visiting" % ticker
+		print line_number(), "there is either no data for %s, or something went wrong, you can check by visiting" % ticker
 		print ""
-		print 'http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker
+		print line_number(), 'http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker
 		print ""
 	count = 0
 	for i in table:
 		rows = i.findChildren('tr')
-		print "rows:", len(rows), "columns"
+		print line_number(), "rows:", len(rows), "columns"
 		for row in rows:
 			cells = row.findChildren(['strong','th','td','br'])
 			# print len(cells)
@@ -1174,7 +1201,7 @@ def yahoo_analyst_estimates_scrape(ticker):
 							date_list[date_position] = date_data
 							#print date_list
 						elif date_list[date_position] != date_value:
-							print "Error"
+							print line_number(), "Error"
 							return
 
 
@@ -1296,7 +1323,7 @@ def yahoo_analyst_estimates_scrape(ticker):
 
 		elif data_countdown > 0:
 			if str(subheading) not in subheadings:
-				print "%d > %s > %s" % (count, subheading, i)
+				print line_number(), "%d > %s > %s" % (count, subheading, i)
 				subheading = None
 				next_position_is_subheading = True
 				continue
@@ -1309,9 +1336,7 @@ def yahoo_analyst_estimates_scrape(ticker):
 			elif heading in ["Earnings History"]:
 				if count not in earnings_history_date_locations:
 					stock_attribute_name = str(heading) + "_" + str(subheading) + "_" + str(earnings_history_dates[earnings_history_date_position % 4])
-					earnings_history_date_position += 1
-				else:
-					print 
+					earnings_history_date_position += 1 
 
 			elif heading in ["Growth Est"]:
 				if count not in growth_estimate_reference_locations:
@@ -1328,7 +1353,7 @@ def yahoo_analyst_estimates_scrape(ticker):
 
 			setattr(stock, stock_attribute_name, i)
 
-			print "%d > %s.%s = %s" % (count, stock.symbol, stock_attribute_name, i)
+			print line_number(), "%d > %s.%s = %s" % (count, stock.symbol, stock_attribute_name, i)
 			do_print = False
 
 			data_countdown -= 1
@@ -1337,14 +1362,14 @@ def yahoo_analyst_estimates_scrape(ticker):
 				next_position_is_subheading = True
 
 		if do_print == True:
-			print count, "|", i
+			print line_number(), count, "|", i
 		count += 1
 		skip_position = False
 
 	with open('all_analyst_estimates_stocks.pk', 'wb') as output:
 		pickle.dump(GLOBAL_ANALYST_ESTIMATES_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
 def scrape_analyst_estimates(list_of_ticker_symbols):
-	print "attempting to scrape analyst estimates"
+	print line_number(), "attempting to scrape analyst estimates"
 	one_day = (60 * 60 * 24)
 	yesterdays_epoch = float(time.time()) - one_day
 	ticker_list = list_of_ticker_symbols
@@ -1353,12 +1378,12 @@ def scrape_analyst_estimates(list_of_ticker_symbols):
 		stock = return_existing_StockAnalystEstimates(ticker)
 		if stock:
 			if stock.last_analyst_estimate_estimates_update > yesterdays_epoch: # if data is more than a day old
-				print "%s is up to date (no need to update)" % ticker
+				print line_number(), "%s is up to date (no need to update)" % ticker
 				continue # if all are up to date skip ahead, and don't append ticker
 		edited_ticker_list.append(ticker)
 	ticker_list = edited_ticker_list
 	if ticker_list:
-		print "updating:", ticker_list
+		print line_number(), "updating:", ticker_list
 
 	for i in range(len(ticker_list)):
 		# 2 second sleep per scrape
@@ -1369,31 +1394,31 @@ def scrape_analyst_estimates(list_of_ticker_symbols):
 
 ##################### Morningstar Scrapers "_ms" ###############################################
 # Morningstar Annual Data Scrapers
-def morningstar_annual_cash_flow_scrape(ticker):
-	print "morningstar_annual_cash_flow_scrape:", ticker
-	stock = return_existing_StockAnnualData(ticker)
-	if not stock:
-		stock = StockAnnualData(ticker)
-		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		#if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
-		#	print "Cash flow data for %s is up to date." % ticker
-		#	return
+def ms_annual_cash_flow_scrape(ticker):
+	print line_number(), "morningstar_annual_cash_flow_scrape:", ticker
+	stock = utils.return_stock_by_symbol(ticker)
 	
-	basic_data = return_stock_by_symbol(ticker)
-	if basic_data:
-		exchange = basic_data.StockExchange
+	if not stock:
+		print line_number(), "Error: stock %s does not exist" % ticker
+
+	most_recent_update = stock.last_cash_flow_update_ms
+	last_acceptable_update = float(time.time()) - config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	if  most_recent_update > last_acceptable_update: 
+		print line_number(), "MS Cash flow data for %s is up to date." % ticker
+		return
+	
+	if stock:
+		exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
 		if exchange == 'NYSE':
 			exchange_code = "XNYS"
 		elif exchange == "NasdaqNM":
 			exchange_code = "XNAS"
 		else:
-			print "Unknown Exchange Code for", basic_data.symbol
+			print line_number(), "Unknown Exchange Code for", basic_data.symbol
 			print line_number()
 			return
 	else:
-		print 'Stock cannot be updated, need exchange symbol'
+		print line_number(), 'Stock cannot be updated, need exchange symbol'
 		return
 
 	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/ReportProcess4HtmlAjax.html?&t=%s:%s&region=usa&culture=en-US&cur=USD&reportType=cf&period=12&dataType=A&order=asc&columnYear=5&rounding=3&view=raw&r=963470&callback=jsonp%d&_=%d' % (exchange_code, ticker, int(time.time()), int(time.time()+150)))
@@ -1439,7 +1464,7 @@ def morningstar_annual_cash_flow_scrape(ticker):
 					dummy_str += char
 					last_char_was_backslash = False
 				else:
-					print "\\%s" % char
+					print line_number(), "\\%s" % char
 					last_char_was_backslash = False
 
 			else:
@@ -1519,48 +1544,46 @@ def morningstar_annual_cash_flow_scrape(ticker):
 			if data_list[i] == u'\u2014':
 				data_list[i] = "-"
 			try:
-				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
-				print stock.symbol, str(attribute + trailing_x_year_list[i]), int(data_list[i])
+				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				print line_number(), stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", int(data_list[i])
 				success = True
 			except:
 				try:
-					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
-					print stock.symbol, str(attribute + trailing_x_year_list[i]), str(data_list[i])
+					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					print line_number(), stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", str(data_list[i])
 					success = True
 				except Exception, exception:
-					print exception
+					print line_number(), exception
 	
 	if success:
-		with open('all_annual_data_stocks.pk', 'wb') as output:
-			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-	print "\n", "cash flow done", "\n"
+		db.save_GLOBAL_STOCK_DICT()
+	print line_number(), "\n", "cash flow done", "\n"
 	return success
-def morningstar_annual_income_statement_scrape(ticker):
-	print "morningstar_annual_income_statement_scrape:", ticker
-	stock = return_existing_StockAnnualData(ticker)
+def ms_annual_income_statement_scrape(ticker):
+	print line_number(), "morningstar_annual_income_statement_scrape:", ticker
+	stock = utils.return_stock_by_symbol(ticker)
 	if not stock:
-		stock = StockAnnualData(ticker)
-		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
-
-	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		#if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
-		#	print "Income Statement data for %s is up to date." % ticker
-		#	return
+		print line_number(), "Error: stock %s does not exist" % ticker
 	
-	basic_data = return_stock_by_symbol(ticker)
-	if basic_data:
-		exchange = basic_data.StockExchange
+	most_recent_update = stock.last_income_statement_update_ms
+	last_acceptable_update = float(time.time()) - config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	if  most_recent_update > last_acceptable_update: 
+		print line_number(), "MS income statement data for %s is up to date." % ticker
+		return
+	
+	
+	if stock:
+		exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
 		if exchange == 'NYSE':
 			exchange_code = "XNYS"
 		elif exchange == "NasdaqNM":
 			exchange_code = "XNAS"
 		else:
-			print "Unknown Exchange Code for", basic_data.symbol
+			print line_number(), "Unknown Exchange Code for", basic_data.symbol
 			print line_number()
 			return
 	else:
-		print 'Stock cannot be updated, need exchange symbol'
+		print line_number(), 'Stock cannot be updated, need exchange symbol'
 		return
 
 	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/ReportProcess4HtmlAjax.html?&t=%s:%s&region=usa&culture=en-US&cur=USD&reportType=is&period=12&dataType=A&order=asc&columnYear=5&rounding=3&view=raw&r=354589&callback=jsonp%d&_=%d' % (exchange_code, ticker, int(time.time()), int(time.time()+150)))
@@ -1735,58 +1758,56 @@ def morningstar_annual_income_statement_scrape(ticker):
 			elif data_list[i] == "nbsp":
 				continue
 			try:
-				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
-				print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
+				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])
 				success = True
 			except:
 				try:
-					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
-					print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
+					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])
 					success = True
 				except Exception, exception:
-					print exception
+					print line_number(), exception
 	
 	if success:
-		with open('all_annual_data_stocks.pk', 'wb') as output:
-			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-	print "\n", "income statement done", "\n" 
+		db.save_GLOBAL_STOCK_DICT()
+	print line_number(), "\n", "income statement done", "\n" 
 	return success
-def morningstar_annual_balance_sheet_scrape(ticker):
-	print "morningstar_annual_balance_sheet_scrape:", ticker
-	stock = return_existing_StockAnnualData(ticker)
+def ms_annual_balance_sheet_scrape(ticker):
+	print line_number(), "morningstar_annual_balance_sheet_scrape:", ticker
+	stock = utils.return_stock_by_symbol(ticker)
 	if not stock:
-		stock = StockAnnualData(ticker)
-		GLOBAL_ANNUAL_DATA_STOCK_LIST.append(stock)
+		print line_number(), "Error: stock %s does not exist" % ticker
+
+	most_recent_update = stock.last_balance_sheet_update_ms
+	last_acceptable_update = float(time.time()) - config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE
+	if  most_recent_update > last_acceptable_update: 
+		print line_number(), "MS balance sheet data for %s is up to date." % ticker
+		return
+
 
 	if stock:
-		yesterdays_epoch = float(time.time()) - (60 * 60 * 24)
-		#if stock.last_cash_flow_update > yesterdays_epoch: # if data is more than a day old
-		#	print "Balance sheet data for %s is up to date." % ticker
-		#	return
-
-	basic_data = return_stock_by_symbol(ticker)
-	if basic_data:
-		exchange = basic_data.StockExchange
+		exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
 		if exchange == 'NYSE':
 			exchange_code = "XNYS"
 		elif exchange == "NasdaqNM":
 			exchange_code = "XNAS"
 		else:
-			print "Unknown Exchange Code for", basic_data.symbol
+			print line_number(), "Unknown Exchange Code for", basic_data.symbol
 			print line_number()
 			return
 	else:
-		print 'Stock cannot be updated, need exchange symbol'
+		print line_number(), 'Stock cannot be updated, need exchange symbol'
 		return
 
 	url = 'http://financials.morningstar.com/ajax/ReportProcess4HtmlAjax.html?&t=%s:%s&region=usa&culture=en-US&cur=USD&reportType=bs&period=12&dataType=A&order=asc&columnYear=5&rounding=3&view=raw'% (exchange_code, ticker)#&r=782238&callback=jsonp%d&_=%d' % (exchange_code, ticker, int(time.time()), int(time.time()+150))
-	print "\n", url, "\n"
+	print line_number(), "\n", url, "\n"
 	morningstar_raw = urllib2.urlopen(url)
 
-	print "morningstar_raw:", morningstar_raw, "\n"
+	print line_number(), "morningstar_raw:", morningstar_raw, "\n"
 	
 	if not morningstar_raw:
-		print "failed", line_number()
+		print line_number(), "failed", line_number()
 	#print morningstar_raw
 	morningstar_json = morningstar_raw.read()
 	#print "morningstar read", morningstar_json
@@ -1822,7 +1843,7 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 					dummy_str += char
 					last_char_was_backslash = False
 				else:
-					print "\\%s" % char
+					print line_number(), "\\%s" % char
 					last_char_was_backslash = False
 
 			else:
@@ -1901,7 +1922,7 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 					if found_data:
 						data_list.append(found_data)
 			else:
-				print data
+				print line_number(), data
 			
 			#if name and data_list:
 			#	print name
@@ -1912,12 +1933,12 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 				full_data.append([str(name),data_list])
 			else:
 				if not name:
-					print label, "\n", name, "\n"
+					print line_number(), label, "\n", name, "\n"
 				elif not data_list:
-					print data
+					print line_number(), data
 			count+=1
 
-	print "total units of data =", len(full_data)
+	print line_number(), "total units of data =", len(full_data)
 	#for i in full_data:
 	#	print i[0]
 	#	for j in i[1]:
@@ -1946,27 +1967,26 @@ def morningstar_annual_balance_sheet_scrape(ticker):
 			if data_list[i] == u'\u2014':
 				data_list[i] = "-"
 			try:
-				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
-				print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
+				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])
 				success = True
 			except:
 				try:
-					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
-					print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
+					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])
 					success = True
 				except Exception, exception:
-					print exception
+					print line_number(), exception
 	
 	if success:
-		with open('all_annual_data_stocks.pk', 'wb') as output:
-			pickle.dump(GLOBAL_ANNUAL_DATA_STOCK_LIST, output, pickle.HIGHEST_PROTOCOL)
-	print "\n", "balance sheet done", "\n"
+		db.save_GLOBAL_STOCK_DICT()
+	print line_number(), "\n", "balance sheet done", "\n"
 	return success
 
 # Morningstar Key Ratios (Not increadibly reliable for all data (rounding large numbers), consider alternatives if necessary)
-def morningstar_key_ratios_scrape(ticker):
+def ms_key_ratios_scrape(ticker):
 	ticker = ticker.upper()
-	print "morningstar_key_ratios_scrape:", ticker
+	print line_number(), "morningstar_key_ratios_scrape:", ticker
 	stock = return_existing_StockAnnualData(ticker)
 	if not stock:
 		stock = StockAnnualData(ticker)
@@ -1985,7 +2005,7 @@ def morningstar_key_ratios_scrape(ticker):
 		elif exchange == "NasdaqNM":
 			exchange_code = "XNAS"
 		else:
-			print "Unknown Exchange Code for", basic_data.symbol
+			print line_number(), "Unknown Exchange Code for", basic_data.symbol
 			print line_number()
 			return
 	else:
@@ -1993,7 +2013,7 @@ def morningstar_key_ratios_scrape(ticker):
 		return
 
 	### First get your scrape ###
-	print 'http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker)
+	print line_number(), 'http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker)
 	morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/financials/getFinancePart.html?&callback=jsonp1408061143067&t=%s:%s&region=usa&culture=en-US&cur=USD&order=asc&_=1408061143210' % (exchange_code, ticker))
 	#morningstar_raw = urllib2.urlopen('http://financials.morningstar.com/ajax/exportKR2CSV.html?&callback=?&t=%s:%s&region=usa&culture=en-US&cur=USD&order=' % (exchange_code, ticker) )#, int(time.time()), int(time.time()+150)))
 	morningstar_json = morningstar_raw.read()
@@ -2119,7 +2139,7 @@ def morningstar_key_ratios_scrape(ticker):
 
 
 
-	print "total units of data =", len(data_list)
+	print line_number(), "total units of data =", len(data_list)
 
 	success = False
 
@@ -2129,7 +2149,7 @@ def morningstar_key_ratios_scrape(ticker):
 	data_list = morningstar_recursive_data_list_string_edit(data_list)
 	data_list = morningstar_add_zeros_to_usd_millions(data_list)
 	#########
-	
+	print line_number()
 	pp.pprint(data_list)
 
 	# for unit in data_list:
@@ -2145,11 +2165,11 @@ def morningstar_key_ratios_scrape(ticker):
 	count = 1
 	for datum in data_list:
 		print ""
-		print count
-		print datum[0]
+		print line_number(), count
+		print line_number(), datum[0]
 		attribute = datum[0]
-		print datum[1]
-		print "------"
+		print line_number(), datum[1]
+		print line_number(), "------"
 		count += 1	
 		data_list = datum[2]
 		trailing_x_year_list = ["_ttm", "_t1y", "_t2y", "_t3y", "_t4y", "_t5y", "_t6y", "_t7y", "_t8y", "_t9y", "_t10y"]
@@ -2160,15 +2180,15 @@ def morningstar_key_ratios_scrape(ticker):
 				# testing only commented out
 				setattr(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]))
 				#
-				print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
+				print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", int(data_list[i])
 			except:
 				try:
 					# testing only commented out
 					setattr(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]))
 					#
-					print stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
+					print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i]), "=", str(data_list[i])
 				except Exception, exception:
-					print exception
+					print line_number(), exception
 	# testing only
 	success = False
 	#
@@ -2182,7 +2202,7 @@ def morningstar_key_ratios_scrape(ticker):
 	with open('all_stocks_dict.pk', 'wb') as output:
 		pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
 
-	print "\n", "key ratios done", "\n"
+	print line_number(), "\n", "key ratios done", "\n"
 	return success
 
 	sys.exit()
@@ -2198,11 +2218,11 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 		if type(datum) is list:
 			recursion_count += 1
 			if recursion_count > 10:
-				print "max recusions achieved,", line_number()
+				print line_number(), "max recusions achieved,", line_number()
 				return
-			print "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
+			print line_number(), "Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count
 			datum = morningstar_recursive_data_list_string_edit(datum, recursion_count = recursion_count)
-			print "End recursion level %d" % recursion_count
+			print line_number(), "End recursion level %d" % recursion_count
 			recursion_count -= 1
 		elif type(datum) is (str or unicode):
 			#print string, "\n"
@@ -2211,7 +2231,7 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 				if not datum.isdigit():
 					raise Exception("Not a number")
 				datum = datum.replace("\xe2\x80\x94","-")
-				print "string (number) saved:", datum
+				print line_number(), "string (number) saved:", datum
 			except:
 				datum = datum.replace("%", "perc")
 				datum = datum.replace(" ","_")
@@ -2236,10 +2256,9 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 				# datum = datum.replace(u"(expense)_", u"")
 				# datum = datum.replace(u"(used_for)", u"used_for")
 				# datum = datum.replace(u"__",u"_")
-				print "string saved:", datum
+				print line_number(), "string saved:", datum
 		else:
-			print "Not able to parse:", datum
-			line_number()
+			print line_number(), "Not able to parse:", datum
 
 		dummy_list.append(datum)
 
@@ -2258,16 +2277,17 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 def morningstar_add_zeros_to_usd_millions(data_list):
 	dummy_list = []
 	for datum in data_list:
-		print "edits:"
-		print datum[1]
+		print line_number(), "edits:"
+		print line_number(), datum[1]
 		if not len(datum) == 3:
+			print line_number()
 			logging.error("morningstar_add_zeros_to_usd_millions error, not correctly formated list")
 		if datum[1] in ["USD Mil", u"USD Mil", "USD_Mil", u"USD_Mil"]:
 			dummy_list_2 = []
 			for amount_of_dollars in datum[2]:
-				print amount_of_dollars
+				print line_number(), amount_of_dollars
 				if str(amount_of_dollars).isdigit():
-					print "converting %s to %s000" % (amount_of_dollars, amount_of_dollars)
+					print line_number(), "converting %s to %s000" % (amount_of_dollars, amount_of_dollars)
 					amount_of_dollars = amount_of_dollars + "000"
 				dummy_list_2.append(amount_of_dollars)
 			datum[2] = dummy_list_2

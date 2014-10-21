@@ -1,6 +1,7 @@
 ### Editable globals that may improve your performance ###
 
 STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
+DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
 
 SCRAPE_CHUNK_LENGTH = 50
 # Had errors with yql (yahoo query language) at greater numbers than 50

@@ -26,6 +26,12 @@ def line_number():
     line_number_string = "Line %d:" % line_number
     return line_number_string
 
+
+
+
+
+
+
 try:
 	import Crypto
 	from modules.simplecrypt import encrypt, decrypt
@@ -64,14 +70,6 @@ if config.ENCRYPTION_POSSIBLE:
 
 # Load data
 db.load_all_data()
-
-#for ticker in config.GLOBAL_STOCK_DICT:
-#	print dir(config.GLOBAL_STOCK_DICT[ticker])
-#sys.exit()
-
-
-
-
 
 ### START ###################################################################
 def main():

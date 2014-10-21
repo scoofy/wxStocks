@@ -29,14 +29,18 @@ class Stock(object):
 
 		self.last_yql_basic_scrape_update = 0.0
 		
-		self.last_yahoo_balance_sheet_update = 0.0
-		self.last_yahoo_cash_flow_update = 0.0
-		self.last_yahoo_income_statement_update = 0.0
+		self.last_balance_sheet_update_yf = 0.0
+		self.last_balance_sheet_update_ms = 0.0
+
+		self.last_cash_flow_update_yf = 0.0
+		self.last_cash_flow_update_ms = 0.0
+
+		self.last_income_statement_update_yf = 0.0
+		self.last_income_statement_update_ms = 0.0
 		
-		self.last_morningstar_balance_sheet_update = 0.0
-		self.last_morningstar_cash_flow_update = 0.0
-		self.last_morningstar_income_statement_update = 0.0
-		self.last_morningstar_key_ratios_update = 0.0
+		self.last_key_ratios_update_ms = 0.0
+
+		
 
 		self.yql_ticker = self.ticker.replace("^", "-P").replace("/WS/","-WT").replace("/WS","-WT").replace("/", "-")
 		#	# nasdaq csv seems to use "MITT^A" vs "MITT^B" to demarcate classes, 
@@ -48,6 +52,20 @@ class Stock(object):
 		#print type(self)
 		#print 'Saving: Stock("%s")' % symbol.upper()
 		#db.save_GLOBAL_STOCK_DICT()
+
+	def testing_reset_fields(self):
+		self.last_yql_basic_scrape_update = 0.0
+		
+		self.last_balance_sheet_update_yf = 0.0
+		self.last_balance_sheet_update_ms = 0.0
+
+		self.last_cash_flow_update_yf = 0.0
+		self.last_cash_flow_update_ms = 0.0
+
+		self.last_income_statement_update_yf = 0.0
+		self.last_income_statement_update_ms = 0.0
+		
+		self.last_key_ratios_update_ms = 0.0
 
 class Account(object): #portfolio
 	def __init__(self, id_number, cash = 0, initial_ticker_shares_tuple_list = []):

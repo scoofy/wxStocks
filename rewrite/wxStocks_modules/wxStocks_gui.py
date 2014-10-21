@@ -2880,9 +2880,8 @@ class StockDataPage(Tab):
 		ticker = self.ticker_input.GetValue()
 		if str(ticker) == "ticker" or not ticker:
 			return
-
-		
-
+		scrape.scrape_all_additional_data([ticker])
+		self.createOneStockSpreadSheet("event")
 	
 	def createOneStockSpreadSheet(self, event):
 		ticker = self.ticker_input.GetValue()
@@ -3314,20 +3313,11 @@ def create_spread_sheet_for_one_stock(
 	position = (0,60), 
 	enable_editing = False
 	):
-	basic_data = None
-	annual_data = None
-	analyst_estimates = None
 
-	data_list = []
+	stock = utils.return_stock_by_symbol(ticker)
 
-	basic_data = utils.return_stock_by_symbol(ticker)
-	if basic_data:
-		data_list.append(basic_data)
-
-	if not basic_data:
+	if not stock:
 		print 'Ticker "%s" does not appear to have basic data' % ticker
-
-	if not data_list:
 		return
 
 	attribute_list = []
@@ -3335,19 +3325,18 @@ def create_spread_sheet_for_one_stock(
 	num_rows = 0
 	# Here we make rows for each attribute to be included
 	num_attributes = 0
-	for stock in data_list:
-		if basic_data:
-			for attribute in dir(stock):
-				if not attribute.startswith('_'):
-					if attribute not in attribute_list:
-						num_attributes += 1
-						attribute_list.append(str(attribute))
-					else:
-						print "%s.%s" % (ticker, attribute), "is a duplicate"
+	if stock:
+		for attribute in dir(stock):
+			if not attribute.startswith('_'):
+				if attribute not in attribute_list:
+					num_attributes += 1
+					attribute_list.append(str(attribute))
+				else:
+					print "%s.%s" % (ticker, attribute), "is a duplicate"
 
-		
-		if num_rows < num_attributes:
-			num_rows = num_attributes
+	
+	if num_rows < num_attributes:
+		num_rows = num_attributes
 
 	screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
 
@@ -3376,48 +3365,15 @@ def create_spread_sheet_for_one_stock(
 			screen_grid.SetCellValue(row_count, col_count-1, str(attribute))
 
 			# Try to add basic data value
-			screen_grid.SetCellValue(row_count, col_count, str(getattr(basic_data, attribute)))
+			screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
 
 			# Change text red if value is negative
-			if str(getattr(basic_data, attribute)).startswith("(") or str(getattr(basic_data, attribute)).startswith("-"):
-				screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
+			if str(getattr(stock, attribute)).startswith("(") or str(getattr(stock, attribute)).startswith("-") and len(str(getattr(stock, attribute))) > 1:
+				screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
 
-		except Exception, exception:
-			# This will fail if we are not dealing with a basic data attribute
-			try:
-				# Try to add an annual data value
-				screen_grid.SetCellValue(row_count, col_count, str(getattr(annual_data, attribute)))
-				
-				# Change text red if value is negative
-				if str(getattr(annual_data, attribute)).startswith("(") or (str(getattr(annual_data, attribute)).startswith("-") and len(str(getattr(annual_data, attribute))) > 1):
-					screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-			except:
-				# This will fail if we are not dealing with an annual data attribute
-				try:
-					screen_grid.SetCellValue(row_count, col_count, str(getattr(analyst_estimates, attribute)))
+		except Exception as e:
+			print line_number(), e
 
-					# Change text red if value is negative
-					if str(getattr(analyst_estimates, attribute)).startswith("(") or (str(getattr(analyst_estimates, attribute)).startswith("-") and len(str(getattr(analyst_estimates, attribute))) > 0):
-						screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-				except Exception, exception:
-					print exception
-					print line_number()
-
-					### model to add new data type ###
-
-					# # This will fail if we are not dealing with a PREVIOUS_DATA_TYPE attribute
-					# try:
-					# 	screen_grid.SetCellValue(row_count, col_count, str(getattr(data_type, attribute)))
-						
-					# 	# Add color if relevant
-					# 	if str(ticker) in held_ticker_list:
-					# 		screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-						
-					# 	# Change text red if value is negative
-					# 	if str(getattr(data_type, attribute)).startswith("(") or (str(getattr(data_type, attribute)).startswith("-") and len(str(getattr(data_type, attribute))) > 0):
-					# 		screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-					# except Exception, exception:
-					# 	# etc...
 		row_count += 1
 
 	screen_grid.AutoSizeColumns()
