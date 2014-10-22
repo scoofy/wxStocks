@@ -18,6 +18,8 @@ secure_file_folder = 'DO_NOT_COPY'
 portfolios_path = 'DO_NOT_COPY/portfolios.%s'
 portfolio_account_obj_file_path = 'DO_NOT_COPY/portfolio_%d_data.%s'
 password_path = 'DO_NOT_COPY/password.txt'
+test_path = 'user_created_tests.py'
+default_test_path = 'wxStocks_modules/wxStocks_data/default_user_tests.py'
 
 ####################### Data Loading ###############################################
 def load_all_data():
@@ -152,6 +154,26 @@ def save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
 	with open(screen_name_and_time_created_tuple_list_path, 'wb') as output:
 		pickle.dump(tuple_list, output, pickle.HIGHEST_PROTOCOL)
 ###
+
+### Screen test functions
+def load_default_tests():
+	test_file = open(default_test_path, 'r')
+	text = test_file.read()
+	test_file.close()
+	return text
+def load_user_created_tests():
+	try:
+		test_file = open(test_path, 'r')
+		text = test_file.read()
+		test_file.close()
+	except:
+		text = load_default_tests()
+	return text
+def save_user_created_tests(text):
+	with open(test_path, "w") as output:
+		output.write(text)
+###
+
 
 ### Portfolio functions need encryption/decryption
 def decrypt_if_possible(path):

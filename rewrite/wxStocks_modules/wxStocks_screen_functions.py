@@ -26,7 +26,7 @@ Function_Reference = namedtuple("Function_Reference", ["name", "func", "doc"])
 def functions_names():
 	"""Returns function docs in our module."""
 	# First we import the modules we want to inspect
-	import user_generated_functions as user_functions
+	import user_created_tests as user_functions
 	import wxStocks_screen_functions as screen_functions
 
 	module_list = []
@@ -74,8 +74,6 @@ def return_stocks_with_pe_less_than_10(stock):
 			#print line_number(),e
 	return screen_results
 ############################################################################################
-functions_names()
-sys.exit()
 
 
 

@@ -18,6 +18,7 @@ import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
+import wxStocks_tests_meta as meta
 
 def line_number():
 	"""Returns the current line number in our program."""
@@ -112,6 +113,9 @@ class MainFrame(wx.Frame): # reorder tab postions here
 
 		self.stock_data_page = StockDataPage(notebook)
 		notebook.AddPage(self.stock_data_page, "Ticker Data")
+
+		self.user_created_tests = UserCreatedTestsPage(notebook)
+		notebook.AddPage(self.user_created_tests, "Tests")
 
 		# finally, put the notebook in a sizer for the panel to manage
 		# the layout
@@ -658,7 +662,9 @@ class ScreenPage(Tab):
 		screen_button = wx.Button(self, label="screen", pos=(110,4), size=(-1,-1))
 		screen_button.Bind(wx.EVT_BUTTON, self.screenStocks, screen_button)
 
-		self.drop_down = wx.ComboBox(self, pos=(210, 6), choices=['PE < 10', 'are','default','choices'])
+		self.screen_name_list = meta.return_function_short_names()
+		self.drop_down = wx.ComboBox(self, pos=(210, 6), choices=self.screen_name_list)
+		throw error # start working again here
 
 		self.save_screen_button = wx.Button(self, label="save", pos=(900,4), size=(-1,-1))
 		self.save_screen_button.Bind(wx.EVT_BUTTON, self.saveScreen, self.save_screen_button)
@@ -2912,6 +2918,86 @@ class StockDataPage(Tab):
 		print "about to scrape"
 		scrape_analyst_estimates( [str(ticker).upper()] )
 		self.createOneStockSpreadSheet(event = "")
+
+
+class UserCreatedTestsPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the user generated test page.", 
+							 (10,10)
+							 )
+		save_button = wx.Button(self, label="Save Tests", pos=(5, 30), size=(-1,-1))
+		save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+
+		reset_button = wx.Button(self, label="Reset Tests to Default", pos=(5, 60), size=(-1,-1))
+		reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+
+		more_text = wx.StaticText(self, -1, 
+							 "Create stock screen tests to be imported into screen or rank pages.", 
+							 (145,36)
+							 )
+
+
+
+		self.file_text = db.load_user_created_tests()
+
+
+		self.height_var = 100
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (765, 625),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+		print line_number(), "UserCreatedTestsPage loaded"
+
+
+	def confirmSave(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you want to save your work? This action cannot be undone.", 
+								   'Confirm Save', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.saveTests()
+	def saveTests(self):
+		text = self.file_display.GetValue()
+		db.save_user_created_tests(text)
+
+	def confirmResetToDefault(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you reset to file default? This action cannot be undone.", 
+								   'Confirm Reset', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.resetToDefault()
+	def resetToDefault(self):
+		self.file_display.Destroy()
+		
+		self.file_text = db.load_default_tests()
+		db.save_user_created_tests(self.file_text)
+
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (765, 625),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+
 # ###########################################################################################
 
 # ###################### wx grids #######################################################
