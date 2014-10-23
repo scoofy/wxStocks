@@ -1,4 +1,5 @@
-# add functions below
+# Add functions below:
+# You can also edit this file (user_created_tests.py) in your own text editor. 
 
 ########################################### instructions #######################################################
 # functions should be of the following form:
@@ -31,19 +32,21 @@
 
 ################################################################################################################
 
-def function_pretending_to_be_a_method(stock):
-	"""I'm a method... Not really, i'm actually a fuction."""
-	return_string = ""
-	for letter in stock.firm_name:
-		return_string = return_string + letter + letter
-	return return_string
+def ticker_less_than_three_letters(stock):
+	"""Ticker < 3 letters"""
+	if len(stock.ticker) < 3:
+		return True
+	else:
+		return False
 
-def this_is_a_function(stock):
-	"I'm a fuction!"
-	return_string = ""
-	for letter in stock.firm_name:
-		return_string = return_string + letter + " "
-	return return_string
+def firm_name_contains_the_letters_LLC(stock):
+	"LLC in name"
+	llc_in_name = False
+	if "LLC" in stock.firm_name:
+		llc_in_name = True
+	if "llc" in stock.firm_name:
+		llc_in_name = True
+	return llc_in_name
 
 
 

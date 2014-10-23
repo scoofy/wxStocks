@@ -18,7 +18,7 @@ import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
-import wxStocks_tests_meta as meta
+import wxStocks_meta_functions as meta
 
 def line_number():
 	"""Returns the current line number in our program."""
@@ -662,9 +662,10 @@ class ScreenPage(Tab):
 		screen_button = wx.Button(self, label="screen", pos=(110,4), size=(-1,-1))
 		screen_button.Bind(wx.EVT_BUTTON, self.screenStocks, screen_button)
 
-		self.screen_name_list = meta.return_function_short_names()
+		self.screen_name_list = meta.return_screen_function_short_names()
 		self.drop_down = wx.ComboBox(self, pos=(210, 6), choices=self.screen_name_list)
-		throw error # start working again here
+
+		self.triple_list = meta.return_screen_function_triple()
 
 		self.save_screen_button = wx.Button(self, label="save", pos=(900,4), size=(-1,-1))
 		self.save_screen_button.Bind(wx.EVT_BUTTON, self.saveScreen, self.save_screen_button)
@@ -677,30 +678,35 @@ class ScreenPage(Tab):
 		print line_number(), "ScreenPage loaded"
 
 	def screenStocks(self, event):
-		drop_down_value = self.drop_down.GetValue()
+		screen_name = self.drop_down.GetValue()
 
-		if drop_down_value == 'PE < 10':
-			current_screen = screen.return_stocks_with_pe_less_than_10()
+		# Identify the function mapped to screen name
+		for triple in self.triple_list:
+			if screen_name == triple.doc:
+				screen_function = triple.function
+		if not screen_function:
+			print line_number(), "Error, somthing went wrong locating the correct screen to use."
 
-		config.CURRENT_SCREEN_LIST = current_screen
+		# run screen
+		conforming_stocks = []
+		for ticker in config.GLOBAL_STOCK_DICT:
+			stock = config.GLOBAL_STOCK_DICT.get(ticker)
+			result = screen_function(stock)
+			if result is True:
+				conforming_stocks.append(stock)
 
-		if self.screen_grid:
-			try:
-				self.screen_grid.Destroy()
-			except Exception, e:
-				print line_number(), e
-
+		config.CURRENT_SCREEN_LIST = conforming_stocks
 		
 		if self.first_spread_sheet_load:
 			self.first_spread_sheet_load = False
 		else:
 			try:
 				self.screen_grid.Destroy()
-			except Exception, exception:
-				print line_number(), exception
+			except Exception as e:
+				print line_number(), e
 		self.screen_grid = StockScreenGrid(self, -1, size=(1000,680), pos=(0,50))
 		self.screen_grid.CreateGrid(self.screen_grid.num_rows, self.screen_grid.num_columns)
-		self.spreadSheetFill(self.screen_grid, current_screen)
+		self.spreadSheetFill(self.screen_grid, conforming_stocks)
 
 		self.save_screen_button.Show()
 
