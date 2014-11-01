@@ -1,5 +1,5 @@
-# Add functions below:
-# You can also edit this file (user_created_tests.py) in your own text editor. 
+# Add test functions below:
+# You can also edit this file (wxStocks_screen_functions.py) in your own text editor. 
 
 ########################################### instructions #######################################################
 # functions should be of the following form:

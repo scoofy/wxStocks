@@ -19,6 +19,7 @@ import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
 import wxStocks_meta_functions as meta
+import wxStocks_screen_and_rank_operations as screen_and_rank_ops
 
 def line_number():
 	"""Returns the current line number in our program."""
@@ -684,6 +685,9 @@ class ScreenPage(Tab):
 		for triple in self.triple_list:
 			if screen_name == triple.doc:
 				screen_function = triple.function
+			# in case doc string is too many characters...
+			elif screen_name == triple.name:
+				screen_function = triple.function
 		if not screen_function:
 			print line_number(), "Error, somthing went wrong locating the correct screen to use."
 
@@ -965,10 +969,155 @@ class RankPage(Tab):
 		self.sort_button.Hide()
 		self.sort_drop_down.Hide()
 
+		self.rank_triple_list = meta.return_rank_function_triple()
+		self.rank_name_list = meta.return_rank_function_short_names()
+		self.rank_button =  wx.Button(self, label="Rank by:", pos=(420, 5), size=(-1,-1))
+		self.rank_button.Bind(wx.EVT_BUTTON, self.rankStocks, self.rank_button)
+		self.rank_drop_down = wx.ComboBox(self, 
+									 pos=(520, 6), 
+									 choices=self.rank_name_list,
+									 style = wx.TE_READONLY
+									 )
+		self.rank_button.Hide()
+		self.rank_drop_down.Hide()
+
 		self.fade_opacity = 255
 		self.screen_grid = None
 
+		self.rank_name = None
+
 		print line_number(), "RankPage loaded"
+
+	def rankStocks(self, event):
+		self.rank_name = self.rank_drop_down.GetValue()
+
+		# Identify the function mapped to screen name
+		for triple in self.rank_triple_list:
+			if self.rank_name == triple.doc:
+				rank_function = triple.function
+			# in case doc string is too many characters...
+			elif self.rank_name == triple.name:
+				rank_function = triple.function
+
+		if not rank_function:
+			print line_number(), "Error, somthing went wrong locating the correct screen to use."
+
+		# run ranking funtion on all stocks
+
+		ranked_tuple_list = screen_and_rank_ops.return_ranked_list_from_rank_function(config.RANK_PAGE_ALL_RELEVANT_STOCKS, rank_function)
+
+		######################################
+		self.screen_grid = self.createRankedSpreadSheet(ranked_tuple_list, self.rank_name)
+		try:
+			self.sort_drop_down.Destroy()
+			self.sort_drop_down = wx.ComboBox(self, 
+											 pos=(520, 31), 
+											 choices = self.relevant_attribute_list,
+											 style = wx.TE_READONLY
+											 )
+		except Exception, exception:
+			pass
+			#print line_number(), exception
+		self.clear_button.Show()
+		self.sort_button.Show()
+		self.sort_drop_down.Show()
+		self.rank_button.Show()
+		self.rank_drop_down.Show()
+
+
+		print line_number(), "rankStocks done!"
+
+	def createRankedSpreadSheet(
+		self
+		, stock_value_tuple_list 
+		, relevant_value_name
+		, height = 637
+		, width = 980
+		, position = (0,60)
+		, enable_editing = False
+		):
+
+		irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
+
+
+		config.TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = [] # Clear update list
+
+
+		num_rows = len(stock_value_tuple_list)
+		num_columns = 0
+
+		stock_list = [x.stock for x in stock_value_tuple_list]
+
+		for my_tuple in stock_value_tuple_list:
+			print line_number(), my_tuple.stock.symbol, my_tuple.value
+
+		attribute_list = [relevant_value_name]
+		# Here we make columns for each attribute to be included
+		for stock in stock_list:
+			for attribute in dir(stock):
+				if not attribute.startswith('_'):
+					if attribute not in config.IRRELEVANT_ATTRIBUTES:
+						if attribute not in attribute_list:
+							attribute_list.append(str(attribute))
+			if num_columns < len(attribute_list):
+				num_columns = len(attribute_list)		
+
+		if stock_list and not attribute_list:
+			print line_number(), 'Warning: attribute list empty'
+			return
+		# else: loading blank list
+
+		screen_grid = wx.grid.Grid(self, -1, size=(width, height), pos=position)
+		screen_grid.CreateGrid(num_rows, num_columns)
+		screen_grid.EnableEditing(enable_editing)
+
+		if attribute_list: # not empty screen loading:
+			attribute_list.sort(key = lambda x: x.lower())
+			# adjust list order for important terms
+			attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+			attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+			attribute_list.insert(2, attribute_list.pop(attribute_list.index(relevant_value_name)))
+
+		self.full_attribute_list = attribute_list
+		self.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
+
+
+
+		# fill in grid
+		row_count = 0
+		for stock_value_tuple in stock_value_tuple_list:
+			col_count = 0
+			for attribute in attribute_list:
+				relevant_value_col = False # reset this at the begining of iteration
+				# set attributes to be labels if it's the first run through
+				if row_count == 0:
+					screen_grid.SetColLabelValue(col_count, str(attribute))
+				if attribute == relevant_value_name:
+					screen_grid.SetCellValue(row_count, col_count, str(stock_value_tuple.value))
+					relevant_value_col = True
+				if not relevant_value_col:
+					try:
+						# Try to add basic data value
+						screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_value_tuple.stock, attribute)))
+						# Add color if relevant
+						if str(stock_value_tuple.stock.ticker) in config.HELD_STOCK_TICKER_LIST:
+							screen_grid.SetCellBackgroundColour(row_count, col_count, config.HELD_STOCK_COLOR_HEX)
+						# Change text red if value is negative
+						try:
+							if utils.stock_value_is_negative(stock_value_tuple.stock, attribute):
+								screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+						except Exception as exception:
+							pass
+							#print line_number(), exception
+					except Exception as exception:
+						pass
+						#print line_number(), exception
+				col_count += 1
+			row_count += 1
+		screen_grid.AutoSizeColumns()
+
+		return screen_grid
+
 
 	def createSpreadSheet(self, stock_list):
 		self.screen_grid = create_spread_sheet(self, stock_list)
@@ -985,6 +1134,8 @@ class RankPage(Tab):
 		self.clear_button.Show()
 		self.sort_button.Show()
 		self.sort_drop_down.Show()
+		self.rank_button.Show()
+		self.rank_drop_down.Show()
 
 
 	def updateAdditionalData(self, event):

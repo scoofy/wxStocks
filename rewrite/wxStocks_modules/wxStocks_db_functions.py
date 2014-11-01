@@ -18,8 +18,10 @@ secure_file_folder = 'DO_NOT_COPY'
 portfolios_path = 'DO_NOT_COPY/portfolios.%s'
 portfolio_account_obj_file_path = 'DO_NOT_COPY/portfolio_%d_data.%s'
 password_path = 'DO_NOT_COPY/password.txt'
-test_path = 'user_created_tests.py'
-default_test_path = 'wxStocks_modules/wxStocks_data/default_user_tests.py'
+test_path = 'wxStocks_screen_functions.py'
+default_test_path = 'wxStocks_modules/wxStocks_default_user_tests.py'
+rank_path = 'wxStocks_rank_functions.py'
+default_rank_path = 'wxStocks_default_user_rank_functions.py'
 
 ####################### Data Loading ###############################################
 def load_all_data():

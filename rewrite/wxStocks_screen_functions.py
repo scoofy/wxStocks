@@ -1,5 +1,5 @@
-# Add functions below:
-# You can also edit this file (user_created_tests.py) in your own text editor. 
+# Add screen functions below:
+# You can also edit this file (wxStocks_screen_functions.py) in your own text editor. 
 
 ########################################### instructions #######################################################
 # functions should be of the following form:
@@ -22,14 +22,6 @@
 #
 #		return result_bool
 
-#	def my_example_function_returns_true_for_stocks_with_PEs_greater_than_ten(stock):
-#		"""PE > 10"""
-#		if stock.PERatio_yf > 10:
-#			result_bool = True
-#		else:
-#			result_bool = False
-#		return result_bool
-
 ################################################################################################################
 
 def ticker_less_than_three_letters(stock):
@@ -48,9 +40,16 @@ def firm_name_contains_the_letters_LLC(stock):
 		llc_in_name = True
 	return llc_in_name
 
-
-
-
+def return_stocks_with_pe_less_than_10(stock):
+	'''PE < 10'''
+	try:
+		if stock.PERatio_yf:
+			if float(stock.PERatio_yf) < 10:
+				return True
+	except Exception as e:
+		pass
+		#print line_number(),e
+	return False
 
 
 
