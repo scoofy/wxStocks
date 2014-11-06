@@ -26,12 +26,6 @@ def line_number():
     line_number_string = "Line %d:" % line_number
     return line_number_string
 
-
-
-
-
-
-
 try:
 	import Crypto
 	from modules.simplecrypt import encrypt, decrypt
@@ -47,6 +41,7 @@ except:
 # It's not the most secure solution, but for all intents and purposes here, it should be fine.
 
 if config.ENCRYPTION_POSSIBLE:
+	db.load_encryption_strength()		
 	import getpass
 	print "\n"
 	saved_hash = db.is_saved_password_hash()

@@ -24,6 +24,8 @@ default_test_path = 'wxStocks_modules/wxStocks_default_user_tests.py'
 rank_path = 'wxStocks_rank_functions.py'
 default_rank_path = 'wxStocks_default_user_rank_functions.py'
 do_not_copy_path = 'DO_NOT_COPY'
+encryption_strength_path = 'wxStocks_modules/wxStocks_data/encryption_strength.txt'
+
 
 ####################### Data Loading ###############################################
 def load_all_data():
@@ -406,7 +408,7 @@ def save_password(password, path = password_path):
 	with open(path, 'w') as output:
 		output.write(bcrypt_hash)
 
-def reset_all_encrypted_files_with_new_password(old_password, new_password):
+def reset_all_encrypted_files_with_new_password(old_password, new_password, encryption_strength):
 	old_password_hashed = hashlib.sha256(old_password).hexdigest()
 	new_password_hashed = hashlib.sha256(new_password).hexdigest()
 
@@ -424,13 +426,35 @@ def reset_all_encrypted_files_with_new_password(old_password, new_password):
 			re_encrypted_string = encrypt(new_password_hashed, decrypted_string)
 			with open(path, 'w') as output:
 				output.write(re_encrypted_string)
+			print line_number(), file_name, "has been encrypted and saved"
 		except Exception as e:
 			print e
 			print line_number(), "Error:", file_name, "did not save properly, and the data will need to be retrieved manually with your old password."
 	config.PASSWORD = new_password_hashed
+
+	if encryption_strength:
+		config.ENCRYPTION_HARDNESS_LEVEL = encryption_strength
+		save_encryption_strength(encryption_strength)
+
 	save_password(new_password)
 	print line_number(), "You have successfully changed your password."
 
+def load_encryption_strength(path = encryption_strength_path):
+	try:
+		strength_file = open(path, 'r')
+		strength = strength_file.read()
+		strength_file.close()
+		strength = int(strength)
+		config.ENCRYPTION_HARDNESS_LEVEL = strength
+	except:
+		save_encryption_strength(config.DEFAULT_ENCRYPTION_HARDNESS_LEVEL)
+def save_encryption_strength(strength, path = encryption_strength_path):
+	if not strength:
+		strength = str(config.DEFAULT_ENCRYPTION_HARDNESS_LEVEL)
+	else:
+		strength = str(strength)
+	with open(path, 'w') as output:
+		output.write(strength)
 ### Secure data wipe
 def delete_all_secure_files(path = secure_file_folder):
 	file_list = os.listdir(path)

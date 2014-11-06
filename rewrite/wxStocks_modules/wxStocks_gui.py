@@ -91,6 +91,9 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		self.yql_scrape_page = YqlScrapePage(notebook)
 		notebook.AddPage(self.yql_scrape_page, "Scrape")
 
+		self.csv_import_page = CsvImportPage(notebook)
+		notebook.AddPage(self.csv_import_page, "Import")
+
 		self.all_stocks_page = AllStocksPage(notebook)
 		notebook.AddPage(self.all_stocks_page, "Stocks")
 
@@ -221,14 +224,15 @@ class WelcomePage(Tab):
 			self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
 			self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
 
-		text_field_offset = 155
+		text_field_offset = 180
+		text_field_vertical_offset = -3
 		current_password_text = "Current Password:"
 		self.current_password_static_text = wx.StaticText(self, -1, current_password_text, 
 									(self.reset_password_button_horizontal_position,
 									 self.reset_password_button_vertical_position + 30))
 		self.current_password_field = wx.TextCtrl(self, -1, "",
 									   (self.reset_password_button_horizontal_position + text_field_offset, 
-									  	self.reset_password_button_vertical_position + 30),
+									  	self.reset_password_button_vertical_position + text_field_vertical_offset + 30),
 									   style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
 		
 		new_password_text = "New Password:"
@@ -237,7 +241,7 @@ class WelcomePage(Tab):
 									 self.reset_password_button_vertical_position + 60))
 		self.new_password_field = wx.TextCtrl(self, -1, "",
 								   (self.reset_password_button_horizontal_position + text_field_offset, 
-								  	self.reset_password_button_vertical_position + 60),
+								  	self.reset_password_button_vertical_position + text_field_vertical_offset + 60),
 								   style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
 		
 		confirm_password_text = "Confirm New Password:"
@@ -246,8 +250,21 @@ class WelcomePage(Tab):
 									 self.reset_password_button_vertical_position + 90))
 		self.confirm_new_password_field = wx.TextCtrl(self, -1, "",
 										   (self.reset_password_button_horizontal_position + text_field_offset, 
-										  	self.reset_password_button_vertical_position + 90),
+										  	self.reset_password_button_vertical_position + text_field_vertical_offset + 90),
 										   style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
+		
+
+		encryption_hardness_text = "Optional:\nEncryption Strength (1-24):"
+		optional_offset = 18
+		self.encryption_hardness_static_text = wx.StaticText(self, -1, encryption_hardness_text, 
+									(self.reset_password_button_horizontal_position,
+									 self.reset_password_button_vertical_position + 120))
+		self.encryption_hardness_field = wx.TextCtrl(self, -1, "",
+										   (self.reset_password_button_horizontal_position + text_field_offset, 
+										  	self.reset_password_button_vertical_position + text_field_vertical_offset + 120 + optional_offset),
+										   ) #style=wx.TE_PASSWORD | wx.TE_PROCESS_ENTER)
+		self.encryption_hardness_field.SetHint("default = 8")
+
 
 		self.current_password_static_text.Hide()
 		self.current_password_field.Hide()
@@ -255,8 +272,10 @@ class WelcomePage(Tab):
 		self.new_password_field.Hide()
 		self.confirm_password_static_text.Hide()
 		self.confirm_new_password_field.Hide()
+		self.encryption_hardness_static_text.Hide()
+		self.encryption_hardness_field.Hide()
 
-		self.reset_password_submit_button = wx.Button(self, label="Submit", pos=(self.reset_password_button_horizontal_position + 165, self.reset_password_button_vertical_position), size=(-1,-1))
+		self.reset_password_submit_button = wx.Button(self, label="Submit", pos=(self.reset_password_button_horizontal_position + text_field_offset + 10, self.reset_password_button_vertical_position), size=(-1,-1))
 		self.reset_password_submit_button.Bind(wx.EVT_BUTTON, self.resetPassword, self.reset_password_submit_button)
 		self.reset_password_submit_button.Hide()
 
@@ -272,6 +291,7 @@ class WelcomePage(Tab):
 		self.current_password_field.Clear()
 		self.new_password_field.Clear()
 		self.confirm_new_password_field.Clear()
+		self.encryption_hardness_field.Clear()
 
 		self.current_password_static_text.Show()
 		self.current_password_field.Show()
@@ -279,6 +299,8 @@ class WelcomePage(Tab):
 		self.new_password_field.Show()
 		self.confirm_password_static_text.Show()
 		self.confirm_new_password_field.Show()
+		self.encryption_hardness_static_text.Show()
+		self.encryption_hardness_field.Show()
 
 		self.reset_password_submit_button.Show()
 
@@ -286,6 +308,17 @@ class WelcomePage(Tab):
 		old_password = self.current_password_field.GetValue()
 		new_password = self.new_password_field.GetValue()
 		confirm_password = self.confirm_new_password_field.GetValue()
+		encryption_strength = self.encryption_hardness_field.GetValue()
+		if encryption_strength:
+			try:
+				encryption_strength = int(encryption_strength)
+			except:
+				self.password_reset_status_static_text.SetLabel("Encryption strength must be an integer or blank.")
+				self.current_password_field.Clear()
+				self.new_password_field.Clear()
+				self.confirm_new_password_field.Clear()
+				self.encryption_hardness_field.Clear()
+				return
 
 		saved_hash = db.is_saved_password_hash()
 
@@ -294,6 +327,7 @@ class WelcomePage(Tab):
 			self.current_password_field.Clear()
 			self.new_password_field.Clear()
 			self.confirm_new_password_field.Clear()
+			self.encryption_hardness_field.Clear()
 			return
 
 		if not db.valid_pw(old_password, saved_hash):
@@ -301,11 +335,12 @@ class WelcomePage(Tab):
 			self.current_password_field.Clear()
 			self.new_password_field.Clear()
 			self.confirm_new_password_field.Clear()
+			self.encryption_hardness_field.Clear()
 			return
 		
 		# Success!
 		# reset password and all relevant files
-		db.reset_all_encrypted_files_with_new_password(old_password, new_password)
+		db.reset_all_encrypted_files_with_new_password(old_password, new_password, encryption_strength)
 		self.password_reset_status_static_text.SetLabel("You have successfully change your password.")
 		self.closePasswordResetFields()
 
@@ -313,44 +348,53 @@ class WelcomePage(Tab):
 	def closePasswordResetFields(self):
 		self.reset_password_submit_button.Hide()
 
+		self.current_password_field.Clear()
+		self.new_password_field.Clear()
+		self.confirm_new_password_field.Clear()
+		self.encryption_hardness_field.Clear()
+
 		self.current_password_static_text.Hide()
 		self.current_password_field.Hide()
 		self.new_password_static_text.Hide()
 		self.new_password_field.Hide()
 		self.confirm_password_static_text.Hide()
 		self.confirm_new_password_field.Hide()
+		self.encryption_hardness_static_text.Hide()
+		self.encryption_hardness_field.Hide()
 
 		self.reset_password_button.Show()
 
+	######################### below is not used ###########################
+	# def toggleEncryption(self, event):
+	# 	if config.ENCRYPTION_POSSIBLE:
+	# 		remove = self.checkRemoveEncryption()
+	# 		if not remove:
+	# 			return
+	# 	config.ENCRYPTION_POSSIBLE = not config.ENCRYPTION_POSSIBLE
+	# 	if config.ENCRYPTION_POSSIBLE:
+	# 		self.turn_encryption_on_button.Hide()
+	# 		self.turn_encryption_off_button.Show()
+	# 		self.encryption_status = "ON:"
+	# 	else:
+	# 		self.turn_encryption_off_button.Hide()
+	# 		self.turn_encryption_on_button.Show()
+	# 		self.encryption_status = "OFF:"
+	# 	print line_number(), "Encryption has been turned %s." % self.encryption_status
+	# 	self.encryption_message.SetLabel(self.encryption_message_default + self.encryption_status)
 
-	def toggleEncryption(self, event):
-		if config.ENCRYPTION_POSSIBLE:
-			remove = self.checkRemoveEncryption()
-			if not remove:
-				return
-		config.ENCRYPTION_POSSIBLE = not config.ENCRYPTION_POSSIBLE
-		if config.ENCRYPTION_POSSIBLE:
-			self.turn_encryption_on_button.Hide()
-			self.turn_encryption_off_button.Show()
-			self.encryption_status = "ON:"
-		else:
-			self.turn_encryption_off_button.Hide()
-			self.turn_encryption_on_button.Show()
-			self.encryption_status = "OFF:"
-		print line_number(), "Encryption has been turned %s." % self.encryption_status
-		self.encryption_message.SetLabel(self.encryption_message_default + self.encryption_status)
 
+	# def checkRemoveEncryption(self):
+	# 	confirm = wx.MessageDialog(None, 
+	# 							   "Are you sure you want to remove automatic encryption?", 
+	# 							   'Remove Encryption?', 
+	# 							   style = wx.YES_NO
+	# 							   )
+	# 	confirm.SetYesNoLabels(("&Yes, Remove Encryption"), ("&Cancel"))
+	# 	yesNoAnswer = confirm.ShowModal()
+	# 	confirm.Destroy()
+	# 	return yesNoAnswer == wx.ID_YES
+	######################### above is not used ###########################
 
-	def checkRemoveEncryption(self):
-		confirm = wx.MessageDialog(None, 
-								   "Are you sure you want to remove automatic encryption?", 
-								   'Remove Encryption?', 
-								   style = wx.YES_NO
-								   )
-		confirm.SetYesNoLabels(("&Yes, Remove Encryption"), ("&Cancel"))
-		yesNoAnswer = confirm.ShowModal()
-		confirm.Destroy()
-		return yesNoAnswer == wx.ID_YES
 
 class TickerPage(Tab):
 	def __init__(self, parent):
@@ -674,6 +718,15 @@ class YqlScrapePage(Tab):
 			self.abort_scrape_button.Hide()
 			self.scrape_button.Show()
 			self.calculate_scrape_times()
+
+class CsvImportPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the CSV data import page page", 
+							 (10,10)
+							 )	
+
 class AllStocksPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)

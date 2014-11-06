@@ -3,7 +3,7 @@
 STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
 DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
 
-ENCRYPTION_HARDNESS_LEVEL = 8 # 1-24: i'm under the impression that 8 is the most secure hardness my processer can compute quickly
+DEFAULT_ENCRYPTION_HARDNESS_LEVEL = 8 # 1-24: i'm under the impression that 8 is the most secure hardness my processer can compute quickly
 
 SCRAPE_CHUNK_LENGTH = 50
 # Had errors with yql (yahoo query language) at greater numbers than 50
@@ -127,6 +127,7 @@ GLOBAL_STOCK_DICT = {}
 GLOBAL_TICKER_LIST = []
 
 ENCRYPTION_POSSIBLE = None
+ENCRYPTION_HARDNESS_LEVEL = None
 
 # Portfolio globals
 PASSWORD = None
