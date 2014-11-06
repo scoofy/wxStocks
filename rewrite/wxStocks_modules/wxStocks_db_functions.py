@@ -17,11 +17,13 @@ screen_name_and_time_created_tuple_list_path = 'wxStocks_modules/wxStocks_data/s
 secure_file_folder = 'DO_NOT_COPY'
 portfolios_path = 'DO_NOT_COPY/portfolios.%s'
 portfolio_account_obj_file_path = 'DO_NOT_COPY/portfolio_%d_data.%s'
-password_path = 'DO_NOT_COPY/password.txt'
+password_file_name = 'password.txt'
+password_path = 'DO_NOT_COPY/' + password_file_name
 test_path = 'wxStocks_screen_functions.py'
 default_test_path = 'wxStocks_modules/wxStocks_default_user_tests.py'
 rank_path = 'wxStocks_rank_functions.py'
 default_rank_path = 'wxStocks_default_user_rank_functions.py'
+do_not_copy_path = 'DO_NOT_COPY'
 
 ####################### Data Loading ###############################################
 def load_all_data():
@@ -173,6 +175,23 @@ def load_user_created_tests():
 	return text
 def save_user_created_tests(text):
 	with open(test_path, "w") as output:
+		output.write(text)
+
+def load_default_ranking_functions():
+	test_file = open(default_rank_path, 'r')
+	text = test_file.read()
+	test_file.close()
+	return text
+def load_user_ranking_functions():
+	try:
+		function_file = open(rank_path, 'r')
+		text = function_file.read()
+		function_file.close()
+	except:
+		text = load_default_tests()
+	return text
+def save_user_ranking_functions(text):
+	with open(rank_path, "w") as output:
 		output.write(text)
 ###
 
@@ -382,10 +401,35 @@ def set_password():
 	save_password(password)
 	return password
 def save_password(password, path = password_path):
-	print "Generating a secure password hash, this may take a moment..."
+	print line_number(), "Generating a secure password hash, this may take a moment..."
 	bcrypt_hash = make_pw_hash(password)
 	with open(path, 'w') as output:
 		output.write(bcrypt_hash)
+
+def reset_all_encrypted_files_with_new_password(old_password, new_password):
+	old_password_hashed = hashlib.sha256(old_password).hexdigest()
+	new_password_hashed = hashlib.sha256(new_password).hexdigest()
+
+	file_names = os.listdir(do_not_copy_path)
+	file_names.remove(password_file_name)
+
+	from modules.simplecrypt import encrypt, decrypt
+	for file_name in file_names:
+		path = do_not_copy_path + "/" + file_name
+		encrypted_file = open(path, 'r')
+		encrypted_string = encrypted_file.read()
+		encrypted_file.close()
+		try:
+			decrypted_string = decrypt(old_password_hashed, encrypted_string)
+			re_encrypted_string = encrypt(new_password_hashed, decrypted_string)
+			with open(path, 'w') as output:
+				output.write(re_encrypted_string)
+		except Exception as e:
+			print e
+			print line_number(), "Error:", file_name, "did not save properly, and the data will need to be retrieved manually with your old password."
+	config.PASSWORD = new_password_hashed
+	save_password(new_password)
+	print line_number(), "You have successfully changed your password."
 
 ### Secure data wipe
 def delete_all_secure_files(path = secure_file_folder):
@@ -402,11 +446,11 @@ def make_sha256_hash(pw):
 ####################### Bcrypt
 def make_pw_hash(pw, salt=None):
 	if not salt:
-		salt = bcrypt.gensalt(8) # this should be 10-12 to be extra secure
+		salt = bcrypt.gensalt(config.ENCRYPTION_HARDNESS_LEVEL)
 	pw_hashed = bcrypt.hashpw(pw, salt)
 	return '%s|%s' % (pw_hashed, salt)
 def valid_pw(pw, h):
-	print "Validating your password, this may take a moment..."
+	print line_number(), "Validating your password, this may take a moment..."
 	return h == make_pw_hash(pw, h.split('|')[1])
 #########################################################
 

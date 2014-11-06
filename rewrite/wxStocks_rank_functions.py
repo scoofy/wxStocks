@@ -22,7 +22,7 @@
 
 ################################################################################################################
 
-def rank_stocks_by_peg_ratio(Stock, decending=True, rank_error_as_median=False):
+def rank_stocks_by_peg_ratio(Stock, decending=False, rank_error_as_median=False):
 	'''PEG ratio'''
 	try:
 		relevant_value = getattr(Stock, "PEGRatio_5_yr_expected_yf")
@@ -33,6 +33,12 @@ def rank_stocks_by_peg_ratio(Stock, decending=True, rank_error_as_median=False):
 
 def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires only primary scrape
 	'''5y Neff Ratio'''
+
+	# relevant object attributes
+	pe_attr = "PERatio_yf"
+	peg_attr = "PEGRatio_5_yr_expected_yf"
+	dividend_attr = "DividendYield_yf"
+
 	# Neff is total return/PE. Source: http://www.forbes.com/2010/06/01/tupperware-cvs-astrazeneca-intelligent-investing-neff-value.html
 	# Total return is defined as: EPS growth rate + dividend yield
 	# Now YQL provides his data:
@@ -44,9 +50,9 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 	# Neff 5 year = (1 / PEG 5 year) + (Yield / PE)
 	# thus:
 	try:
-		peg5 = Stock.PEGRatio_5_yr_expected_yf
-		dividend_yield = Stock.DividendYield_yf
-		pe = Stock.PERatio_yf
+		peg5 = getattr(Stock, peg_attr)
+		dividend_yield = getattr(Stock, dividend_attr)
+		pe = getattr(Stock, pe_attr)
 		#print "PEG =", peg5
 		#print "type =", type(peg5)
 		#print "Yield =", dividend_yield
@@ -62,7 +68,7 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 
 		
 
-	if peg5 is None or str(peg5) == "N/A":
+	if peg5 in ["N/A", "none", "None", None]:
 		peg5 = None
 	else:
 		peg5 = float(peg5)
@@ -90,7 +96,7 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 	else:
 		neff5 = None
 
-	#print "Neff 5 year =", neff5
+	#print "Neff 5 year for %s =" % Stock.symbol, neff5
 	return (neff5, Stock, decending, rank_error_as_median)
 
 

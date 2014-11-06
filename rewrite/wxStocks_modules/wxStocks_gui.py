@@ -115,8 +115,8 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		self.stock_data_page = StockDataPage(notebook)
 		notebook.AddPage(self.stock_data_page, "Ticker Data")
 
-		self.user_created_tests = UserCreatedTestsPage(notebook)
-		notebook.AddPage(self.user_created_tests, "Tests")
+		self.user_functions_page = UserFunctionsPage(notebook)
+		notebook.AddPage(self.user_functions_page, "Functions")
 
 		# finally, put the notebook in a sizer for the panel to manage
 		# the layout
@@ -213,7 +213,115 @@ class WelcomePage(Tab):
 		# 							(encryption_text_horizontal_position, encryption_text_vertical_position)
 		# 							)
 
+		self.reset_password_button = None
+		self.reset_password_button_horizontal_position = 10
+		self.reset_password_button_vertical_position = 550
+		
+		if config.ENCRYPTION_POSSIBLE:			
+			self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
+			self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
+
+		text_field_offset = 155
+		current_password_text = "Current Password:"
+		self.current_password_static_text = wx.StaticText(self, -1, current_password_text, 
+									(self.reset_password_button_horizontal_position,
+									 self.reset_password_button_vertical_position + 30))
+		self.current_password_field = wx.TextCtrl(self, -1, "",
+									   (self.reset_password_button_horizontal_position + text_field_offset, 
+									  	self.reset_password_button_vertical_position + 30),
+									   style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
+		
+		new_password_text = "New Password:"
+		self.new_password_static_text = wx.StaticText(self, -1, new_password_text, 
+									(self.reset_password_button_horizontal_position,
+									 self.reset_password_button_vertical_position + 60))
+		self.new_password_field = wx.TextCtrl(self, -1, "",
+								   (self.reset_password_button_horizontal_position + text_field_offset, 
+								  	self.reset_password_button_vertical_position + 60),
+								   style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
+		
+		confirm_password_text = "Confirm New Password:"
+		self.confirm_password_static_text = wx.StaticText(self, -1, confirm_password_text, 
+									(self.reset_password_button_horizontal_position,
+									 self.reset_password_button_vertical_position + 90))
+		self.confirm_new_password_field = wx.TextCtrl(self, -1, "",
+										   (self.reset_password_button_horizontal_position + text_field_offset, 
+										  	self.reset_password_button_vertical_position + 90),
+										   style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
+
+		self.current_password_static_text.Hide()
+		self.current_password_field.Hide()
+		self.new_password_static_text.Hide()
+		self.new_password_field.Hide()
+		self.confirm_password_static_text.Hide()
+		self.confirm_new_password_field.Hide()
+
+		self.reset_password_submit_button = wx.Button(self, label="Submit", pos=(self.reset_password_button_horizontal_position + 165, self.reset_password_button_vertical_position), size=(-1,-1))
+		self.reset_password_submit_button.Bind(wx.EVT_BUTTON, self.resetPassword, self.reset_password_submit_button)
+		self.reset_password_submit_button.Hide()
+
+		self.password_reset_status_static_text = wx.StaticText(self, -1, "", 
+									(self.reset_password_button_horizontal_position,
+									 self.reset_password_button_vertical_position - 30))
+
 		print line_number(), "WelcomePage loaded"
+
+	def resetPasswordPrep(self, event):
+		self.reset_password_button.Hide()
+		
+		self.current_password_field.Clear()
+		self.new_password_field.Clear()
+		self.confirm_new_password_field.Clear()
+
+		self.current_password_static_text.Show()
+		self.current_password_field.Show()
+		self.new_password_static_text.Show()
+		self.new_password_field.Show()
+		self.confirm_password_static_text.Show()
+		self.confirm_new_password_field.Show()
+
+		self.reset_password_submit_button.Show()
+
+	def resetPassword(self, event):
+		old_password = self.current_password_field.GetValue()
+		new_password = self.new_password_field.GetValue()
+		confirm_password = self.confirm_new_password_field.GetValue()
+
+		saved_hash = db.is_saved_password_hash()
+
+		if new_password != confirm_password:
+			self.password_reset_status_static_text.SetLabel("Your confirmation did not match your new password.")
+			self.current_password_field.Clear()
+			self.new_password_field.Clear()
+			self.confirm_new_password_field.Clear()
+			return
+
+		if not db.valid_pw(old_password, saved_hash):
+			self.password_reset_status_static_text.SetLabel("The password you submitted is incorrect.")
+			self.current_password_field.Clear()
+			self.new_password_field.Clear()
+			self.confirm_new_password_field.Clear()
+			return
+		
+		# Success!
+		# reset password and all relevant files
+		db.reset_all_encrypted_files_with_new_password(old_password, new_password)
+		self.password_reset_status_static_text.SetLabel("You have successfully change your password.")
+		self.closePasswordResetFields()
+
+
+	def closePasswordResetFields(self):
+		self.reset_password_submit_button.Hide()
+
+		self.current_password_static_text.Hide()
+		self.current_password_field.Hide()
+		self.new_password_static_text.Hide()
+		self.new_password_field.Hide()
+		self.confirm_password_static_text.Hide()
+		self.confirm_new_password_field.Hide()
+
+		self.reset_password_button.Show()
+
 
 	def toggleEncryption(self, event):
 		if config.ENCRYPTION_POSSIBLE:
@@ -3076,6 +3184,25 @@ class StockDataPage(Tab):
 		scrape_analyst_estimates( [str(ticker).upper()] )
 		self.createOneStockSpreadSheet(event = "")
 
+class UserFunctionsPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		####
+		user_function_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+		user_function_notebook = wx.Notebook(user_function_page_panel)
+
+
+		self.user_created_tests = UserCreatedTestsPage(user_function_notebook)
+		user_function_notebook.AddPage(self.user_created_tests, "Screen Tests")		
+
+		self.user_ranking_functions = UserCreatedRankFunctionPage(user_function_notebook)
+		user_function_notebook.AddPage(self.user_ranking_functions, "Ranking Functions")		
+
+
+		sizer2 = wx.BoxSizer()
+		sizer2.Add(user_function_notebook, 1, wx.EXPAND)
+		self.SetSizer(sizer2)		
+		####
 
 class UserCreatedTestsPage(Tab):
 	def __init__(self, parent):
@@ -3104,7 +3231,7 @@ class UserCreatedTestsPage(Tab):
 		self.file_display = wx.TextCtrl(self, -1, 
 									self.file_text, 
 									(10, self.height_var),
-									size = (765, 625),
+									size = (955, 580),
 									style = wx.TE_MULTILINE ,
 									)
 		self.file_display.Show()
@@ -3145,6 +3272,84 @@ class UserCreatedTestsPage(Tab):
 		
 		self.file_text = db.load_default_tests()
 		db.save_user_created_tests(self.file_text)
+
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (765, 625),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+
+class UserCreatedRankFunctionPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the user created ranking function page.", 
+							 (10,10)
+							 )
+		save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
+		save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+
+		reset_button = wx.Button(self, label="Reset Ranking Functions to Default", pos=(5, 60), size=(-1,-1))
+		reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+
+		more_text = wx.StaticText(self, -1, 
+							 "Create stock ranking functions to be imported into the rank page.", 
+							 (145,36)
+							 )
+
+
+
+		self.file_text = db.load_user_ranking_functions()
+
+
+		self.height_var = 100
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (955, 580),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+		print line_number(), "UserCreatedRankFunctionPage loaded"
+
+
+	def confirmSave(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you want to save your work? This action cannot be undone.", 
+								   'Confirm Save', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.saveRankFunctions()
+	def saveRankFunctions(self):
+		text = self.file_display.GetValue()
+		db.save_user_ranking_functions(text)
+
+	def confirmResetToDefault(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you reset to file default? This action cannot be undone.", 
+								   'Confirm Reset', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.resetToDefault()
+	def resetToDefault(self):
+		self.file_display.Destroy()
+		
+		self.file_text = db.load_default_ranking_functions()
+		db.save_user_ranking_functions(self.file_text)
 
 		self.file_display = wx.TextCtrl(self, -1, 
 									self.file_text, 
