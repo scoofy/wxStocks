@@ -2,9 +2,9 @@ This program comes as is, and probably has some errors in it. This software shou
 
 wxStocks is a investment analysis program that could help teach you to scrape, screen, sort, and prepare a portfolio for learning about buying and selling equities.
 
-Built using wx as its framework, and pyql as its scraping tool.
+Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool.
 
-Requirements: wxPython, NumPy
+Requirements: Python 2.7, wxPython, NumPy
 Nonessential but recommended: PyCrypto
 
 License: AGPL
