@@ -19,7 +19,7 @@ import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
 import wxStocks_meta_functions as meta
-import wxStocks_screen_and_rank_operations as screen_and_rank_ops
+import wxStocks_functions_that_process_user_functions as process_user_function
 
 def line_number():
 	"""Returns the current line number in our program."""
@@ -1165,7 +1165,7 @@ class RankPage(Tab):
 
 		# run ranking funtion on all stocks
 
-		ranked_tuple_list = screen_and_rank_ops.return_ranked_list_from_rank_function(config.RANK_PAGE_ALL_RELEVANT_STOCKS, rank_function)
+		ranked_tuple_list = process_user_function.return_ranked_list_from_rank_function(config.RANK_PAGE_ALL_RELEVANT_STOCKS, rank_function)
 
 		######################################
 		self.screen_grid = self.createRankedSpreadSheet(ranked_tuple_list, self.rank_name)

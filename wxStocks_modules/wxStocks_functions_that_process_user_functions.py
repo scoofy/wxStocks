@@ -100,6 +100,38 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 	
 	return rank_list
 
+def import_csv_via_user_created_function(user_created_function):
+	'''adds import csv data to stocks data via a user created function'''
+	self.dirname = ''
+	dialog = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
+	if dialog.ShowModal() == wx.ID_OK:
+		self.filename = dialog.GetFilename()
+		self.dirname = dialog.GetDirectory()
+		
+		csv_file = open(os.path.join(self.dirname, self.filename), 'rb')
+		dict_list_and_attribute_suffix_tuple = user_created_function(csv_file)
+		csv_file.close()
+	dialog.Destroy()
+	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]
+	if len(attribute_suffix) != 3 or attribute_suffix[0] != "_":
+		print line_number(), "Error: your attribute suffix is improperly formatted"
+		return
+	dict_list = dict_list_and_attribute_suffix_tuple[0]
+	for this_dict in dict_list:
+		try:
+			this_dict.stock
+		except Exception as e:
+			print line_number(), e
+			print line_number(), "Error: your dictionary does not have the ticker as your_dictionary.stock"
+			continue
+		stock = utils.return_stock_by_symbol(this_dict.stock)
+		for key, value in this_dict.iteritems():
+			if key = "stock":
+				continue
+			else:
+				setattr(stock, key + attribute_suffix, value)
 
 
-	# end of line
+
+
+# end of line
