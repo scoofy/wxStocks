@@ -126,7 +126,7 @@ def import_csv_via_user_created_function(user_created_function):
 			continue
 		stock = utils.return_stock_by_symbol(this_dict.stock)
 		for key, value in this_dict.iteritems():
-			if key = "stock":
+			if key == "stock":
 				continue
 			else:
 				setattr(stock, key + attribute_suffix, value)
