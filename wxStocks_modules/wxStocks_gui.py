@@ -723,9 +723,74 @@ class CsvImportPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		text = wx.StaticText(self, -1, 
-							 "Welcome to the CSV data import page page", 
+							 "Welcome to the CSV data import page page.\nYou can make your own import functions under the function tab.", 
 							 (10,10)
-							 )	
+							 )
+
+		default_button_horizontal_position = 0
+		default_button_vertical_position = 50
+		default_dropdown_horizontal_offset = 100
+		default_dropdown_vertical_offset = 0
+
+		import_button = wx.Button(self, label="import csv", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
+		import_button.Bind(wx.EVT_BUTTON, self.importCSV, import_button)
+
+		self.csv_import_name_list = meta.return_csv_import_function_short_names()
+		self.drop_down = wx.ComboBox(self, pos=(default_button_horizontal_position + default_dropdown_horizontal_offset, default_button_vertical_position + default_dropdown_vertical_offset), choices=self.csv_import_name_list)
+
+		self.triple_list = meta.return_csv_import_function_triple()
+
+		self.csv_import_name = None
+
+	def importCSV(self, event):
+		self.csv_import_name = self.drop_down.GetValue()
+
+		# Identify the function mapped to screen name
+		for triple in self.triple_list:
+			if self.csv_import_name == triple.doc:
+				csv_import_function = triple.function
+			# in case doc string is too many characters...
+			elif self.csv_import_name == triple.name:
+				csv_import_function = triple.function
+
+		if not csv_import_function:
+			print line_number(), "Error, somthing went wrong locating the correct import function to use."
+
+		# run ranking funtion on all stocks
+
+		success = process_user_function.import_csv_via_user_created_function(self, csv_import_function)
+
+		#throw error here: finish the success conditions so they dont kill python process
+
+		if not success:
+			return
+
+		if success == "fail":
+			title_string = "Error"
+			success_string = "This import has failed, please check make sure your function conforms to the import protocols."
+			message_style = wx.ICON_ERROR
+		elif success == "some":
+			title_string = "Some Errors"
+			success_string = "There were some errors with your import, please review your CSV file and make sure that your functions conform to the protocols, and that the ticker symbols in your csv files are the same format as wxStocks'."
+			message_style = wx.ICON_EXCLAMATION
+		elif success == "success":
+			title_string = "Success"
+			success_string = "Success! You're file has been successfully imported."
+			message_style = wx.OK
+		else:
+			print line_number(), "Error in importCSV title and success strings"
+			return
+
+		print line_number(), "importCSV done"
+
+
+		confirm = wx.MessageDialog(None, 
+								   success_string, 
+								   title_string, 
+								   style = message_style
+								   )
+		confirm.ShowModal()
+
 
 class AllStocksPage(Tab):
 	def __init__(self, parent):
@@ -3251,6 +3316,8 @@ class UserFunctionsPage(Tab):
 		self.user_ranking_functions = UserCreatedRankFunctionPage(user_function_notebook)
 		user_function_notebook.AddPage(self.user_ranking_functions, "Ranking Functions")		
 
+		self.user_csv_import_functions = UserCreatedCsvImportFunctionPage(user_function_notebook)
+		user_function_notebook.AddPage(self.user_csv_import_functions, "CSV Import Functions")
 
 		sizer2 = wx.BoxSizer()
 		sizer2.Add(user_function_notebook, 1, wx.EXPAND)
@@ -3333,8 +3400,6 @@ class UserCreatedTestsPage(Tab):
 									style = wx.TE_MULTILINE ,
 									)
 		self.file_display.Show()
-
-
 class UserCreatedRankFunctionPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -3402,6 +3467,82 @@ class UserCreatedRankFunctionPage(Tab):
 		self.file_display.Destroy()
 		
 		self.file_text = db.load_default_ranking_functions()
+		db.save_user_ranking_functions(self.file_text)
+
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (765, 625),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+class UserCreatedCsvImportFunctionPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the user created csv import function page.", 
+							 (10,10)
+							 )
+		save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
+		save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+
+		reset_button = wx.Button(self, label="Reset CSV Import Functions to Default", pos=(5, 60), size=(-1,-1))
+		reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+
+		more_text = wx.StaticText(self, -1, 
+							 "Create stock ranking functions to be imported into the rank page.", 
+							 (145,36)
+							 )
+
+
+
+		self.file_text = db.load_user_csv_import_functions()
+
+
+		self.height_var = 100
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (955, 580),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+		print line_number(), "UserCreatedCsvImportFunctionPage loaded"
+
+
+	def confirmSave(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you want to save your work? This action cannot be undone.", 
+								   'Confirm Save', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.saveCsvImportFunctions()
+	def saveCsvImportFunctions(self):
+		text = self.file_display.GetValue()
+		db.save_user_csv_import_functions(text)
+
+	def confirmResetToDefault(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you reset to file default? This action cannot be undone.", 
+								   'Confirm Reset', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.resetToDefault()
+	def resetToDefault(self):
+		self.file_display.Destroy()
+		
+		self.file_text = db.load_default_csv_import_functions()
 		db.save_user_ranking_functions(self.file_text)
 
 		self.file_display = wx.TextCtrl(self, -1, 

@@ -1,0 +1,9 @@
+Symbol,Firm Name,Exchange,Location
+,,,
+fail GOOGL,Google,NASDAQ,"Mountain View, CA"
+fail GE,General Electric,NYSE,"Fairfield, CT"
+fail GM,General Motors,NYSE,"Detroit, MI"
+fail GRMN,Garmin,NASDAQ,"Schaffhausen, Switzerland"
+fail GS,Goldman Sachs,NYSE,"New York, NY"
+fail GT,Goodyear Tire & Rubber,NASDAQ,"Akron, OH"
+fail GES,Guess?,NYSE,"Los Angeles, CA"

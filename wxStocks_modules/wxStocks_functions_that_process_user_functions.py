@@ -1,5 +1,6 @@
+import wx
 import wxStocks_utilities as utils
-import numpy, inspect
+import numpy, inspect, os
 from collections import namedtuple
 
 
@@ -100,38 +101,50 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 	
 	return rank_list
 
-def import_csv_via_user_created_function(user_created_function):
+def import_csv_via_user_created_function(wxWindow, user_created_function):
 	'''adds import csv data to stocks data via a user created function'''
-	self.dirname = ''
-	dialog = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
+	dirname = ''
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv", wx.OPEN)
 	if dialog.ShowModal() == wx.ID_OK:
-		self.filename = dialog.GetFilename()
-		self.dirname = dialog.GetDirectory()
+		filename = dialog.GetFilename()
+		dirname = dialog.GetDirectory()
 		
-		csv_file = open(os.path.join(self.dirname, self.filename), 'rb')
+		csv_file = open(os.path.join(dirname, filename), 'rb')
 		dict_list_and_attribute_suffix_tuple = user_created_function(csv_file)
 		csv_file.close()
+	else:
+		return None
 	dialog.Destroy()
 	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]
+	success = None
 	if len(attribute_suffix) != 3 or attribute_suffix[0] != "_":
 		print line_number(), "Error: your attribute suffix is improperly formatted"
-		return
+		success = "fail"
+		return success
 	dict_list = dict_list_and_attribute_suffix_tuple[0]
 	for this_dict in dict_list:
 		try:
-			this_dict.stock
+			this_dict['stock']
 		except Exception as e:
 			print line_number(), e
-			print line_number(), "Error: your dictionary does not have the ticker as your_dictionary.stock"
+			print line_number(), "Error: your dictionary does not have the ticker as your_dictionary['stock']"
+			if success in ["success", "some"]:
+				success = "some"
+			else:
+				success = "fail"
 			continue
-		stock = utils.return_stock_by_symbol(this_dict.stock)
+		stock = utils.return_stock_by_symbol(this_dict['stock'])
 		for key, value in this_dict.iteritems():
 			if key == "stock":
 				continue
 			else:
 				setattr(stock, key + attribute_suffix, value)
+				if success in ["fail", "some"]:
+					success = "some"
+				else:
+					success = "success"
 
-
+	return success
 
 
 # end of line
