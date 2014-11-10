@@ -10,7 +10,7 @@ Function_Reference = namedtuple("Function_Reference", ["name", "function", "doc"
 
 functions_to_ignore_list = ["line_number"]
 
-def return_function_triple(type_of_functions): # "screen", "rank", or "csv_import".
+def return_function_triple(type_of_functions): # "screen", "rank", "csv_import", "portfolio".
 	"""returns function 3-tuple of the form (name, function, doc)."""
 	# First we import the modules we want to inspect
 	if type_of_functions == "screen":
@@ -19,6 +19,8 @@ def return_function_triple(type_of_functions): # "screen", "rank", or "csv_impor
 		import wxStocks_rank_functions as function_file
 	elif type_of_functions == "csv_import":
 		import wxStocks_csv_import_functions as function_file
+	elif type_of_functions == "portfolio":
+		import wxStocks_portfolio_import_functions as function_file
 	else:
 		print line_number(), "Error: No function type defined."
 		return
@@ -115,9 +117,32 @@ def return_csv_import_functions():
 	function_list = [x.function for x in triple_list]
 	return function_list
 
-
-
-
+# unfinished
+def return_portfolio_import_function_triple():
+	"""returns import function 3-tuple of the form (name, function, doc string)."""
+	function_triple_list = return_function_triple(type_of_functions = "portfolio")	
+	return function_triple_list
+def return_portfolio_import_function_full_names():
+	'''returns portfolio import functions full names'''
+	triple_list = return_portfolio_import_function_triple()
+	full_name_list = [x.name for x in triple_list]
+	return full_name_list
+def return_portfolio_import_function_short_names():
+	'''returns csv import functions doc strings'''
+	triple_list = return_portfolio_import_function_triple()
+	short_name_list = []
+	for triple in triple_list:
+		if len(triple.doc) <= 30:
+			# This long: '''123456789012345678901234567890'''
+			short_name_list.append(triple.doc)
+		else:
+			short_name_list.append(triple.name)
+	return short_name_list
+def return_portfolio_import_functions():
+	'''returns list of csv import functions'''
+	triple_list = return_portfolio_import_function_triple()
+	function_list = [x.function for x in triple_list]
+	return function_list
 
 
 

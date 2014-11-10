@@ -25,6 +25,8 @@ rank_path = 'wxStocks_rank_functions.py'
 default_rank_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_rank_functions.py'
 csv_import_path = 'wxStocks_csv_import_functions.py'
 default_csv_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_csv_import_functions.py'
+portfolio_import_path = 'wxStocks_portfolio_import_functions.py'
+default_portfolo_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_portfolio_import_functions.py'
 do_not_copy_path = 'DO_NOT_COPY'
 encryption_strength_path = 'wxStocks_modules/wxStocks_data/encryption_strength.txt'
 
@@ -40,7 +42,7 @@ def load_all_data():
 
 # Dont think these are used any more
 def load_GLOBAL_TICKER_LIST():
-	print "Loading GLOBAL_TICKER_LIST"
+	print line_number(), "Loading GLOBAL_TICKER_LIST"
 	try:
 		ticker_list = open(ticker_path, 'rb')
 	except Exception, e:
@@ -72,7 +74,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 	else:
 		return wxStocks_classes.Stock(ticker)
 def load_GLOBAL_STOCK_DICT():
-	print "Loading GLOBAL_STOCK_DICT"
+	print line_number(), "Loading GLOBAL_STOCK_DICT"
 	try:
 		pickled_file = open(all_stocks_path, 'rb')
 		stock_dict = pickle.load(pickled_file)
@@ -93,7 +95,7 @@ def save_GLOBAL_STOCK_DICT():
 
 ### Stock screen loading information
 def load_GLOBAL_STOCK_SCREEN_DICT():
-	print "Loading GLOBAL_STOCK_SCREEN_DICT"
+	print line_number(), "Loading GLOBAL_STOCK_SCREEN_DICT"
 	try:
 		existing_screen_names_file = open(screen_dict_path, 'rb')
 	except Exception, exception:
@@ -143,7 +145,7 @@ def delete_named_screen(screen_name):
 	os.remove(named_screen_path % screen_name.replace(' ', '_'))
 
 def load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST():
-	print "Loading SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST"
+	print line_number(), "Loading SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST"
 	try:
 		existing_tuple_list_file = open(screen_name_and_time_created_tuple_list_path, 'rb')
 	except Exception, exception:
@@ -214,13 +216,32 @@ def load_user_csv_import_functions():
 def save_user_csv_import_functions(text):
 	with open(csv_import_path, "w") as output:
 		output.write(text)
+
+def load_default_portfolio_import_functions():
+	test_file = open(default_portfolio_import_path, 'r')
+	text = test_file.read()
+	test_file.close()
+	return text
+def load_user_portfolio_import_functions():
+	try:
+		function_file = open(portfolio_import_path, 'r')
+		text = function_file.read()
+		function_file.close()
+	except:
+		text = load_default_csv_import_functions()
+	return text
+def save_user_portfolio_import_functions(text):
+	with open(portfolio_import_path, "w") as output:
+		output.write(text)
+
+
 ###
 
 
 ### Portfolio functions need encryption/decryption
 def decrypt_if_possible(path):
 	error = False
-	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
+	#print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
 	if config.ENCRYPTION_POSSIBLE:
 		try:
 			import Crypto
@@ -236,15 +257,15 @@ def decrypt_if_possible(path):
 			pickled_string = decrypt(config.PASSWORD, encrypted_string)
 			data = pickle.loads(pickled_string)
 		except Exception as e:
-			print line_number(), e
-			print line_number(), "Decryption not possible, account file doesn't exist"
+			#print line_number(), e
+			#print line_number(), "Decryption not possible, account file doesn't exist"
 			try:
 				unencrypted_pickle_file = open(path.replace(".txt",".pk"), 'r')
 				data = pickle.load(unencrypted_pickle_file)
 				unencrypted_pickle_file.close()
 				print line_number(), "Decryption not possible, but unencrypted file exists and will be used instead."
 			except Exception as e:
-				print e
+				#print line_number(), e
 				error = True
 	else:
 		try:
@@ -258,11 +279,13 @@ def decrypt_if_possible(path):
 		return data
 	else:
 		if config.ENCRYPTION_POSSIBLE:
-			print line_number(), "Error loading encrypted file"
-			print line_number(), path
+			#print line_number(), "Error loading encrypted file"
+			#print line_number(), path
+			pass
 		else:
-			print line_number(), "Error loading unencrypted file"
-			print line_number(), path
+			#print line_number(), "Error loading unencrypted file"
+			#print line_number(), path
+			pass
 		return None
 
 def save_DATA_ABOUT_PORTFOLIOS():
@@ -288,7 +311,7 @@ def save_DATA_ABOUT_PORTFOLIOS():
 def load_DATA_ABOUT_PORTFOLIOS():
 	# add encrypt + decryption to this function
 	data = None
-	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
+	#print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
 	if not config.ENCRYPTION_POSSIBLE:
 		print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
 		try:
@@ -300,13 +323,13 @@ def load_DATA_ABOUT_PORTFOLIOS():
 			print line_number(), "DATA_ABOUT_PORTFOLIOS does not exist."
 			return config.DEFAULT_DATA_ABOUT_PORTFOLIOS
 	else:
-		print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
+		#print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
 		try:
 			data = decrypt_if_possible(path = portfolios_path % "txt")
 		except:
 			pass
 	if data:
-		print line_number(), data
+		#print line_number(), data
 		config.DATA_ABOUT_PORTFOLIOS = data
 	else:
 		return
@@ -323,10 +346,10 @@ def load_DATA_ABOUT_PORTFOLIOS():
 		except Exception, exception:
 			print line_number(), exception
 			logging.error('Portfolio names do not match number of portfolios')
-	print config.PORTFOLIO_NAMES
+	#print line_number(), config.PORTFOLIO_NAMES
 
 	# Load portfolio objects
-	print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
+	#print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
 	load_all_portfolio_objects()
 
 def save_portfolio_object(portfolio_obj, id_number):
@@ -353,7 +376,7 @@ def save_portfolio_object(portfolio_obj, id_number):
 		with open(path, 'w') as output:
 			pickle.dump(portfolio_obj, output, pickle.HIGHEST_PROTOCOL)
 def load_portfolio_object(id_number):
-	print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
+	#print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
 	if config.ENCRYPTION_POSSIBLE:
 		path = portfolio_account_obj_file_path % (id_number, "txt")
 	else:
@@ -362,10 +385,10 @@ def load_portfolio_object(id_number):
 
 	if portfolio_obj:
 		config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
-		print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
+		#print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
 		return portfolio_obj
 	else:
-		print line_number(), "Account object failed to load."
+		#print line_number(), "Account object failed to load."
 		return
 def load_all_portfolio_objects(number_of_portfolios = config.DATA_ABOUT_PORTFOLIOS[0]):
 	for i in range(number_of_portfolios):

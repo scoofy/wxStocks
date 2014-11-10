@@ -123,6 +123,8 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 		return success
 	dict_list = dict_list_and_attribute_suffix_tuple[0]
 	for this_dict in dict_list:
+		if not this_dict:
+			continue
 		try:
 			this_dict['stock']
 		except Exception as e:
@@ -134,6 +136,12 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 				success = "fail"
 			continue
 		stock = utils.return_stock_by_symbol(this_dict['stock'])
+		if not stock:
+			if success in ["success", "some"]:
+				success = "some"
+			else:
+				success = "fail"
+			continue
 		for key, value in this_dict.iteritems():
 			if key == "stock":
 				continue

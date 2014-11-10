@@ -92,7 +92,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		notebook.AddPage(self.yql_scrape_page, "Scrape")
 
 		self.csv_import_page = CsvImportPage(notebook)
-		notebook.AddPage(self.csv_import_page, "Import")
+		notebook.AddPage(self.csv_import_page, "CSV Import")
 
 		self.all_stocks_page = AllStocksPage(notebook)
 		notebook.AddPage(self.all_stocks_page, "Stocks")
@@ -128,6 +128,8 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		sizer = wx.BoxSizer()
 		sizer.Add(notebook, 1, wx.EXPAND)
 		main_frame.SetSizer(sizer)
+
+		print line_number(), "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
 class Tab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -759,8 +761,6 @@ class CsvImportPage(Tab):
 		# run ranking funtion on all stocks
 
 		success = process_user_function.import_csv_via_user_created_function(self, csv_import_function)
-
-		#throw error here: finish the success conditions so they dont kill python process
 
 		if not success:
 			return
@@ -2863,7 +2863,7 @@ class PortfolioPage(Tab):
 		portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
 		portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
 				
-		print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
+		#print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
 		portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
 				
 		default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
@@ -2922,7 +2922,7 @@ class PortfolioAccountTab(Tab):
 		tab_panel = wx.Panel.__init__(self, parent, tab_number)
 		
 		self.portfolio_id = tab_number
-		print line_number(), "self.portfolio_id =", self.portfolio_id
+		#print line_number(), "self.portfolio_id =", self.portfolio_id
 		self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
 
 		if not self.portfolio_obj:
@@ -2934,23 +2934,17 @@ class PortfolioAccountTab(Tab):
 				except Exception, e:
 					print line_number(), e
 					self.portfolio_obj = None
-				# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'wb')
-				# 	portfolio_account_obj = []
-				# 	with open('portfolio_%d_data.pk' % self.portfolio_id, 'wb') as output:
-				# 		pickle.dump(portfolio_account_obj, output, pickle.HIGHEST_PROTOCOL)
-				# 	portfolio_account_obj_file = open('portfolio_%d_data.pk' % self.portfolio_id, 'rb')
-				# # Why does this error!!!
-				
 
-	
-
-		trade_page_text = wx.StaticText(self, -1, 
-							 "Your portfolio", 
-							 (5,5)
-							 )
-
-		add_button = wx.Button(self, label="Add account (Schwab positions .csv)", pos=(100,0), size=(-1,-1))
+		add_button = wx.Button(self, label="Add account .csv", pos=(5,0), size=(-1,-1))
 		add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, add_button) 
+		
+		self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
+		self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
+
+		self.triple_list = meta.return_portfolio_import_function_triple()
+
+		self.portfolio_import_name = None
+
 
 		delete_button = wx.Button(self, label="Delete this portfolio", pos=(830,0), size=(-1,-1))
 		delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, delete_button) 
@@ -3065,6 +3059,9 @@ class PortfolioAccountTab(Tab):
 
 	def addAccountCSV(self, event):
 		'''append a csv to current ticker list'''
+
+		#throw error here to add a system of importing stocks that is maliable
+
 		self.dirname = ''
 		dialog = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
 		if dialog.ShowModal() == wx.ID_OK:
@@ -3319,6 +3316,10 @@ class UserFunctionsPage(Tab):
 		self.user_csv_import_functions = UserCreatedCsvImportFunctionPage(user_function_notebook)
 		user_function_notebook.AddPage(self.user_csv_import_functions, "CSV Import Functions")
 
+		self.user_portfolio_import_functions = UserCreatedPortfolioImportFunctionPage(user_function_notebook)
+		user_function_notebook.AddPage(self.user_portfolio_import_functions, "Portfolio Import Functions")
+
+
 		sizer2 = wx.BoxSizer()
 		sizer2.Add(user_function_notebook, 1, wx.EXPAND)
 		self.SetSizer(sizer2)		
@@ -3490,7 +3491,7 @@ class UserCreatedCsvImportFunctionPage(Tab):
 		reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
 
 		more_text = wx.StaticText(self, -1, 
-							 "Create stock ranking functions to be imported into the rank page.", 
+							 "Create CSV import functions to be imported into the import page.", 
 							 (145,36)
 							 )
 
@@ -3543,7 +3544,7 @@ class UserCreatedCsvImportFunctionPage(Tab):
 		self.file_display.Destroy()
 		
 		self.file_text = db.load_default_csv_import_functions()
-		db.save_user_ranking_functions(self.file_text)
+		db.save_user_csv_import_functions(self.file_text)
 
 		self.file_display = wx.TextCtrl(self, -1, 
 									self.file_text, 
@@ -3552,7 +3553,82 @@ class UserCreatedCsvImportFunctionPage(Tab):
 									style = wx.TE_MULTILINE ,
 									)
 		self.file_display.Show()
+class UserCreatedPortfolioImportFunctionPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the user created portfolio import function page.", 
+							 (10,10)
+							 )
+		save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
+		save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
 
+		reset_button = wx.Button(self, label="Reset Portfolio Import Functions to Default", pos=(5, 60), size=(-1,-1))
+		reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+
+		more_text = wx.StaticText(self, -1, 
+							 "Create stock portfolio import functions to be imported into the portfolio page.", 
+							 (145,36)
+							 )
+
+
+
+		self.file_text = db.load_user_portfolio_import_functions()
+
+
+		self.height_var = 100
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (955, 580),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+		print line_number(), "UserCreatedPortfolioImportFunctionPage loaded"
+
+
+	def confirmSave(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you want to save your work? This action cannot be undone.", 
+								   'Confirm Save', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.savePortfolioImportFunctions()
+	def savePortfolioImportFunctions(self):
+		text = self.file_display.GetValue()
+		db.save_user_portfolio_import_functions(text)
+
+	def confirmResetToDefault(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you reset to file default? This action cannot be undone.", 
+								   'Confirm Reset', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.resetToDefault()
+	def resetToDefault(self):
+		self.file_display.Destroy()
+		
+		self.file_text = db.load_default_portfolio_import_functions()
+		db.save_user_portfolio_import_functions(self.file_text)
+
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (765, 625),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
 
 # ###########################################################################################
 
@@ -3832,26 +3908,26 @@ def create_account_spread_sheet(
 	, enable_editing = False
 	):
 	stock_shares_dict = account_obj.stock_shares_dict
-	print line_number(), "Stock shares dict:", stock_shares_dict
+	#print line_number(), "Stock shares dict:", stock_shares_dict
 
 	cash = account_obj.availble_cash
-	print line_number(), "Available cash:", cash
+	#print line_number(), "Available cash:", cash
 
 	stock_list = []
 	for ticker in stock_shares_dict:
-		print line_number(), ticker
+		#print line_number(), ticker
 		stock = config.GLOBAL_STOCK_DICT.get(ticker)
 		if stock:
-			print line_number(), "Stock:", stock.symbol
+			#print line_number(), "Stock:", stock.symbol
 			if stock not in stock_list:
 				stock_list.append(stock)
 		else:
 			print line_number(), "Ticker:", ticker, "not found..."
-	print line_number(), "Stock list:", stock_list
+	#print line_number(), "Stock list:", stock_list
 
 	irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
 
-	print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
+	#print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
 
 
 	# if include_analyst_estimates:
