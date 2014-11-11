@@ -1,7 +1,9 @@
 import wx
 import wxStocks_utilities as utils
+import wxStocks_db_functions as db
 import numpy, inspect, os
 from collections import namedtuple
+from wxStocks_classes import Account
 
 
 
@@ -154,5 +156,34 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 
 	return success
 
+def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_created_function):
+	dirname = ''
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv", wx.OPEN)
+	if dialog.ShowModal() == wx.ID_OK:
+		filename = dialog.GetFilename()
+		dirname = dialog.GetDirectory()
+		
+		csv_file = open(os.path.join(dirname, filename), 'rb')
+
+		account_dict = user_created_function(csv_file)
+
+		csv_file.close()
+	else:
+		return None
+	dialog.Destroy()
+
+	if not account_dict:
+		print line_number(), "Error: No account dictionary returned from user function."
+
+	cash = account_dict['cash']
+	stock_share_tuple_list = account_dict['stock_list']
+
+	account_obj = Account(portfolio_id, cash, stock_share_tuple_list)
+
+	db.save_portfolio_object(account_obj, portfolio_id)
+
+	return account_obj
+
+	
 
 # end of line

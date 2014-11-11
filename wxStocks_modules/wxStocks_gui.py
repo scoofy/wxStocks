@@ -3059,63 +3059,27 @@ class PortfolioAccountTab(Tab):
 
 	def addAccountCSV(self, event):
 		'''append a csv to current ticker list'''
+		self.portfolio_import_name = self.drop_down.GetValue()
 
-		#throw error here to add a system of importing stocks that is maliable
+		# Identify the function mapped to screen name
+		for triple in self.triple_list:
+			if self.portfolio_import_name == triple.doc:
+				portfolio_import_function = triple.function
+			# in case doc string is too many characters...
+			elif self.portfolio_import_name == triple.name:
+				portfolio_import_function = triple.function
 
-		self.dirname = ''
-		dialog = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
-		if dialog.ShowModal() == wx.ID_OK:
-			self.filename = dialog.GetFilename()
-			self.dirname = dialog.GetDirectory()
-			
-			new_account_file = open(os.path.join(self.dirname, self.filename), 'rb')
-			
-			# if file is schwab format:
-			new_account_file_data = utils.importSchwabCSV(new_account_file)
-			
-			self.portfolio_data = new_account_file_data
-			new_account_file.close()
+		if not portfolio_import_function:
+			print line_number(), "Error, somthing went wrong locating the correct import function to use."
 
-			print line_number(), self.portfolio_data
-			new_account_stock_list = []
-			cash = "This should be changed"
-			count = 0
-			for row in self.portfolio_data:
-				print line_number(),count
-				if count <= 1:
-					count += 1
-					continue
-				try:
-					if row[0] and row[11]:
-						if str(row[11]) == "Cash & Money Market":
-							cash = row[5]
-							print line_number(),'cash =', cash
-						elif str(row[11]) == "Equity":
-							# format: ticker(0), name(1), quantity(2), price(3), change(4), market value(5), day change$(6), day change%(7), reinvest dividends?(8), capital gain(9), percent of account(10), security type(11)
-							# HeldStock.__init__(self, symbol, quantity, security_type)
-							stock_shares_tuple = [row[0], row[2]]
-							print line_number(), stock_shares_tuple
-							new_account_stock_list.append(stock_shares_tuple)
-							print line_number(),"stock"
-				except Exception, exception:
-					print line_number(),exception
-					print line_number(),row
-				count += 1
-			if cash == "This should be changed":
-				print line_number()
-				logging.error('Formatting error in CSV import')
-			# Account.__init__(self, cash, stock_list)
-			self.account_obj = Account(self.portfolio_id, cash, new_account_stock_list)
+		self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
+		
+		self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
+		
+		# not sure if this is used at all:
+		config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
 
-			# password = None
-			# print line_number(), "config.ENCRYPTION_POSSIBLE =", config.ENCRYPTION_POSSIBLE
-			# if config.ENCRYPTION_POSSIBLE:
-			# 	password = db.get_password()
-			db.save_portfolio_object(self.account_obj, self.portfolio_id) #, password = password)
-
-			self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
-			config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
-		dialog.Destroy()
+		print line_number(), "Portfolio CSV import complete."
 
 	def changeTabName(self, event):
 		old_name = self.GetLabel()
@@ -3993,12 +3957,12 @@ def create_account_spread_sheet(
 				if col_count == 0:
 					screen_grid.SetCellValue(row_count, col_count, "Cash:")
 				elif col_count == 1:
-					screen_grid.SetCellValue(row_count, col_count, cash)
+					screen_grid.SetCellValue(row_count, col_count, str(cash))
 
 
 			else:
 				if col_count == 2:
-					screen_grid.SetCellValue(row_count, col_count, stock_shares_dict.get(stock.symbol))
+					screen_grid.SetCellValue(row_count, col_count, str(stock_shares_dict.get(stock.symbol)))
 				else:
 					try:
 						# Try to add basic data value

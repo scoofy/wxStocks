@@ -18,7 +18,7 @@ import csv
 
 ################################################################################################################
 def process_sample_csv_dot_csv(csv_file, attribute_suffix = "_my"):
-	'''import sample_csv.csv'''
+	'''import sample_import_csv.csv'''
 	dict_list = []
 
 	reader = csv.reader(csv_file)

@@ -81,6 +81,8 @@ def stock_value_is_negative(stock_obj, attribute_str):
 	#print ""
 	return str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
 ####################### Stock utility functions #################################################
+
+### I don't think this is used any more
 def importSchwabCSV(csv_file):
 	reader = csv.reader(csv_file)
 	row_list = []
@@ -95,6 +97,8 @@ def importSchwabCSV(csv_file):
 				washed_row.append(washed_cell)
 			washed_row_list.append(washed_row)
 	return washed_row_list
+###
+
 
 ####################### General utility functions #################################################
 def gen_ticker_list(csv_file):
