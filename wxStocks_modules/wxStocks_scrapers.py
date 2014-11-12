@@ -117,24 +117,37 @@ def download_ticker_symbols(): # from nasdaq.com
 	return exchange_data
 
 #################### Yahoo Finance Scrapers "_yf" ##############################################
-def prepareYqlScrape(): # from finance.yahoo.com
+def prepareYqlScrape(ticker_list = []): # from finance.yahoo.com
 	"returns [chunk_list, percent_of_full_scrape_done, number_of_tickers_to_scrape"
 	chunk_length = config.SCRAPE_CHUNK_LENGTH # 145 appears to be the longest url string i can query with, but 50 seems more stable
 	yql_ticker_list = []
 
 	relevant_tickers = []
-	for ticker in config.GLOBAL_STOCK_DICT:
-		if config.GLOBAL_STOCK_DICT.get(ticker):
-			if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
-				if "^" in ticker or "/" in ticker:
-					#print "this ticker:"
-					#print ticker
-					#print config.GLOBAL_STOCK_DICT[ticker].yql_ticker
-					#print ""
-					relevant_tickers.append(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
-				else:
-					relevant_tickers.append(ticker)
 
+	if not ticker_list: # added so you can update limited tickers
+		for ticker in config.GLOBAL_STOCK_DICT:
+			if config.GLOBAL_STOCK_DICT.get(ticker):
+				if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
+					if "^" in ticker or "/" in ticker:
+						#print "this ticker:"
+						#print ticker
+						#print config.GLOBAL_STOCK_DICT[ticker].yql_ticker
+						#print ""
+						relevant_tickers.append(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
+					else:
+						relevant_tickers.append(ticker)
+	else:
+		for ticker in ticker_list:
+			if config.GLOBAL_STOCK_DICT.get(ticker.upper()):
+				if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
+					if "^" in ticker or "/" in ticker:
+						#print "this ticker:"
+						#print ticker
+						#print config.GLOBAL_STOCK_DICT[ticker].yql_ticker
+						#print ""
+						relevant_tickers.append(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
+					else:
+						relevant_tickers.append(ticker)
 	# Check if stock has already been recently update (this is important to prevent overscraping yahoo)
 	for ticker in relevant_tickers:
 		stock = utils.return_stock_by_yql_symbol(ticker) # initially we need only return stocks by ticker, later we will need to use the yql specific symbols

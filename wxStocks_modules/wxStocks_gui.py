@@ -1703,6 +1703,10 @@ class SalePrepPage(Tab):
 		self.ticker_list = []		
 		self.checkbox_list = []
 		for i in range(config.NUMBER_OF_PORTFOLIOS):
+			portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
+			if not portfolio_exists:
+				continue
+
 			horizontal_offset = 0
 			if i>=5:
 				horizontal_offset = 200
@@ -1711,9 +1715,7 @@ class SalePrepPage(Tab):
 										  pos=((600+ horizontal_offset), (16*i)), 
 										  size=(-1,-1)
 										  )
-			portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
-			if portfolio_exists:
-				checkbox_to_add.SetValue(True)
+			checkbox_to_add.SetValue(True)
 			self.checkbox_list.append(checkbox_to_add)
 		
 		line = wx.StaticLine(self, -1, pos=(0,83), size=(1000,-1))
@@ -1803,6 +1805,9 @@ class SalePrepPage(Tab):
 				print line_number(), exception
 		self.checkbox_list = []
 		for i in range(config.NUMBER_OF_PORTFOLIOS):
+			if not portfolio_obj:
+				continue
+
 			horizontal_offset = 0
 			if i>=5:
 				horizontal_offset = 200
@@ -1813,9 +1818,8 @@ class SalePrepPage(Tab):
 										  )
 			
 			portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
-			if portfolio_obj:
-				checkbox_to_add.SetValue(True)
-				self.checkbox_list.append(checkbox_to_add)
+			checkbox_to_add.SetValue(True)
+			self.checkbox_list.append(checkbox_to_add)
 		self.spreadSheetFill("event")
 
 	def hideSaveButtonWhileEnteringData(self, event):
@@ -1919,34 +1923,36 @@ class SalePrepPage(Tab):
 			try:
 				throw_error = account.stock_shares_dict
 				# intentionally throws an error if account hasn't been imported
-
-				self.grid.SetCellValue(row_count, 0, config.PORTFOLIO_NAMES[portfolio_num])
-				self.grid.SetCellBackgroundColour(row_count, 1, "white")
-				self.grid.SetReadOnly(row_count, 1, True)
-				self.grid.SetCellBackgroundColour(row_count, 2, "white")
-				self.grid.SetReadOnly(row_count, 2, True)
-				portfolio_num += 1
-				row_count += 1
-
-				for ticker, quantity in account.stock_shares_dict.iteritems():
-					#if row_count == 0:
-					#	self.screen_grid.SetColLabelValue(col_count, str(attribute))
-					stock = utils.return_stock_by_symbol(ticker)
-
-					self.grid.SetCellValue(row_count, 3, stock.symbol)
-					try:
-						self.grid.SetCellValue(row_count, 5, stock.firm_name)
-					except Exception, exception:
-						print line_number(), exception
-					self.grid.SetCellValue(row_count, 9, quantity)
-					try:
-						self.grid.SetCellValue(row_count, 10, getattr(stock, self.default_last_trade_price_attribute_name))
-					except Exception, exception:
-						print line_number(), exception
-					self.grid.SetCellValue(row_count, 15, str(float(quantity.replace(",","")) * float(getattr(stock, self.default_last_trade_price_attribute_name))))
+				try:
+					self.grid.SetCellValue(row_count, 0, config.PORTFOLIO_NAMES[portfolio_num])
+					self.grid.SetCellBackgroundColour(row_count, 1, "white")
+					self.grid.SetReadOnly(row_count, 1, True)
+					self.grid.SetCellBackgroundColour(row_count, 2, "white")
+					self.grid.SetReadOnly(row_count, 2, True)
+					portfolio_num += 1
 					row_count += 1
-			except Exception, exception:
-				print line_number(), exception, "\nAn account appears to not be loaded with a .csv, but this isn't a problem."
+
+					for ticker, quantity in account.stock_shares_dict.iteritems():
+						#if row_count == 0:
+						#	self.screen_grid.SetColLabelValue(col_count, str(attribute))
+						stock = utils.return_stock_by_symbol(ticker)
+
+						self.grid.SetCellValue(row_count, 3, stock.symbol)
+						try:
+							self.grid.SetCellValue(row_count, 5, stock.firm_name)
+						except Exception, exception:
+							print line_number(), exception
+						self.grid.SetCellValue(row_count, 9, str(quantity))
+						try:
+							self.grid.SetCellValue(row_count, 10, getattr(stock, self.default_last_trade_price_attribute_name))
+						except Exception, exception:
+							print line_number(), exception
+						self.grid.SetCellValue(row_count, 15, str(float(str(quantity).replace(",","")) * float(getattr(stock, self.default_last_trade_price_attribute_name))))
+						row_count += 1
+				except Exception as e:
+					print line_number(), e
+			except Exception as e:
+				print line_number(), e, ": An account appears to not be loaded with a .csv, but this isn't a problem."
 		self.grid.AutoSizeColumns()
 	
 	def updateGrid(self, event):
@@ -1957,7 +1963,7 @@ class SalePrepPage(Tab):
 		num_shares = num_shares.replace(",","")
 		value = utils.strip_string_whitespace(value)
 		price = self.grid.GetCellValue(row, 10)
-		if column == 1:
+		if column == 1: # sell by number
 			try:
 				number_of_shares_to_sell = int(value)
 			except Exception, exception:
@@ -1991,7 +1997,7 @@ class SalePrepPage(Tab):
 			else:
 				self.setGridError(row)
 
-		if column == 2:
+		if column == 2: # by % of stock held
 			if "%" in value:
 				value = value.strip("%")
 				try:
@@ -2003,6 +2009,7 @@ class SalePrepPage(Tab):
 			else:
 				try:
 					value = float(value)
+					value = value / 100
 				except Exception, exception:
 					print line_number(), exception
 					if value != "":
@@ -2011,6 +2018,7 @@ class SalePrepPage(Tab):
 			percent_of_holdings_to_sell = value
 			self.grid.SetCellValue(row, 1, "")
 
+			# if empty
 			if percent_of_holdings_to_sell == "" or percent_of_holdings_to_sell == 0:
 				self.grid.SetCellValue(row, 7, "")
 				self.grid.SetCellValue(row, 8, "")
@@ -2051,6 +2059,11 @@ class SalePrepPage(Tab):
 		self.grid.SetCellValue(row, 8, "")
 		self.grid.SetCellValue(row, 11, "")
 		self.grid.SetCellValue(row, 12, "")
+
+	def setNoGridError(self, row):
+		self.grid.SetCellValue(row, 6, "")
+		self.grid.SetCellTextColour(row, 6, "black")
+
 class TradePage(Tab):
 	def __init__(self, parent):
 		self.default_last_trade_price_attribute_name = "LastTradePriceOnly_yf"
@@ -2079,14 +2092,104 @@ class TradePage(Tab):
 		import_sale_candidates_button = wx.Button(self, label="Import sale candidates and refresh spreadsheet", pos=(0,30), size=(-1,-1))
 		import_sale_candidates_button.Bind(wx.EVT_BUTTON, self.importSaleCandidates, import_sale_candidates_button)
 
-		create_grid_button = wx.Button(self, label="create grid", pos=(500,30), size=(-1,-1))
+		create_grid_button = wx.Button(self, label="Create grid", pos=(500,30), size=(-1,-1))
 		create_grid_button.Bind(wx.EVT_BUTTON, self.makeGridOnButtonPush, create_grid_button)
 		self.grid_list = []
+
+		self.update_stocks_button = wx.Button(self, label="Update stocks with errors.", pos=(700,30), size=(-1,-1))
+		self.update_stocks_button.Bind(wx.EVT_BUTTON, self.updateStocksWithErrors, self.update_stocks_button)
+		self.update_stocks_button.Hide()
+		self.stocks_to_update = []
+		self.number_of_tickers_to_scrape = 0
+
+		self.stock_update_pending_text = wx.StaticText(self, -1, 
+							 "Currently Updating Stocks", 
+							 (700,30)
+							 )
+		self.stock_update_pending_text.Hide()
 
 
 		self.grid = None
 
 		print line_number(), "TradePage loaded"
+
+	def updateStocksWithErrors(self, event):
+		if not self.stocks_to_update:
+			self.update_stocks_button.Hide()
+			return
+		if len(self.stocks_to_update) > config.SCRAPE_CHUNK_LENGTH:
+			error_message = wx.MessageDialog(None, 
+								   "The number of stocks to scrape is too large. Please use the Scrape tab to perform a full scrape.", 
+								   'Scrape Too Large', 
+								   style = wx.ICON_EXCLAMATION
+								   )
+			error_message.ShowModal()
+			confirm.Destroy()
+			return
+
+		self.update_stocks_button.Hide()
+		self.stock_update_pending_text.Show()
+
+		chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape = scrape.prepareYqlScrape(self.stocks_to_update)
+
+		chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
+		percent_of_full_scrape_done = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[1]
+		self.number_of_tickers_to_scrape = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[2]
+
+		timer = threading.Timer(0, self.executeUpdatePartOne, [chunk_list, 0])
+		timer.start()
+
+	def executeUpdatePartOne(self, ticker_chunk_list, position_of_this_chunk):
+		data = scrape.executeYqlScrapePartOne(ticker_chunk_list, position_of_this_chunk)
+
+		sleep_time = config.SCRAPE_SLEEP_TIME
+		timer = threading.Timer(sleep_time, self.executeUpdatePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
+		timer.start()
+
+
+
+	def executeUpdatePartTwo(self, ticker_chunk_list, position_of_this_chunk, successful_pyql_data):
+		scrape.executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data)
+
+		sleep_time = config.SCRAPE_SLEEP_TIME
+		logging.warning("Sleeping for %d seconds before the next task" % sleep_time)
+
+
+
+		number_of_tickers_in_chunk_list = 0
+		for chunk in ticker_chunk_list:
+			for ticker in chunk:
+				number_of_tickers_in_chunk_list += 1
+		number_of_tickers_previously_updated = self.number_of_tickers_to_scrape - number_of_tickers_in_chunk_list
+		number_of_tickers_done_in_this_scrape = 0
+		for i in range(len(ticker_chunk_list)):
+			if i > position_of_this_chunk:
+				continue
+			for ticker in ticker_chunk_list[i]:
+				number_of_tickers_done_in_this_scrape += 1
+		total_number_of_tickers_done = number_of_tickers_previously_updated + number_of_tickers_done_in_this_scrape
+		percent_of_full_scrape_done = round( 100 * float(total_number_of_tickers_done) / float(self.number_of_tickers_to_scrape))
+
+		position_of_this_chunk += 1
+		percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
+		print line_number(), "%d%%" % percent_done, "done this scrape execution."
+		print line_number(), "%d%%" % percent_of_full_scrape_done, "done of all tickers."
+
+		if position_of_this_chunk >= len(ticker_chunk_list):
+			for chunk in ticker_chunk_list:
+				for ticker in chunk:
+					self.stocks_to_update.remove(ticker)
+			self.updateGrid("event", cursor_positon = (0, 0))
+			self.stock_update_pending_text.Hide()
+			print line_number(), "finished!"
+		else:
+			for chunk in ticker_chunk_list:
+				for ticker in chunk:
+					self.stocks_to_update.remove(ticker)
+			self.updateGrid("event", cursor_positon = (0, 0))
+			print line_number(), "ready to loop again"
+			timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
+			timer.start()
 
 	def importSaleCandidates(self, event):
 		print line_number(), "Boom goes the boom!!!!!!!!"
@@ -2410,7 +2513,7 @@ class TradePage(Tab):
 		# self.grid.AutoSizeColumns()
 		# print "done building self.grid"
 		# self.grid_list.append(self.grid)
-	def updateGrid(self, event, grid = None):
+	def updateGrid(self, event, grid = None, cursor_positon = None):
 		# this function currently creates new grids on top of each other.
 		# why?
 		# when i tried to update the previous grid using the data (run self.spreadSheetFill on the last line).
@@ -2422,10 +2525,10 @@ class TradePage(Tab):
 			grid = self.grid
 		else:
 			print line_number(), grid
-
-		row = event.GetRow()
-		column = event.GetCol()
-		cursor_positon = (int(row), int(column))
+		if not cursor_positon:
+			row = event.GetRow()
+			column = event.GetCol()
+			cursor_positon = (int(row), int(column))
 
 		buy_candidates_len = len(self.buy_candidates)
 		print line_number(), buy_candidates_len
@@ -2667,10 +2770,10 @@ class TradePage(Tab):
 
 			total_asset_value = 0.00
 			for account in self.relevant_portfolios_list:
-				total_asset_value += float(account.availble_cash.replace("$",""))
+				total_asset_value += float(str(account.availble_cash).replace("$",""))
 				for ticker, quantity in account.stock_shares_dict.iteritems():
 					stock = utils.return_stock_by_symbol(ticker)
-					quantity = float(quantity.replace(",",""))
+					quantity = float(str(quantity).replace(",",""))
 					last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
 					value_of_held_stock = last_price * quantity
 					total_asset_value += value_of_held_stock
@@ -2697,7 +2800,7 @@ class TradePage(Tab):
 			
 			total_cash = 0.00
 			for account in self.relevant_portfolios_list:
-				total_cash += float(account.availble_cash.replace("$",""))
+				total_cash += float(str(account.availble_cash).replace("$",""))
 			total_cash += value_of_all_stock_to_sell
 			if total_cash != 0:
 				percent_cash = total_cash / total_asset_value
@@ -2764,6 +2867,10 @@ class TradePage(Tab):
 							new_grid.SetCellValue(row_num, column_num + 2, "(Error: Update %s)" % stock.symbol)
 							new_grid.SetCellTextColour(row_num, column_num + 2, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
 							update_error = True
+							self.stocks_to_update.append(stock.symbol)
+							utils.remove_list_duplicates(self.stocks_to_update)
+							print line_number(), self.stocks_to_update, "Row:", row_num, "Column:", column_num
+							self.update_stocks_button.Show()
 
 						column_shift = 3
 						for percent in [0.03, 0.05, 0.10]:
@@ -2855,6 +2962,7 @@ class TradePage(Tab):
 		self.grid_list.append(new_grid)
 		print line_number(), "number of grids created =", len(self.grid_list)
 		new_grid.SetFocus()
+		self.grid = new_grid
 
 class PortfolioPage(Tab):
 	def __init__(self, parent):
@@ -3076,7 +3184,7 @@ class PortfolioAccountTab(Tab):
 		
 		self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
 		
-		# not sure if this is used at all:
+		# this is used in sale prep page:
 		config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
 
 		print line_number(), "Portfolio CSV import complete."
