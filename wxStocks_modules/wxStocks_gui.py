@@ -1365,8 +1365,10 @@ class RankPage(Tab):
 
 
 	def updateAdditionalData(self, event):
-		print line_number(), "fix this effing shit"
-		sys.exit()
+		ticker_list = []
+		for stock in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
+			ticker_list.append(stock.symbol)
+		scrape.scrape_all_additional_data_prep(ticker_list)
 	# these may be irrelevant
 	#def updateAnnualData(self, event):
 	#	scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
@@ -3070,6 +3072,8 @@ class PortfolioAccountTab(Tab):
 		if self.portfolio_obj:
 			self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_obj)
 
+		self.screen_grid = None
+
 		print line_number(), "PortfolioAccountTab loaded"
 
 
@@ -3118,7 +3122,8 @@ class PortfolioAccountTab(Tab):
 		if self.current_account_spreadsheet:
 			self.current_account_spreadsheet.Destroy()
 		self.screen_grid = create_account_spread_sheet(self, portfolio_obj)
-		self.screen_grid.Show()
+		if self.screen_grid:
+			self.screen_grid.Show()
 		return
 		
 		#####################################################

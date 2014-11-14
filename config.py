@@ -16,6 +16,10 @@ SCRAPE_SLEEP_TIME = 18
 # Had ip banned for 24 hour periods scraping yql at a greater rate than this,
 # however, their documentation says you can scrape at a faster rate.
 # Note that i was banned for periods for scraping at the max rate they officially allow.
+ADDITIONAL_DATA_SCRAPE_SLEEP_TIME = 2 
+# Less important, because the number of scraping functions you exicute multiplies this by site, 
+# but you should adjust this significantly if you get your ip banned.
+
 
 ABORT_YQL_SCRAPE = False
 
