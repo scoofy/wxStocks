@@ -13,7 +13,7 @@ def line_number():
 	line_number_string = "Line %d:" % line_number
 	return line_number_string
 
-
+# something is clearly broken with additional data scrapes
 def scrape_all_additional_data_prep(list_of_ticker_symbols): # Everything except basic yql and nasdaq
 	function_list = [
 		yf_analyst_estimates_scrape,
@@ -45,8 +45,9 @@ def scrape_all_additional_data_execute(list_of_ticker_symbols, list_of_functions
 	scrape_sleep_time = config.ADDITIONAL_DATA_SCRAPE_SLEEP_TIME
 
 	count = 1
-	for function_position in range(number_of_functions):
-		for ticker_position in range(number_of_tickers):
+	# Here, best to scrape all data for one stock, switching functions to slow posibility of overscraping
+	for ticker_position in range(number_of_tickers):
+		for function_position in range(number_of_functions):
 			count_adjusted_for_sleep_time = (count * scrape_sleep_time) - (scrape_sleep_time - 1)
 			timer = threading.Timer(count_adjusted_for_sleep_time, function_list[function_position], [ticker_list[ticker_position]])
 			timer.start()

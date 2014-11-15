@@ -105,15 +105,15 @@ NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR = 100
 
 STOCK_SCRAPE_UPDATE_ATTRIBUTES = ["last_yql_basic_scrape_update",
 	
-	"last_yahoo_balance_sheet_update",
-	"last_yahoo_cash_flow_update",
-	"last_yahoo_income_statement_update",
+	"last_balance_sheet_update_yf",
+	"last_cash_flow_update_yf",
+	"last_income_statement_update_yf",
 
-	"last_morningstar_balance_sheet_update",
-	"last_morningstar_cash_flow_update",
-	"last_morningstar_income_statement_update",
+	"last_balance_sheet_update_ms",
+	"last_cash_flow_update_ms",
+	"last_income_statement_update_ms",
 
-	"last_morningstar_key_ratios_update",
+	"last_key_ratios_update_ms",
 
 
 	]

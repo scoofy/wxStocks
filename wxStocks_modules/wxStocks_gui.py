@@ -1369,16 +1369,9 @@ class RankPage(Tab):
 		for stock in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
 			ticker_list.append(stock.symbol)
 		scrape.scrape_all_additional_data_prep(ticker_list)
-	# these may be irrelevant
-	#def updateAnnualData(self, event):
-	#	scrape_balance_sheet_income_statement_and_cash_flow(self.full_ticker_list)
-	#	#if self.full_ticker_list:
-	#	#	self.spreadSheetFill(self.full_ticker_list)
-	#def updateAnalystEstimates(self, event):
-	#	scrape_analyst_estimates(self.full_ticker_list)
-	#	if self.full_ticker_list:
-	#		self.spreadSheetFill(self.full_ticker_list)
-	###
+		
+		self.createSpreadSheet(stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS)
+
 	def clearGrid(self, event):
 		confirm = wx.MessageDialog(None, 
 								   "You are about to clear this grid.", 
@@ -1454,12 +1447,28 @@ class RankPage(Tab):
 			return
 
 		self.currently_viewed_screen = selected_screen_name
+
+		possibly_remove_dead_stocks = []
 		for stock in saved_screen:
-			if stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
+			if not stock:
+				possibly_remove_dead_stocks.append(stock)
+				print line_number(), "One of the stocks in this screen does not appear to exist."
+			elif stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
 				print line_number(), stock.symbol, "added to config.RANK_PAGE_ALL_RELEVANT_STOCKS"
 				config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
 			else:
 				print line_number(), stock.symbol, "skipped"
+		if possibly_remove_dead_stocks:
+			for dead_stock in possibly_remove_dead_stocks:
+				try:
+					saved_screen.remove(dead_stock)
+				except:
+					pass
+				try:
+					config.RANK_PAGE_ALL_RELEVANT_STOCKS.remove(dead_stock)
+				except:
+					pass
+			db.save_named_screen(selected_screen_name, saved_screen)
 
 		if self.screen_grid:
 			try:
