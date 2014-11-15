@@ -1,3 +1,4 @@
 DO_NOT_COPY/**
 *.pyc
 *.pk
+encryption_strength.txt
