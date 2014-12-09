@@ -25,6 +25,8 @@ rank_path = 'wxStocks_rank_functions.py'
 default_rank_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_rank_functions.py'
 csv_import_path = 'wxStocks_csv_import_functions.py'
 default_csv_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_csv_import_functions.py'
+xls_import_path = 'wxStocks_xls_import_functions.py'
+default_xls_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_xls_import_functions.py'
 portfolio_import_path = 'wxStocks_portfolio_import_functions.py'
 default_portfolo_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_portfolio_import_functions.py'
 do_not_copy_path = 'DO_NOT_COPY'
@@ -216,6 +218,24 @@ def load_user_csv_import_functions():
 def save_user_csv_import_functions(text):
 	with open(csv_import_path, "w") as output:
 		output.write(text)
+
+def load_default_xls_import_functions():
+	test_file = open(default_xls_import_path, 'r')
+	text = test_file.read()
+	test_file.close()
+	return text
+def load_user_xls_import_functions():
+	try:
+		function_file = open(xls_import_path, 'r')
+		text = function_file.read()
+		function_file.close()
+	except:
+		text = load_default_xls_import_functions()
+	return text
+def save_user_xls_import_functions(text):
+	with open(xls_import_path, "w") as output:
+		output.write(text)
+
 
 def load_default_portfolio_import_functions():
 	test_file = open(default_portfolio_import_path, 'r')

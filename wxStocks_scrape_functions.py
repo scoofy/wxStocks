@@ -27,7 +27,7 @@
 ################################################################################################################
 def sample_scrape(stock_list, attribute_suffix = "_yf"):
 
-	# finish this incomplete
+	finish this incomplete
 
 	'''sample scrape of '''
 	dict_list = []

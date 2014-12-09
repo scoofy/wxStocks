@@ -99,6 +99,22 @@ def importSchwabCSV(csv_file):
 	return washed_row_list
 ###
 
+### xlrd
+def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
+	relevant_sheets = []
+	for i in range(xlrd_workbook.nsheets):
+		sheet = xlrd_workbook.sheet_by_index(i)
+		print sheet.name
+		if sheet.nrows or sheet.ncols:
+			print "rows x cols:", sheet.nrows, sheet.ncols
+			relevant_sheets.append(sheet)
+		else:
+			print "is empty"
+		print ""
+	return relevant_sheets
+
+def return_xls_cell_value(xlrd_spreadsheet, row, column):
+	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
 ####################### General utility functions #################################################
 def gen_ticker_list(csv_file):

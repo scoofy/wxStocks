@@ -103,6 +103,71 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 	
 	return rank_list
 
+def import_xls_via_user_created_function(wxWindow, user_created_function):
+	'''adds import csv data to stocks data via a user created function'''
+	try:
+		from modules import xlrd
+	except:
+		print line_number(), "Error: cannot import xls file because xlrd module failed to load"
+		return
+	
+	dirname = ''
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.xls", wx.OPEN)
+	if dialog.ShowModal() == wx.ID_OK:
+		filename = dialog.GetFilename()
+		dirname = dialog.GetDirectory()
+		
+		#csv_file = open(os.path.join(dirname, filename), 'rb')
+		
+		xls_workbook = xlrd.open_workbook(dirname + "/" + filename)
+		dict_list_and_attribute_suffix_tuple = user_created_function(xls_workbook)
+		
+	else:
+		dialog.Destroy()
+		return
+	dialog.Destroy()
+	
+	# process returned tuple
+	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]
+	success = None
+	if len(attribute_suffix) != 3 or attribute_suffix[0] != "_":
+		print line_number(), "Error: your attribute suffix is improperly formatted"
+		success = "fail"
+		return success
+	dict_list = dict_list_and_attribute_suffix_tuple[0]
+	for this_dict in dict_list:
+		if not this_dict:
+			continue
+		try:
+			this_dict['stock']
+		except Exception as e:
+			print line_number(), e
+			print line_number(), "Error: your dictionary does not have the ticker as your_dictionary['stock']"
+			if success in ["success", "some"]:
+				success = "some"
+			else:
+				success = "fail"
+			continue
+		stock = utils.return_stock_by_symbol(this_dict['stock'])
+		if not stock:
+			print line_number(), "Error: your_dictionary['stock'] does not return a recognized ticker symbol."
+			if success in ["success", "some"]:
+				success = "some"
+			else:
+				success = "fail"
+			continue
+		for key, value in this_dict.iteritems():
+			if key == "stock":
+				continue
+			else:
+				setattr(stock, key + attribute_suffix, value)
+				if success in ["fail", "some"]:
+					success = "some"
+				else:
+					success = "success"
+
+	return success
+
 def import_csv_via_user_created_function(wxWindow, user_created_function):
 	'''adds import csv data to stocks data via a user created function'''
 	dirname = ''
@@ -115,6 +180,7 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 		dict_list_and_attribute_suffix_tuple = user_created_function(csv_file)
 		csv_file.close()
 	else:
+		dialog.Destroy()
 		return None
 	dialog.Destroy()
 	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]

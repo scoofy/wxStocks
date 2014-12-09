@@ -48,7 +48,7 @@ class Stock(object):
 
 
 		# save new object to db
-		config.GLOBAL_STOCK_DICT[symbol.upper()] = self
+		#config.GLOBAL_STOCK_DICT[symbol.upper()] = self
 		#print type(self)
 		#print 'Saving: Stock("%s")' % symbol.upper()
 		#db.save_GLOBAL_STOCK_DICT()
@@ -68,14 +68,19 @@ class Stock(object):
 		self.last_key_ratios_update_ms = 0.0
 
 class Account(object): #portfolio
-	def __init__(self, id_number, cash = 0, initial_ticker_shares_tuple_list = []):
+	def __init__(self, id_number, cash = 0, initial_ticker_shares_tuple_list = [], initial_ticker_cost_basis_dict = {}):
 		self.id_number = id_number
 		self.availble_cash = cash # there is a ticker "CASH" that already exists, ugh
 		self.stock_shares_dict = {}
 		if initial_ticker_shares_tuple_list:
 			for a_tuple in initial_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
 				if a_tuple[0] not in self.stock_shares_dict.keys():
+					# ticker not already in stock share dict
 					self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+				else:
+					# redundant, probably inproperly formatted data
+					pass
+		self.cost_basis_dict = initial_ticker_cost_basis_dict
 
 	def update_account(self, updated_cash, updated_stock_shares_tuple_list):
 		self.availble_cash = updated_cash
@@ -84,13 +89,15 @@ class Account(object): #portfolio
 			if a_tuple[0] not in self.stock_shares_dict.keys():
 				self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
 
+	def update_cost_basises(self, new_ticker_cost_basis_dict):
+		for ticker in new_ticker_cost_basis_dict:
+			self.cost_basis_dict[ticker] = new_ticker_cost_basis_dict.get(ticker)
 
 	def add_stock(stock_shares_tuple):
 		if stock_shares_tuple[0] not in self.stock_shares_dict.keys():
 			self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
 		else: # updating only number of shares held
 			self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
-
 
 
 

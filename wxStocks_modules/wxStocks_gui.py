@@ -91,8 +91,8 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		self.yql_scrape_page = YqlScrapePage(notebook)
 		notebook.AddPage(self.yql_scrape_page, "Scrape")
 
-		self.csv_import_page = CsvImportPage(notebook)
-		notebook.AddPage(self.csv_import_page, "CSV Import")
+		self.spreadsheet_import_page = SpreadsheetImportPage(notebook)
+		notebook.AddPage(self.spreadsheet_import_page, "Import Data")
 
 		self.all_stocks_page = AllStocksPage(notebook)
 		notebook.AddPage(self.all_stocks_page, "Stocks")
@@ -721,6 +721,24 @@ class YqlScrapePage(Tab):
 			self.scrape_button.Show()
 			self.calculate_scrape_times()
 
+class SpreadsheetImportPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		####
+		spreadsheet_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+		spreadsheet_notebook = wx.Notebook(spreadsheet_page_panel)
+
+		self.csv_import_page = CsvImportPage(spreadsheet_notebook)
+		spreadsheet_notebook.AddPage(self.csv_import_page, "Import .CSV Data")		
+
+		self.xls_import_page = XlsImportPage(spreadsheet_notebook)
+		spreadsheet_notebook.AddPage(self.xls_import_page, "Import .XLS Data")		
+
+
+		sizer2 = wx.BoxSizer()
+		sizer2.Add(spreadsheet_notebook, 1, wx.EXPAND)
+		self.SetSizer(sizer2)		
+		####
 class CsvImportPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -734,7 +752,7 @@ class CsvImportPage(Tab):
 		default_dropdown_horizontal_offset = 100
 		default_dropdown_vertical_offset = 0
 
-		import_button = wx.Button(self, label="import csv", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
+		import_button = wx.Button(self, label="import .csv", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
 		import_button.Bind(wx.EVT_BUTTON, self.importCSV, import_button)
 
 		self.csv_import_name_list = meta.return_csv_import_function_short_names()
@@ -791,7 +809,75 @@ class CsvImportPage(Tab):
 								   )
 		confirm.ShowModal()
 
+class XlsImportPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the XLS data import page page.\nYou can make your own import functions under the function tab.", 
+							 (10,10)
+							 )
 
+		default_button_horizontal_position = 0
+		default_button_vertical_position = 50
+		default_dropdown_horizontal_offset = 100
+		default_dropdown_vertical_offset = 0
+
+		import_button = wx.Button(self, label="import .xls", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
+		import_button.Bind(wx.EVT_BUTTON, self.importXLS, import_button)
+
+		self.xls_import_name_list = meta.return_xls_import_function_short_names()
+		self.drop_down = wx.ComboBox(self, pos=(default_button_horizontal_position + default_dropdown_horizontal_offset, default_button_vertical_position + default_dropdown_vertical_offset), choices=self.xls_import_name_list)
+
+		self.triple_list = meta.return_xls_import_function_triple()
+
+		self.xls_import_name = None
+
+	def importXLS(self, event):
+		self.xls_import_name = self.drop_down.GetValue()
+
+		# Identify the function mapped to screen name
+		for triple in self.triple_list:
+			if self.xls_import_name == triple.doc:
+				xls_import_function = triple.function
+			# in case doc string is too many characters...
+			elif self.xls_import_name == triple.name:
+				xls_import_function = triple.function
+
+		if not xls_import_function:
+			print line_number(), "Error, somthing went wrong locating the correct import function to use."
+
+		# run ranking funtion on all stocks
+
+		success = process_user_function.import_xls_via_user_created_function(self, xls_import_function)
+
+		if not success:
+			return
+
+		if success == "fail":
+			title_string = "Error"
+			success_string = "This import has failed, please check make sure your function conforms to the import protocols."
+			message_style = wx.ICON_ERROR
+		elif success == "some":
+			title_string = "Some Errors"
+			success_string = "There were some errors with your import, please review your XLS file and make sure that your functions conform to the protocols, and that the ticker symbols in your xls files are the same format as wxStocks'."
+			message_style = wx.ICON_EXCLAMATION
+		elif success == "success":
+			title_string = "Success"
+			success_string = "Success! You're file has been successfully imported."
+			message_style = wx.OK
+		else:
+			print line_number(), "Error in importXLS title and success strings"
+			return
+
+		print line_number(), "importXLS done"
+
+
+		confirm = wx.MessageDialog(None, 
+								   success_string, 
+								   title_string, 
+								   style = message_style
+								   )
+		confirm.ShowModal()
 class AllStocksPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -3402,6 +3488,9 @@ class UserFunctionsPage(Tab):
 		self.user_csv_import_functions = UserCreatedCsvImportFunctionPage(user_function_notebook)
 		user_function_notebook.AddPage(self.user_csv_import_functions, "CSV Import Functions")
 
+		self.user_xls_import_functions = UserCreatedXlsImportFunctionPage(user_function_notebook)
+		user_function_notebook.AddPage(self.user_xls_import_functions, "XLS Import Functions")
+
 		self.user_portfolio_import_functions = UserCreatedPortfolioImportFunctionPage(user_function_notebook)
 		user_function_notebook.AddPage(self.user_portfolio_import_functions, "Portfolio Import Functions")
 
@@ -3631,6 +3720,82 @@ class UserCreatedCsvImportFunctionPage(Tab):
 		
 		self.file_text = db.load_default_csv_import_functions()
 		db.save_user_csv_import_functions(self.file_text)
+
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (765, 625),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+class UserCreatedXlsImportFunctionPage(Tab):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		text = wx.StaticText(self, -1, 
+							 "Welcome to the user created .xls import function page.", 
+							 (10,10)
+							 )
+		save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
+		save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+
+		reset_button = wx.Button(self, label="Reset XLS Import Functions to Default", pos=(5, 60), size=(-1,-1))
+		reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+
+		more_text = wx.StaticText(self, -1, 
+							 "Create XLS import functions to be imported into the import page.", 
+							 (145,36)
+							 )
+
+
+
+		self.file_text = db.load_user_xls_import_functions()
+
+
+		self.height_var = 100
+		self.file_display = wx.TextCtrl(self, -1, 
+									self.file_text, 
+									(10, self.height_var),
+									size = (955, 580),
+									style = wx.TE_MULTILINE ,
+									)
+		self.file_display.Show()
+
+		print line_number(), "UserCreatedCsvImportFunctionPage loaded"
+
+
+	def confirmSave(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you want to save your work? This action cannot be undone.", 
+								   'Confirm Save', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.saveXlsImportFunctions()
+	def saveXlsImportFunctions(self):
+		text = self.file_display.GetValue()
+		db.save_user_xls_import_functions(text)
+
+	def confirmResetToDefault(self, event):
+		confirm = wx.MessageDialog(None, 
+								   "Are you sure you reset to file default? This action cannot be undone.", 
+								   'Confirm Reset', 
+								   style = wx.YES_NO
+								   )
+		confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
+		yesNoAnswer = confirm.ShowModal()
+		confirm.Destroy()
+
+		if yesNoAnswer == wx.ID_YES:
+			self.resetToDefault()
+	def resetToDefault(self):
+		self.file_display.Destroy()
+		
+		self.file_text = db.load_default_xls_import_functions()
+		db.save_user_xls_import_functions(self.file_text)
 
 		self.file_display = wx.TextCtrl(self, -1, 
 									self.file_text, 
