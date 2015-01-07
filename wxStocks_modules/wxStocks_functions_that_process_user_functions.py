@@ -241,12 +241,14 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 	if not account_dict:
 		print line_number(), "Error: No account dictionary returned from user function."
 
-	cash = account_dict['cash']
-	stock_share_tuple_list = account_dict['stock_list']
+	cash = account_dict.get('cash')
+	stock_share_tuple_list = account_dict.get('stock_list')
+	cost_basis_dict = account_dict.get("cost_basis_dict")
 
+	throw error this needs to be changed
 	account_obj = Account(portfolio_id, cash, stock_share_tuple_list)
 
-	db.save_portfolio_object(account_obj, portfolio_id)
+	db.save_portfolio_object(account_obj)
 
 	return account_obj
 

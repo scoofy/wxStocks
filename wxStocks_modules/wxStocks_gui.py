@@ -11,6 +11,7 @@ import config, threading, logging, sys, time, os, math
 import inspect
 import pprint as pp
 
+from collections import namedtuple
 from wx.lib import sheet
 
 from wxStocks_classes import Stock, Account
@@ -1833,6 +1834,9 @@ class SalePrepPage(Tab):
 										)
 		self.saved_text.Hide()
 
+		self.commission = config.DEFAULT_COMMISSION 
+
+		self.set_spreadsheet_values()
 		self.grid = None
 		for i in range(len(self.checkbox_list)):
 			box = self.checkbox_list[i]
@@ -1845,6 +1849,74 @@ class SalePrepPage(Tab):
 
 		print line_number(), "SalePrepPage loaded"
 
+	def cell_is_writable(self, row_num, col_num):
+		default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
+		
+		if ((row_num >= default_rows) and col_num in [self.num_of_shares_cell.col, self.percent_of_shares_cell.col]):
+			return True
+		elif (row_num, col_num) == (3, 14):
+			return True
+		else:
+			return False
+
+	def set_spreadsheet_values(self):
+		# colors
+		self.carryover_input_color_hex = "#C5DBCA"
+		self.num_of_shares_input_color_hex = "#CFE8FC"
+		self.percentage_of_shares_input_color_hex = "#CFFCEF"
+		self.dark_cell_color_hex = "#333333"
+
+
+		
+		Cell_Reference = namedtuple("Cell_Reference", ["row", "col", "text"])
+		
+		# row 2
+		self.carryover_text_cell = Cell_Reference(2, 14, "Input carryover loss (if any)")
+
+		# row 3
+		self.carryover_input_cell = Cell_Reference(3, 14, str(0.00))
+
+		# row 5
+		self.num_of_shares_cell 			= Cell_Reference(5, 1, "# of shares to sell")
+		self.percent_of_shares_cell 		= Cell_Reference(5, 2, "% of shares to sell")
+		self.ticker_cell					= Cell_Reference(5, 3, "Ticker")
+		self.syntax_check_cell 				= Cell_Reference(5, 4, "")#Syntax Check")
+		self.name_cell 						= Cell_Reference(5, 5, "Name")
+		self.sale_check_cell				= Cell_Reference(5, 6, "Sale Check")
+		self.number_of_shares_copy_cell 	= Cell_Reference(5, 7, "# of shares to sell")
+		self.percent_of_shares_copy_cell	= Cell_Reference(5, 8, "% of shares to sell")
+		self.total_shares_cell 				= Cell_Reference(5, 9, "Total # of shares")
+		self.price_cell 					= Cell_Reference(5, 10, "Price")
+		self.sale_value_cell				= Cell_Reference(5, 11, "Sale Value")
+		self.commission_cell 				= Cell_Reference(5, 12, "Commission loss ($%s/trade)" % str(self.commission))
+		self.fifo_cell 						= Cell_Reference(5, 13, "FIFO Capital Gains")
+		self.adjusted_cap_gains_cell 		= Cell_Reference(5, 14, "Adjusted Capital Gains (including carryovers)")
+		self.market_value_cell 				= Cell_Reference(5, 15, "Market Value")
+		self.unrealized_cell 				= Cell_Reference(5, 16, "Unrealized Capital +/-")
+
+		self.row_five_cell_list = [
+			self.num_of_shares_cell,
+			self.percent_of_shares_cell,
+			self.ticker_cell,
+			self.syntax_check_cell,
+			self.name_cell,
+			self.sale_check_cell,
+			self.number_of_shares_copy_cell,
+			self.percent_of_shares_copy_cell,
+			self.total_shares_cell,
+			self.price_cell,
+			self.sale_value_cell,
+			self.commission_cell,
+			self.fifo_cell,
+			self.adjusted_cap_gains_cell,
+			self.market_value_cell,
+			self.unrealized_cell,
+			]
+
+		self.total_number_of_columns = len(self.row_five_cell_list) + 1 # for the first empty one
+
+		# row 7
+		self.totals_cell = Cell_Reference(7, 0, "Totals:")
 
 	def exportSaleCandidates(self, event):
 		self.save_button.Hide()
@@ -1852,22 +1924,22 @@ class SalePrepPage(Tab):
 		num_columns = self.grid.GetNumberCols()
 		num_rows = self.grid.GetNumberRows()
 
-		default_rows = config.DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
 		
 		sell_tuple_list = [] # this will end up being a list of tuples for each stock to sell
 		for column_num in range(num_columns):
 			for row_num in range(num_rows):
 				if not row_num >= default_rows:
 					continue
-				elif column_num == 7:
+				elif column_num == self.number_of_shares_copy_cell.col:
 					not_empty = self.grid.GetCellValue(row_num, column_num)
 					error = self.grid.GetCellValue(row_num, column_num - 1) # error column is one less than stock column
 					if error != "Error":
 						error = None
 					#print not_empty
 					if not_empty and not error:
-						ticker = str(self.grid.GetCellValue(row_num, 3))
-						number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, 7))
+						ticker = str(self.grid.GetCellValue(row_num, self.ticker_cell.col))
+						number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, self.number_of_shares_copy_cell.col))
 						sell_tuple = (ticker, number_of_shares_to_sell)
 						sell_tuple_list.append(sell_tuple)
 					elif error:
@@ -1948,9 +2020,10 @@ class SalePrepPage(Tab):
 			if is_checked:
 				relevant_portfolios_list.append(config.PORTFOLIO_OBJECTS_DICT[str(i+1)])
 
-		num_columns = 17
-		default_rows = config.DEFAULT_ROWS_ON_SALES_PREP_PAGE
+		default_columns = self.total_number_of_columns
+		default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
 		
+		num_columns = default_columns
 		num_rows = default_rows
 		for account in relevant_portfolios_list:
 			try:
@@ -1965,6 +2038,11 @@ class SalePrepPage(Tab):
 		self.grid.CreateGrid(num_rows, num_columns)
 		self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, self.grid)
 
+		# for editing purposes only
+		print line_number(), "remove iteration below"
+		for i in range(num_columns):
+			self.grid.SetCellValue(0, i, str(i))
+
 		# I deactivated this binding because it caused too much confusion if you don't click on a white square after entering data
 		# self.grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK ,self.hideSaveButtonWhileEnteringData, self.grid)
 
@@ -1972,48 +2050,37 @@ class SalePrepPage(Tab):
 
 		for column_num in range(num_columns):
 			for row_num in range(num_rows):
-				if not ((row_num >= default_rows and column_num in [1,2]) or (row_num == 3 and column_num == 14)):
+				if not self.cell_is_writable(row_num, column_num):
 					self.grid.SetReadOnly(row_num, column_num, True)
-				elif column_num == 14:
-					self.grid.SetCellBackgroundColour(row_num, column_num, "#C5DBCA")
-				elif column_num == 1:
-					self.grid.SetCellBackgroundColour(row_num, column_num, "#CFE8FC")
-				elif column_num == 2:
-					self.grid.SetCellBackgroundColour(row_num, column_num, "#CFFCEF")
+				else: # fill in writable column number spaces
+					if column_num == self.carryover_input_cell.col:
+						self.grid.SetCellBackgroundColour(row_num, column_num, self.carryover_input_color_hex)
+					elif column_num == self.num_of_shares_cell.col:
+						self.grid.SetCellBackgroundColour(row_num, column_num, self.num_of_shares_input_color_hex)
+					elif column_num == self.percent_of_shares_cell.col:
+						self.grid.SetCellBackgroundColour(row_num, column_num, self.percentage_of_shares_input_color_hex)
 
-		self.grid.SetCellValue(2, 0, str(time.time()))
-		self.grid.SetCellValue(2, 14, "Input carryover loss (if any)")
-		self.grid.SetCellValue(3, 14, str(0.00))
+		# set row 2
+		self.grid.SetCellValue(2, 0, str(time.time())) # no longer sure why i have this
+		self.grid.SetCellValue(self.carryover_text_cell.row, self.carryover_text_cell.col, self.carryover_text_cell.text)
+		# set row 3
+		self.grid.SetCellValue(self.carryover_input_cell.row, self.carryover_input_cell.col, self.carryover_input_cell.text)
 
-		self.grid.SetCellValue(7, 0, "Totals:")
+		# set row 7
+		self.grid.SetCellValue(self.totals_cell.row, self.totals_cell.col, self.totals_cell.text)
 		
+
+		# set row 5
+		for cell in self.row_five_cell_list:
+			self.grid.SetCellValue(cell.row, cell.col, cell.text)
+
+		# rows 6 and 8
 		for i in range(num_columns):
-			self.grid.SetCellBackgroundColour(6, i, "#333333")
-			self.grid.SetCellBackgroundColour(8, i, "#333333")
+			self.grid.SetCellBackgroundColour(6, i, self.dark_cell_color_hex)
+			self.grid.SetCellBackgroundColour(8, i, self.dark_cell_color_hex)
 
-
-		# Note: i should define the locations on the grid, THEN attach those variables to the set cell function.
-
-		self.grid.SetCellValue(5, 1, "# of shares to sell")
-		self.grid.SetCellValue(5, 2, "% of shares to sell")
-		self.grid.SetCellValue(5, 3, "Ticker")
-		self.grid.SetCellValue(5, 4, "")#Syntax Check")
-		self.grid.SetCellValue(5, 5, "Name")
-		self.grid.SetCellValue(5, 6, "Sale Check")
-		self.grid.SetCellValue(5, 7, "# of shares to sell")
-		self.grid.SetCellValue(5, 8, "% of shares to sell")
-		self.grid.SetCellValue(5, 9, "Total # of shares")
-		self.grid.SetCellValue(5, 10, "Price")
-		self.grid.SetCellValue(5, 11, "Sale Value")
-		self.grid.SetCellValue(5, 12, "Commission loss ($10/trade)")
-		self.grid.SetCellValue(5, 13, "FIFO Capital Gains")
-		self.grid.SetCellValue(5, 14, "Adjusted Capital Gains (including carryovers)")
-		self.grid.SetCellValue(5, 15, "Market Value")
-		self.grid.SetCellValue(5, 16, "Unrealized Capital +/-")
-
-		
+		# load account data
 		portfolio_num = 0
-
 		row_count = default_rows
 		col_count = 0
 		for account in relevant_portfolios_list:
@@ -2022,45 +2089,51 @@ class SalePrepPage(Tab):
 				# intentionally throws an error if account hasn't been imported
 				try:
 					self.grid.SetCellValue(row_count, 0, config.PORTFOLIO_NAMES[portfolio_num])
-					self.grid.SetCellBackgroundColour(row_count, 1, "white")
-					self.grid.SetReadOnly(row_count, 1, True)
-					self.grid.SetCellBackgroundColour(row_count, 2, "white")
-					self.grid.SetReadOnly(row_count, 2, True)
+					self.grid.SetCellBackgroundColour(row_count, self.num_of_shares_cell.col, "white")
+					self.grid.SetReadOnly(row_count, self.num_of_shares_cell.col, True)
+					self.grid.SetCellBackgroundColour(row_count, self.percent_of_shares_cell.col, "white")
+					self.grid.SetReadOnly(row_count, self.percent_of_shares_cell.col, True)
 					portfolio_num += 1
 					row_count += 1
 
 					for ticker, quantity in account.stock_shares_dict.iteritems():
+
+						# set all cell values for stock
+
 						#if row_count == 0:
 						#	self.screen_grid.SetColLabelValue(col_count, str(attribute))
 						stock = utils.return_stock_by_symbol(ticker)
 
-						self.grid.SetCellValue(row_count, 3, stock.symbol)
+						cost_basis = utils.return_cost_basis_per_share(account, ticker)
+
+						self.grid.SetCellValue(row_count, self.ticker_cell.col, stock.symbol)
 						try:
-							self.grid.SetCellValue(row_count, 5, stock.firm_name)
+							self.grid.SetCellValue(row_count, self.name_cell.col, stock.firm_name)
 						except Exception, exception:
 							print line_number(), exception
-						self.grid.SetCellValue(row_count, 9, str(quantity))
+						self.grid.SetCellValue(row_count, self.total_shares_cell.col, str(quantity))
 						try:
-							self.grid.SetCellValue(row_count, 10, getattr(stock, self.default_last_trade_price_attribute_name))
+							self.grid.SetCellValue(row_count, self.price_cell.col, getattr(stock, self.default_last_trade_price_attribute_name))
 						except Exception, exception:
 							print line_number(), exception
-						self.grid.SetCellValue(row_count, 15, str(float(str(quantity).replace(",","")) * float(getattr(stock, self.default_last_trade_price_attribute_name))))
+						self.grid.SetCellValue(row_count, self.market_value_cell.col, str(float(str(quantity).replace(",","")) * float(getattr(stock, self.default_last_trade_price_attribute_name))))
 						row_count += 1
 				except Exception as e:
 					print line_number(), e
 			except Exception as e:
-				print line_number(), e, ": An account appears to not be loaded with a .csv, but this isn't a problem."
+				print line_number(), e, ": An account appears to not be loaded, but this isn't a problem."
 		self.grid.AutoSizeColumns()
 	
 	def updateGrid(self, event):
 		row = event.GetRow()
 		column = event.GetCol()
 		value = self.grid.GetCellValue(row, column)
-		num_shares = str(self.grid.GetCellValue(row, 9))
+		num_shares = str(self.grid.GetCellValue(row, self.total_shares_cell.col))
 		num_shares = num_shares.replace(",","")
 		value = utils.strip_string_whitespace(value)
-		price = self.grid.GetCellValue(row, 10)
-		if column == 1: # sell by number
+		price = self.grid.GetCellValue(row, self.price_cell.col)
+
+		if column == self.num_of_shares_cell.col: # sell by number
 			try:
 				number_of_shares_to_sell = int(value)
 			except Exception, exception:
@@ -2068,33 +2141,37 @@ class SalePrepPage(Tab):
 				number_of_shares_to_sell = None
 				#self.setGridError(row) # this should actually be changed below
 			#print line_number(), "# of stocks to sell changed"
-			self.grid.SetCellValue(row, 2, "")
-			if str(number_of_shares_to_sell).isdigit() and num_shares >= number_of_shares_to_sell and number_of_shares_to_sell != 0:
-				self.grid.SetCellValue(row, 7, str(number_of_shares_to_sell))
-				percent_of_total_holdings = round(100 * float(number_of_shares_to_sell)/float(num_shares))
-				self.grid.SetCellValue(row, 8, "%d%%" % percent_of_total_holdings)
-				if int(num_shares) == int(number_of_shares_to_sell):
-					self.grid.SetCellValue(row, 6, "All")
-					self.grid.SetCellTextColour(row, 6, "black")
-				else:
-					self.grid.SetCellValue(row, 6, "Some")
-					self.grid.SetCellTextColour(row, 6, "black")
-				sale_value = float(number_of_shares_to_sell) * float(price)
-				self.grid.SetCellValue(row, 11, "$%.2f" % sale_value)
+			self.grid.SetCellValue(row, self.percent_of_shares_cell.col, "")
 
-				percent_to_commission = 100 * 10/sale_value
-				self.grid.SetCellValue(row, 12, "%.2f%%" % percent_to_commission)
+			if str(number_of_shares_to_sell).isdigit() and num_shares >= number_of_shares_to_sell and number_of_shares_to_sell != 0:
+				# No input errors
+				self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
+				percent_of_total_holdings = round(100 * float(number_of_shares_to_sell)/float(num_shares))
+				self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "%d%%" % percent_of_total_holdings)
+				if int(num_shares) == int(number_of_shares_to_sell):
+					self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
+					self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+				else:
+					self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
+					self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+				sale_value = float(number_of_shares_to_sell) * float(price)
+				self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
+
+				percent_to_commission = 100 * self.commission/sale_value
+				self.grid.SetCellValue(row, self.commission_cell.col, "%.2f%%" % percent_to_commission)
 
 			elif value == "" or number_of_shares_to_sell == 0:
-				self.grid.SetCellValue(row, 7, "")
-				self.grid.SetCellValue(row, 8, "")
-				self.grid.SetCellValue(row, 6, "")
-				self.grid.SetCellTextColour(row, 6, "black")
+				# if zero
+				self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+				self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
+				self.grid.SetCellValue(row, self.sale_check_cell.col, "")
+				self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
 
 			else:
+				# Bad input
 				self.setGridError(row)
 
-		if column == 2: # by % of stock held
+		if column == self.percent_of_shares_cell.col: # by % of stock held
 			if "%" in value:
 				value = value.strip("%")
 				try:
@@ -2113,32 +2190,32 @@ class SalePrepPage(Tab):
 						self.setGridError(row)
 						return
 			percent_of_holdings_to_sell = value
-			self.grid.SetCellValue(row, 1, "")
+			self.grid.SetCellValue(row, self.num_of_shares_cell.col, "")
 
 			# if empty
 			if percent_of_holdings_to_sell == "" or percent_of_holdings_to_sell == 0:
-				self.grid.SetCellValue(row, 7, "")
-				self.grid.SetCellValue(row, 8, "")
-				self.grid.SetCellValue(row, 6, "")
-				self.grid.SetCellTextColour(row, 6, "black")
+				self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+				self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
+				self.grid.SetCellValue(row, self.sale_check_cell.col, "")
+				self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
 
 			elif percent_of_holdings_to_sell <= 1:
-				self.grid.SetCellValue(row, 8, "%d%%" % round(percent_of_holdings_to_sell * 100))
+				self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "%d%%" % round(percent_of_holdings_to_sell * 100))
 
 				number_of_shares_to_sell = int(math.floor( int(num_shares) * percent_of_holdings_to_sell ) )
-				self.grid.SetCellValue(row, 7, str(number_of_shares_to_sell))
+				self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
 
 				if int(num_shares) == int(number_of_shares_to_sell):
-					self.grid.SetCellValue(row, 6, "All")
-					self.grid.SetCellTextColour(row, 6, "black")
+					self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
+					self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
 				else:
-					self.grid.SetCellValue(row, 6, "Some")
-					self.grid.SetCellTextColour(row, 6, "black")
+					self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
+					self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
 				sale_value = float(number_of_shares_to_sell) * float(price)
-				self.grid.SetCellValue(row, 11, "$%.2f" % sale_value)
+				self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
 
-				percent_to_commission = 100 * 10/sale_value
-				self.grid.SetCellValue(row, 12, "%.2f%%" % percent_to_commission)
+				percent_to_commission = 100 * self.commission/sale_value
+				self.grid.SetCellValue(row, self.commission_cell.col, "%.2f%%" % percent_to_commission)
 
 
 
@@ -2149,17 +2226,17 @@ class SalePrepPage(Tab):
 		#print "Show Me!"
 
 	def setGridError(self, row):
-		self.grid.SetCellValue(row, 6, "Error")
-		self.grid.SetCellTextColour(row, 6, "red")
+		self.grid.SetCellValue(row, self.sale_check_cell.col, "Error")
+		self.grid.SetCellTextColour(row, self.sale_check_cell.col, "red")
 
-		self.grid.SetCellValue(row, 7, "")
-		self.grid.SetCellValue(row, 8, "")
-		self.grid.SetCellValue(row, 11, "")
-		self.grid.SetCellValue(row, 12, "")
+		self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+		self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
+		self.grid.SetCellValue(row, self.sale_value_cell.col, "")
+		self.grid.SetCellValue(row, self.commission_cell.col, "")
 
 	def setNoGridError(self, row):
-		self.grid.SetCellValue(row, 6, "")
-		self.grid.SetCellTextColour(row, 6, "black")
+		self.grid.SetCellValue(row, self.sale_check_cell.col, "")
+		self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
 
 class TradePage(Tab):
 	def __init__(self, parent):

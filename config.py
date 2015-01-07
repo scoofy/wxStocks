@@ -3,6 +3,8 @@
 STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
 DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
 
+DEFAULT_COMMISSION = 10.00
+
 DEFAULT_ENCRYPTION_HARDNESS_LEVEL = 8 # 1-24: i'm under the impression that 8 is the most secure hardness my processer can compute quickly
 
 SCRAPE_CHUNK_LENGTH = 50
@@ -28,7 +30,7 @@ TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 48) # 48 hours
 TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = float(24*60*60* 15) # 15 days
 
 
-DEFAULT_ROWS_ON_SALES_PREP_PAGE = 9
+DEFAULT_ROWS_ON_SALE_PREP_PAGE = 9
 DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
 # adjust these to your own preference
 

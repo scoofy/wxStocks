@@ -13,14 +13,15 @@ import csv
 #
 #		# Always return a list of dictionaries and an properly formatted suffix for your attribute.
 #		# Dictionaries should be of the following protocol. Note: shares should be passed as integer, one should round their fractional shares as they see appropriate.
-#		# {cash: your_cash_float_variable, stock_list: [ (ticker_symbol, integer_of_shares_held), (etc,etc), ... ] }
+#		# {cash: your_cash_float_variable, stock_list: [ (ticker_symbol, integer_of_shares_held), (etc,etc), ... ], cost_basis_dict: {ticker_symbol: cost_basis} }
 #		# "your_dictionary['cash']" must refer to the relevant cash float.
 #		# "your_dictionary['stock_list']" must refer to the relevant list of stock, share tuples.
+#		# "your_dictionary['cost_basis_dict']" must refer to the relevant dictionary of stocks, indexing their cost basis.
 #		return (dict_list, attribute_suffix)
 
 ################################################################################################################
 def schwab_csv(csv_file):
-	"""Schwab CSV"""
+	"""Schwab Account CSV"""
 	# file is schwab format:
 	reader = csv.reader(csv_file)
 	row_list = []
@@ -83,6 +84,56 @@ def schwab_csv(csv_file):
 
 	return account_dict
 
+def schwab_gain_loss_csv(csv_file):
+	"""Schwab Gain/Loss CSV"""
+	# file is schwab format:
+	reader = csv.reader(csv_file)
+	row_list = []
+	for row in reader:
+		row_list.append(row)
+	washed_row_list = []
+	for row in row_list:
+		if row:
+			washed_row = []
+			for cell in row:
+				# strip whitespace
+				washed_cell = " ".join(cell.split())
+				##
+				washed_row.append(washed_cell)
+			washed_row_list.append(washed_row)
+	new_account_file_data = washed_row_list
+	
+	portfolio_data = new_account_file_data
 
+	#print line_number(), self.portfolio_data
+	new_account_stock_list = []
+	new_account_cost_basis_dict = {}
+	count = 0
+	for row in portfolio_data:
+		#print line_number(),count
+		if count <= 1:
+			count += 1
+			continue
+		elif str(row[0]) == "Total":	
+			count += 1
+			continue
+		try:
+			if row[0] and row[2] and row[7]:
+				stock_shares_tuple = (row[0], int(row[2]))
+				stock_ticker = str(row[0]).upper()
+				new_account_cost_basis_dict[stock_ticker] = row[7]
+				new_account_stock_list.append(stock_shares_tuple)
+				#print line_number(),"stock"
+		except Exception, exception:
+			#print line_number(),exception
+			#print line_number(),row
+			pass
+		count += 1
+
+	if not account_dict:
+		#print line_number(), "Error: empty account dictionary to return."
+		return
+
+	return account_dict
 
 # end of line

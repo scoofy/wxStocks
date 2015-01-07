@@ -70,6 +70,21 @@ def return_stocks_with_data_errors():
 		except:
 			continue
 	return error_list
+
+def return_cost_basis_per_share(account_obj, ticker):
+	'''Return the cost basis per share of a stock in an account, if it exists, else return none'''
+	ticker = ticker.upper()
+
+	shares_of_relevant_stock = account_obj.stock_shares_dict.get(ticker)
+	if not shares_of_relevant_stock:
+		return None
+
+	cost_basis_of_relevant_stock = account_obj.cost_basis_dict.get(ticker)
+	if not cost_basis_of_relevant_stock:
+		return None
+
+	return cost_basis_of_relevant_stock
+
 ####################### Stock utility functions #################################################
 def stock_value_is_negative(stock_obj, attribute_str):
 	try:

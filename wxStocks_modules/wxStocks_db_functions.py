@@ -372,8 +372,9 @@ def load_DATA_ABOUT_PORTFOLIOS():
 	#print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
 	load_all_portfolio_objects()
 
-def save_portfolio_object(portfolio_obj, id_number):
+def save_portfolio_object(portfolio_obj):
 	# First, set this object into the portfolio dict, for the first time it's saved:
+	id_number = portfolio_obj.id_number
 	config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
 
 	encryption_possible = False
