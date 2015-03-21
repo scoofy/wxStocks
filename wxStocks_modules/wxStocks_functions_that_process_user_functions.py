@@ -240,13 +240,30 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 
 	if not account_dict:
 		print line_number(), "Error: No account dictionary returned from user function."
+		return
 
 	cash = account_dict.get('cash')
 	stock_share_tuple_list = account_dict.get('stock_list')
+
+	# Make sure there are no cost basis tuples that aren't in the ticker list
+	ticker_list = [this_tuple[0].upper() for this_tuple in stock_share_tuple_list]
 	cost_basis_dict = account_dict.get("cost_basis_dict")
 
-	throw error this needs to be changed
-	account_obj = Account(portfolio_id, cash, stock_share_tuple_list)
+	for ticker in cost_basis_dict:
+		if ticker.upper() not in ticker_list:
+			print line_number(), "Error: ticker %s is in cost_basis_dict, but not in stock_share_tuple_list"
+
+	if not stock_share_tuple_list:
+		print line_number(), "Error: No stock -- share tuple dictionary. No account creation."
+		return
+
+	pre_existing_account = utils.return_account_by_id(portfolio_id)
+	if pre_existing_account:
+		account_obj = pre_existing_account
+		account_obj.update_account(cash, stock_share_tuple_list, cost_basis_dict)
+
+	else:
+		account_obj = Account(portfolio_id, cash, stock_share_tuple_list, cost_basis_dict)
 
 	db.save_portfolio_object(account_obj)
 

@@ -85,6 +85,18 @@ def return_cost_basis_per_share(account_obj, ticker):
 
 	return cost_basis_of_relevant_stock
 
+def return_account_by_id(id_number):
+	try:
+		portfolio_obj = config.PORTFOLIO_OBJECTS_DICT[str(id_number)]
+		if portfolio_obj:
+			return portfolio_obj
+		else:
+			return None
+	except Exception as e:
+		print line_number()
+		logging.error("Portfolio object with id: %s does not appear to exist" % str(id_number))
+		return None	
+
 ####################### Stock utility functions #################################################
 def stock_value_is_negative(stock_obj, attribute_str):
 	try:

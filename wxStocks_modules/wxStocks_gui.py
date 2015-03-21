@@ -3217,8 +3217,11 @@ class PortfolioAccountTab(Tab):
 					print line_number(), e
 					self.portfolio_obj = None
 
-		add_button = wx.Button(self, label="Add account .csv", pos=(5,0), size=(-1,-1))
-		add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, add_button) 
+		if self.portfolio_obj:
+			self.add_button = wx.Button(self, label="Update with .csv", pos=(5,0), size=(-1,-1))
+		else:
+			self.add_button = wx.Button(self, label="Add account .csv", pos=(5,0), size=(-1,-1))
+		self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button) 
 		
 		self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
 		self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
@@ -3243,7 +3246,6 @@ class PortfolioAccountTab(Tab):
 		self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
 		if self.portfolio_obj:
 			self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_obj)
-
 		self.screen_grid = None
 
 		print line_number(), "PortfolioAccountTab loaded"

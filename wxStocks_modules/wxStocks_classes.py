@@ -76,28 +76,42 @@ class Account(object): #portfolio
 			for a_tuple in initial_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
 				if a_tuple[0] not in self.stock_shares_dict.keys():
 					# ticker not already in stock share dict
-					self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+					self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 				else:
 					# redundant, probably inproperly formatted data
 					pass
 		self.cost_basis_dict = initial_ticker_cost_basis_dict
 
-	def update_account(self, updated_cash, updated_stock_shares_tuple_list):
-		self.availble_cash = updated_cash
+	def reset_account(cash = 0, new_stock_shares_tuple_list = [], new_ticker_cost_basis_dict = {}):
+		self.availble_cash = cash
 		self.stock_shares_dict = {}
+		for a_tuple in new_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
+			if a_tuple[0].upper() not in self.stock_shares_dict.keys():
+				self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+			else:
+				print line_number(), "Error: duplicate stocks in new_stock_shares_tuple_list"
+		self.cost_basis_dict = new_ticker_cost_basis_dict
+
+	def update_account(self, updated_cash, updated_stock_shares_tuple_list, updated_ticker_cost_basis_dict = {}):
+		self.availble_cash = updated_cash
 		for a_tuple in updated_stock_shares_tuple_list: # ["NAME", int(NumberOfShares)]
-			if a_tuple[0] not in self.stock_shares_dict.keys():
-				self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+			if a_tuple[0].upper() not in self.stock_shares_dict.keys():
+				self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+			else: # Redundent, but i'm leaving it in here in case i need to edit this later.
+				self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+		
+		if updated_ticker_cost_basis_dict:
+			self.update_cost_basises(updated_ticker_cost_basis_dict)
 
 	def update_cost_basises(self, new_ticker_cost_basis_dict):
 		for ticker in new_ticker_cost_basis_dict:
-			self.cost_basis_dict[ticker] = new_ticker_cost_basis_dict.get(ticker)
+			self.cost_basis_dict[ticker.upper()] = new_ticker_cost_basis_dict.get(ticker.upper())
 
 	def add_stock(stock_shares_tuple):
-		if stock_shares_tuple[0] not in self.stock_shares_dict.keys():
-			self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
-		else: # updating only number of shares held
-			self.stock_shares_dict["%s" % a_tuple[0]] = a_tuple[1]
+		if stock_shares_tuple[0].upper() not in self.stock_shares_dict.keys():
+			self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+		else: # Redundent, but i'm leaving it in here in case i need to edit this later.
+			self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 
 
 
