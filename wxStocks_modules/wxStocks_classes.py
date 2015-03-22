@@ -7,6 +7,8 @@ def line_number():
     line_number_string = "Line %d:" % line_number
     return line_number_string
 
+# Suffix key: "_yf" = yahoo finance, "_ms" = morningstar, "_aa" = AAII stock investor pro
+
 class Stock(object):
 	def __init__(self, symbol):
 		self.held_list = []

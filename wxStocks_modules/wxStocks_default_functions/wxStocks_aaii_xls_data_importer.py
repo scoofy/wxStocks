@@ -1,9 +1,16 @@
-import sys, pprint
+import sys, pprint, os, inspect, string, time
 try:
-	import xlrd, os, inspect, string, time # AAII is all excel files
+	import modules.xlrd as xlrd # AAII is all excel files
 except:
-	print "Error"
+	print "Error: xlrd is not installed"
 	sys.exit()
+
+from wxStocks_modules import wxStocks_utilities as utils
+from wxStocks_modules.wxStocks_classes import Stock, Account
+from wxStocks_modules import wxStocks_db_functions as db
+
+
+
 print "-----------------------------------"
 def line_number():
 	"""Returns the current line number in our program."""
@@ -11,7 +18,12 @@ def line_number():
 	line_number_string = "Line %d:" % line_number
 	return line_number_string
 current_directory = os.path.dirname(os.path.realpath(__file__))
-data_directory = current_directory + "/Stock_Investor_Pro_Data"
+print "\n" *5
+print current_directory
+print "\n" *5
+
+parent_directory = os.path.split(current_directory)[0]
+data_directory = os.path.join(parent_directory, "wxStocks_data/Stock_Investor_Pro_Data")
 
 
 aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename))]
@@ -29,12 +41,8 @@ if expired_data:
 	print "Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."
 	sys.exit()
 
-class Stock(object):
-	def __init__(self):
-		self.epoch = time.time()
-
-
 all_attribute_list = []
+all_attribute_dict = {}
 duplicate_list = []
 duplicate_tuple_list = []
 files_that_have_duplicates = []
@@ -110,6 +118,7 @@ def process_aaii_xls_key_file(filename):
 
 	return key_dict
 
+#count = 0
 def process_aaii_xls_data_file(filename, key_dict):
 	xlrd_workbook = xlrd.open_workbook(filename)
 	relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
@@ -133,6 +142,7 @@ def process_aaii_xls_data_file(filename, key_dict):
 	all_duplicates = True # for testing for files that are all duplicates below
 	for row_num in range(num_rows):
 		ticker = None
+		current_stock = None
 		if row_num == top_row:
 			for col_num in range(num_columns):
 				datum = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = col_num)
@@ -143,6 +153,9 @@ def process_aaii_xls_data_file(filename, key_dict):
 		for col_num in range(num_columns):
 			ticker = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = ticker_col)
 			#print line_number(), ticker
+			if ticker:
+				current_stock = db.create_new_Stock_if_it_doesnt_exist(ticker)
+		for col_num in range(num_columns):
 			attribute = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = top_row, column = col_num)
 			#print line_number(), attribute
 			#print line_number(), attribute.upper()
@@ -152,25 +165,24 @@ def process_aaii_xls_data_file(filename, key_dict):
 				long_attribute_name = key_dict.get(attribute.upper())
 				long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name)
 
-				global all_attribute_list
-				if long_attribute_name in all_attribute_list:
-					global duplicate_list, duplicate_tuple_list, files_that_have_duplicates, files_that_are_all_duplicates
-					duplicate_list.append(long_attribute_name)
-					duplicate_tuple_list.append((long_attribute_name, datum))
-					files_that_have_duplicates.append(filename.split("/")[-1])
-				else:
-					all_duplicates = False
-				all_attribute_list.append(long_attribute_name)
-
-
-			print line_number(), str(ticker) + "." + str(long_attribute_name), "=", str(datum)
+				global all_attribute_dict
+				if long_attribute_name in all_attribute_dict:
+					if datum:
+						other_datum = all_attribute_dict.get(long_attribute_name) # previously collected data
+						if not datum == other_datum:
+							print line_number(), "Error: duplicate data key does not have the same value."
+							sys.exit()
+				setattr(current_stock, long_attribute_name + "_aa", datum)
+			#print line_number(), str(ticker) + "." + str(long_attribute_name), "=", str(datum)
 			col_num += 1
+
 		row_num += 1
 		break
-	if all_duplicates:
-		files_that_are_all_duplicates.append(filename.split("/")[-1])
 	#pprint.pprint(key_dict)
-
+	db.save_GLOBAL_STOCK_DICT()
+	#global count
+	#count += 1
+	#print line_number(), "count =", count
 
 
 def remove_inappropriate_characters_from_attribute_name(attribute_string):
