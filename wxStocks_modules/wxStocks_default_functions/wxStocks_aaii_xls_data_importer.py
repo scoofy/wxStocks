@@ -27,7 +27,7 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 	relevant_sheets = []
 	for i in range(xlrd_workbook.nsheets):
 		sheet = xlrd_workbook.sheet_by_index(i)
-		print line_number(), sheet.name
+		#print line_number(), sheet.name
 		if sheet.nrows or sheet.ncols:
 			print line_number(), "rows x cols:", sheet.nrows, sheet.ncols
 			relevant_sheets.append(sheet)
@@ -82,42 +82,20 @@ def process_aaii_xls_key_file(filename):
 		return None
 	spreadsheet = relevant_spreadsheet_list[0]
 
-	num_columns = spreadsheet.ncols
-	num_rows = spreadsheet.nrows
-
-	# important row and column numbers
-	top_row = 0 # 1st row
-	short_name_col = 0 # 1st column
-	long_name_col = 1 # 2nd column
+	spreadsheet_list_of_row_data = []
+	for i in range(spreadsheet.nrows):
+		row_list = spreadsheet.row_values(i)
+		spreadsheet_list_of_row_data.append(row_list)
 
 	key_dict = {}
-	for row_num in range(num_rows):
-		short_name, long_name = None, None
-		if row_num == top_row:
-			continue
-		for col_num in range(num_columns):
-			datum = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = col_num)
-			if datum:
-				if col_num == 0:
-					# short_name
-					short_name = datum
-				elif col_num == 1:
-					long_name = datum
-			else:
-				print line_number(), "Error"
-			col_num += 1
-		if short_name:
-			if long_name:
-				key_dict[short_name] = long_name
-			else:
-				key_dict[short_name] = None
-		row_num += 1
+	for row_list in spreadsheet_list_of_row_data[1:]:
+		key_dict[row_list[0]] = row_list[1]
 	#pprint.pprint(key_dict)
 
 	return key_dict
 
-#count = 0
 def process_aaii_xls_data_file(filename, key_dict):
+	print line_number(), filename, "Start!"
 	xlrd_workbook = xlrd.open_workbook(filename)
 	relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
 	ticker_column_string = u"ticker"
@@ -137,79 +115,66 @@ def process_aaii_xls_data_file(filename, key_dict):
 	# important row and column numbers
 	top_row = 0 # 1st row
 
-	all_duplicates = True # for testing for files that are all duplicates below
-	for row_num in range(num_rows):
-		ticker = None
-		current_stock = None
-		if row_num == top_row:
-			for col_num in range(num_columns):
-				datum = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = col_num)
-				if datum == ticker_column_string:
-					ticker_col = col_num
-			continue
-		# find ticker only
-		for col_num in range(num_columns):
-			ticker = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = ticker_col)
-			#print line_number(), ticker
-			if ticker:
-				current_stock = db.create_new_Stock_if_it_doesnt_exist(ticker)
-		for col_num in range(num_columns):
-			attribute = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = top_row, column = col_num)
-			#print line_number(), attribute
-			#print line_number(), attribute.upper()
-			datum = return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = col_num)
-			#print line_number(), datum
-			if datum:
-				long_attribute_name = key_dict.get(attribute.upper())
-				long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name)
+	spreadsheet_list_of_row_data = []
+	for i in range(spreadsheet.nrows):
+		row_list = spreadsheet.row_values(i)
+		spreadsheet_list_of_row_data.append(row_list)
 
-				global all_attribute_dict
-				if long_attribute_name in all_attribute_dict:
-					if datum:
-						other_datum = all_attribute_dict.get(long_attribute_name) # previously collected data
-						if not datum == other_datum:
-							print line_number(), "Error: duplicate data key does not have the same value."
-							sys.exit()
-				setattr(current_stock, long_attribute_name + "_aa", datum)
-			#print line_number(), str(ticker) + "." + str(long_attribute_name), "=", str(datum)
-			col_num += 1
+	ticker_location = spreadsheet_list_of_row_data[0].index(u'ticker')
+	#print line_number(), spreadsheet_list_of_row_data[0]
 
-		row_num += 1
-	#pprint.pprint(key_dict)
-	#global count
-	#count += 1
-	#print line_number(), "count =", count
 
+	for row_list in spreadsheet_list_of_row_data[1:]:
+		current_stock = db.create_new_Stock_if_it_doesnt_exist(str(row_list[ticker_location]))
+		for attribute in spreadsheet_list_of_row_data[0]:
+			attribute_index = spreadsheet_list_of_row_data[0].index(attribute)
+			if attribute_index == ticker_location:
+				continue
+			long_attribute_name = key_dict.get(attribute.upper())
+			#print line_number(), long_attribute_name
+			long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name)
+			#print line_number(), long_attribute_name
+			datum = row_list[attribute_index]
+			if datum is not None:
+				setattr(current_stock, long_attribute_name + "_aa", str(datum))
+			else:
+				setattr(current_stock, long_attribute_name + "_aa", None)
 
 def remove_inappropriate_characters_from_attribute_name(attribute_string):
+	attribute_string = str(attribute_string)
 	if "Inve$tWare" in attribute_string: # weird inve$tware names throwing errors below due to "$".
 		attribute_string = attribute_string.replace("Inve$tWare", "InvestWare")
-
 	acceptable_characters = list(string.letters + string.digits + "_")
 	unicode_acceptable_characters = []
 	for char in acceptable_characters:
 		unicode_acceptable_characters.append(unicode(char))
 	acceptable_characters = acceptable_characters + unicode_acceptable_characters
 	new_attribute_name = ""
-	for char in attribute_string:
-		if char not in acceptable_characters:
-			if char in [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")"]:
-				new_char = "_"
-			elif char in ["/", u"/"]:
-				new_char = "_to_"
-			elif char in ["&", u"&"]:
-				new_char = "_and_"
-			elif char in ["%", u"%"]:
-				new_char = "percent"
+	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%"]
+	string_fails = [char for char in unacceptible_characters if char in attribute_string]
+	if string_fails:
+		#print line_number(), string_fails
+		for char in attribute_string:
+			if char not in acceptable_characters:
+				if char in [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")"]:
+					new_char = "_"
+				elif char in ["/", u"/"]:
+					new_char = "_to_"
+				elif char in ["&", u"&"]:
+					new_char = "_and_"
+				elif char in ["%", u"%"]:
+					new_char = "percent"
+				else:
+					print line_number(), "Error:", char, ":", attribute_string
+					sys.exit()
 			else:
-				print line_number(), "Error:", char, ":", attribute_string
-				sys.exit()
-		else:
-			new_char = str(char)
+				new_char = str(char)
 
-		new_attribute_name += new_char
+			new_attribute_name += new_char
 	if new_attribute_name:
 		return new_attribute_name
+	else:
+		return attribute_string
 
 def import_xls_via_user_created_function(wxWindow, user_created_function):
 	'''adds import csv data to stocks data via a user created function'''
@@ -295,8 +260,6 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 
 	num_columns = spreadsheet.ncols
 	num_rows = spreadsheet.nrows
-
-
 
 
 
