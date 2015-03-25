@@ -90,7 +90,6 @@ def return_dictionary_of_object_attributes_and_values(obj):
 		return obj_attribute_value_dict
 def line_number():
 	"""Returns the current line number in our program."""
-	line_number = inspect.currentframe().f_back.f_lineno
-	line_number_string = "Line %d:" % line_number
-	return line_number_string
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
 ############################################################################################

@@ -1,5 +1,7 @@
 # Add xls import functions below:
 # You can also edit this file (wxStocks_xls_import_functions.py) in your own text editor. 
+import config
+from wxStocks_modules import wxStocks_utilities as utils
 try:
 	from modules import xlrd
 except:
@@ -53,11 +55,13 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 	for row_num in range(num_rows):
 		if row_num in [0, 1, 2]:
 			continue
+		datum = None
 		dict_to_add = {}
 		for col_num in range(num_columns):
 			datum = utils.return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = row_num, column = col_num)
 			attribute_name = utils.return_xls_cell_value(xlrd_spreadsheet = spreadsheet, row = attribute_name_row, column = col_num)
 			if datum:
+				print attribute_name, datum
 				if col_num == ticker_col:
 					dict_to_add = {"stock": datum}
 				else:
@@ -73,10 +77,9 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 
 	return (dict_list, attribute_suffix)
 
-def import_aaii_exported_xls(xlrd_workbook, attribute_suffix = "_ai"):
+def import_aaii_exported_xls(xlrd_workbook, attribute_suffix = "_aa"):
 	'''AAII .xls file'''
-	import config
-	from wxStocks_modules import wxStocks_utilities as utils
+
 	relevant_spreadsheet_list  = utils.return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
 
 	dict_list = []

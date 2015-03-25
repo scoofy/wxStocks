@@ -21,10 +21,8 @@ import config
 
 # Necessary in-module functions
 def line_number():
-    """Returns the current line number in our program."""
-    line_number = inspect.currentframe().f_back.f_lineno
-    line_number_string = "Line %d:" % line_number
-    return line_number_string
+	"""Returns the current line number in our program."""
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
 
 try:
 	import Crypto

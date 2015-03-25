@@ -9,9 +9,8 @@ import wxStocks_db_functions as db
 
 def line_number():
 	"""Returns the current line number in our program."""
-	line_number = inspect.currentframe().f_back.f_lineno
-	line_number_string = "Line %d:" % line_number
-	return line_number_string
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
 
 # something is clearly broken with additional data scrapes
 def scrape_all_additional_data_prep(list_of_ticker_symbols): # Everything except basic yql and nasdaq

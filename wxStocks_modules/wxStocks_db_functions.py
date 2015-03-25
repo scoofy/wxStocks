@@ -68,13 +68,17 @@ def delete_GLOBAL_TICKER_LIST():
 
 ### Global Stock dict functions
 def create_new_Stock_if_it_doesnt_exist(ticker):
+	if not type(ticker) == str:
+		ticker = str(ticker)
 	ticker = ticker.upper()
 	stock = config.GLOBAL_STOCK_DICT.get(ticker)
 	if stock:
-		print "%s already exists." % ticker
+		#print "%s already exists." % ticker
 		return stock
 	else:
-		return wxStocks_classes.Stock(ticker)
+		stock = wxStocks_classes.Stock(ticker)
+		config.GLOBAL_STOCK_DICT[ticker] = stock
+		return stock
 def load_GLOBAL_STOCK_DICT():
 	print line_number(), "Loading GLOBAL_STOCK_DICT"
 	try:
@@ -90,7 +94,7 @@ def load_GLOBAL_STOCK_DICT():
 			pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)		
 	return
 def save_GLOBAL_STOCK_DICT():
-	print "Saving GLOBAL_STOCK_DICT"
+	print line_number(), "Saving GLOBAL_STOCK_DICT"
 	stock_dict = config.GLOBAL_STOCK_DICT
 	with open(all_stocks_path, 'wb') as output:
 		pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
@@ -545,8 +549,5 @@ def valid_pw(pw, h):
 ############################################################################################
 def line_number():
 	"""Returns the current line number in our program."""
-	line_number = inspect.currentframe().f_back.f_lineno
-	line_number_string = "Line %d:" % line_number
-	return line_number_string
-
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
 # End of line...

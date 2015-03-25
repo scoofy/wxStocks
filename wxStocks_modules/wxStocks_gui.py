@@ -21,12 +21,12 @@ import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
 import wxStocks_meta_functions as meta
 import wxStocks_functions_that_process_user_functions as process_user_function
+import wxStocks_modules.wxStocks_default_functions.wxStocks_aaii_xls_data_importer as aaii
 
 def line_number():
 	"""Returns the current line number in our program."""
-	line_number = inspect.currentframe().f_back.f_lineno
-	line_number_string = "Line %d:" % line_number
-	return line_number_string
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
 
 
 
@@ -463,7 +463,7 @@ class TickerPage(Tab):
 
 		# create a list of tickers
 		for ticker_data_sublist in ticker_data_from_download:
-			print ticker_data_sublist[0] + ":", ticker_data_sublist[1]
+			print line_number(), ticker_data_sublist[0] + ":", ticker_data_sublist[1]
 
 			ticker_symbol_upper = utils.strip_string_whitespace(ticker_data_sublist[0]).upper()
 			ticker_list.append(ticker_symbol_upper)
@@ -499,7 +499,7 @@ class TickerPage(Tab):
 
 			stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)			
 			stock.firm_name = firm_name
-			print "Saving:", stock.ticker, stock.firm_name
+			print line_number(), "Saving:", stock.ticker, stock.firm_name
 		db.save_GLOBAL_STOCK_DICT()
 
 	def showAllTickers(self):
@@ -520,6 +520,8 @@ class TickerPage(Tab):
 			ticker_list_massive_str += ticker
 			ticker_list_massive_str += ", "
 		height_var = 100
+		#print line_number()
+		#pp.pprint(config.GLOBAL_STOCK_DICT)
 		file_display = wx.TextCtrl(self, -1, 
 									ticker_list_massive_str, 
 									(10, height_var),
@@ -822,9 +824,21 @@ class XlsImportPage(Tab):
 		default_button_vertical_position = 50
 		default_dropdown_horizontal_offset = 100
 		default_dropdown_vertical_offset = 0
+		aaii_offset = 28 # if aaii files in aaii import folder, this button will appear below the import dropdown
 
 		import_button = wx.Button(self, label="import .xls", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
 		import_button.Bind(wx.EVT_BUTTON, self.importXLS, import_button)
+
+
+		# if there are AAII files in the AAII stock investor pro import folder, create import button:
+		current_directory = os.path.dirname(os.path.realpath(__file__))
+		parent_directory = os.path.split(current_directory)[0]
+		data_directory = os.path.join(parent_directory, "AAII_data_import_folder")
+		aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename)) and filename != "!.gitignore"]
+
+		if aaii_filenames:
+			import_all_aaii_files_button = wx.Button(self, label="import aaii files from folder", pos=(default_button_horizontal_position, default_button_vertical_position + aaii_offset), size=(-1,-1))
+			import_all_aaii_files_button.Bind(wx.EVT_BUTTON, self.import_AAII_files, import_all_aaii_files_button)
 
 		self.xls_import_name_list = meta.return_xls_import_function_short_names()
 		self.drop_down = wx.ComboBox(self, pos=(default_button_horizontal_position + default_dropdown_horizontal_offset, default_button_vertical_position + default_dropdown_vertical_offset), choices=self.xls_import_name_list)
@@ -879,6 +893,10 @@ class XlsImportPage(Tab):
 								   style = message_style
 								   )
 		confirm.ShowModal()
+
+	def import_AAII_files(self, event):
+		aaii.import_aaii_files_from_data_folder() 
+
 class AllStocksPage(Tab):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)

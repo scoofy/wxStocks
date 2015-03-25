@@ -1,45 +1,19 @@
 import sys, pprint, os, inspect, string, time
+
+def line_number():
+	"""Returns the current line number in our program."""
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
 try:
 	import modules.xlrd as xlrd # AAII is all excel files
 except:
-	print "Error: xlrd is not installed"
+	print line_number(), "Error: xlrd is not installed"
 	sys.exit()
 
 from wxStocks_modules import wxStocks_utilities as utils
 from wxStocks_modules.wxStocks_classes import Stock, Account
 from wxStocks_modules import wxStocks_db_functions as db
 
-
-
-print "-----------------------------------"
-def line_number():
-	"""Returns the current line number in our program."""
-	line_number = inspect.currentframe().f_back.f_lineno
-	line_number_string = "Line %d:" % line_number
-	return line_number_string
-current_directory = os.path.dirname(os.path.realpath(__file__))
-print "\n" *5
-print current_directory
-print "\n" *5
-
-parent_directory = os.path.split(current_directory)[0]
-data_directory = os.path.join(parent_directory, "wxStocks_data/Stock_Investor_Pro_Data")
-
-
-aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename))]
-
-expired_data = []
-for filename in aaii_filenames:
-	current_time = time.time()
-	one_week_in_seconds = 604800
-	file_stats = os.stat(data_directory + "/" + filename)
-	file_last_modified_epoch = file_stats.st_mtime # last modified
-	#print filename, "last modified:", file_stats.st_mtime
-	if (current_time - one_week_in_seconds) > file_last_modified_epoch:
-		expired_data.append(filename)
-if expired_data:
-	print "Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."
-	sys.exit()
 
 all_attribute_list = []
 all_attribute_dict = {}
@@ -59,17 +33,41 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 			relevant_sheets.append(sheet)
 		else:
 			print line_number(), "is empty"
-		print line_number(), ""
 	return relevant_sheets
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
 	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
-def import_aaii_files(filename_list):
-	for filename in filename_list:
+def import_aaii_files_from_data_folder():
+	""""import aaii .xls files"""
+	current_directory = os.path.dirname(os.path.realpath(__file__))
+	parent_directory = os.path.split(current_directory)[0]
+	grandparent_directory = os.path.split(current_directory)[0]
+	great_grandparent_directory = os.path.split(grandparent_directory)[0]
+	data_directory = os.path.join(great_grandparent_directory, "AAII_data_import_folder")
+
+	aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename)) and filename != "!.gitignore"]
+
+	expired_data = []
+	for filename in aaii_filenames:
+		current_time = time.time()
+		one_week_in_seconds = 604800
+		file_stats = os.stat(data_directory + "/" + filename)
+		file_last_modified_epoch = file_stats.st_mtime # last modified
+		#print filename, "last modified:", file_stats.st_mtime
+		if (current_time - one_week_in_seconds) > file_last_modified_epoch:
+			expired_data.append(filename)
+	if expired_data:
+		print line_number(), "Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."
+		sys.exit()
+
+	for filename in aaii_filenames:
+		print line_number(), "processing file %d of %d" % (aaii_filenames.index(filename), len(aaii_filenames) )
 		if "_Key.XLS" in filename:
 			continue
 		key_dict = process_aaii_xls_key_file(data_directory + "/" + filename[:-4] + "_Key.XLS")
 		process_aaii_xls_data_file(data_directory + "/" + filename, key_dict)
+	db.save_GLOBAL_STOCK_DICT()
+	print line_number(), "AAII import complete."
 
 def process_aaii_xls_key_file(filename):
 	xlrd_workbook = xlrd.open_workbook(filename)
@@ -130,7 +128,7 @@ def process_aaii_xls_data_file(filename, key_dict):
 		print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
 		print line_number(), "spreadsheet list > 1 sheet"
 		print line_number(), ""
-		return None
+		sys.exit()
 	spreadsheet = relevant_spreadsheet_list[0]
 
 	num_columns = spreadsheet.ncols
@@ -177,9 +175,7 @@ def process_aaii_xls_data_file(filename, key_dict):
 			col_num += 1
 
 		row_num += 1
-		break
 	#pprint.pprint(key_dict)
-	db.save_GLOBAL_STOCK_DICT()
 	#global count
 	#count += 1
 	#print line_number(), "count =", count
@@ -197,7 +193,7 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 	new_attribute_name = ""
 	for char in attribute_string:
 		if char not in acceptable_characters:
-			if char in [" ", "-", ".", u" ", u"-", u"."]:
+			if char in [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")"]:
 				new_char = "_"
 			elif char in ["/", u"/"]:
 				new_char = "_to_"
@@ -205,8 +201,6 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 				new_char = "_and_"
 			elif char in ["%", u"%"]:
 				new_char = "percent"
-			elif char in ["(", ")", u"(", u")"]:
-				new_char = "_"
 			else:
 				print line_number(), "Error:", char, ":", attribute_string
 				sys.exit()
@@ -303,20 +297,7 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 	num_rows = spreadsheet.nrows
 
 
-import_aaii_files(aaii_filenames)
-all_attribute_list.sort()
-duplicate_list.sort()
-duplicate_tuple_list.sort()
-pprint.pprint(all_attribute_list)
-duplicate_list = list(set(duplicate_list))
-print "-"*40
-pprint.pprint(duplicate_tuple_list)
-print "-"*40
-pprint.pprint(duplicate_list)
-print "-"*40
-pprint.pprint(files_that_have_duplicates)
-print "-"*40
-pprint.pprint(files_that_are_all_duplicates)
+
 
 
 

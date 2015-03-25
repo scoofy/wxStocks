@@ -2,9 +2,8 @@ import inspect, logging, time, csv
 import config
 def line_number():
 	"""Returns the current line number in our program."""
-	line_number = inspect.currentframe().f_back.f_lineno
-	line_number_string = "Line %d:" % line_number
-	return line_number_string
+	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
 def print_attributes(obj):
 	for attribute in dir(obj):
 		if attribute[:2] != "__":
@@ -21,6 +20,8 @@ def start_whitespace():
 
 ####################### Return functions #################################################
 def return_stock_by_symbol(ticker_symbol):
+	if not type(ticker_symbol) == str:
+		ticker_symbol = str(ticker_symbol)
 	try:
 		return config.GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
 	except Exception as e:
@@ -124,7 +125,7 @@ def importSchwabCSV(csv_file):
 				washed_row.append(washed_cell)
 			washed_row_list.append(washed_row)
 	return washed_row_list
-###
+### End don't think this is used any more
 
 ### xlrd
 def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
