@@ -1,6 +1,7 @@
 import config, urllib2, inspect, threading, time, logging, sys, ast, datetime
 import pprint as pp
 
+
 from modules.pyql import pyql
 from modules.BeautifulSoup import BeautifulSoup
 
@@ -115,6 +116,61 @@ def download_ticker_symbols(): # from nasdaq.com
 
 	print line_number(), "Returning ticker download data:", len(exchange_data), "number of items"
 	return exchange_data
+
+# suggestion from Soncrates
+def stock_url_generator(exchanges=["nyse", "nasdaq"]) : # from nasdaq.com
+	headers = {
+	'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
+	'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,;q=0.3',
+	'Accept-Encoding': 'none',
+	'Accept-Language': 'en-US,en;q=0.8',
+	'Connection': 'keep-alive',
+	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/*;q=0.8'
+	}
+	for exchange in exchanges :
+		yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange, headers
+
+def return_webpage(url, headers, delay=15) :
+	print line_number(), 'Scraping nasdaq.com'
+	time.sleep(delay)
+	response = urllib2.Request(url, headers=headers)
+	page = urllib2.urlopen(response)
+	return page.read()
+
+def csv_stock_data_parsing_generator(csv_file): 
+	rows_list = csv_file.splitlines()
+	for row_num in range(len(rows_list)):
+		row_data = rows_list[row_num].decode('utf-8').split(',')
+		if row_num == 0: 
+			dict_list = row_data
+			if not dict_list:
+				print line_number(), "Error: no description row exists for nasdaq data download"
+				return
+			else:
+				if not dict_list[-1]:
+					# this is the default list i get:
+					#[u'"Symbol"',
+					# u'"Name"',
+					# u'"LastSale"',
+					# u'"MarketCap"',
+					# u'"IPOyear"',
+					# u'"Sector"',
+					# u'"industry"',
+					# u'"Summary Quote"',
+					# u'']
+					dict_list.pop()
+				continue
+		dict_to_return = {}
+		if not row_data: 
+			continue
+		else:
+			for theoretical_csv_column_number in range(len(dict_list)):
+				if row_data[theoretical_csv_column_number] not in [None, u""]:
+					dict_to_return[dict_list[theoretical_csv_column_number]] = row_data[theoretical_csv_column_number]
+		if dict_to_return:
+			yield dict_to_return
+# suggestion from Soncrates
 
 #################### Yahoo Finance Scrapers "_yf" ##############################################
 def prepareYqlScrape(ticker_list = []): # from finance.yahoo.com
