@@ -54,6 +54,7 @@ def scrape_all_additional_data_execute(list_of_ticker_symbols, list_of_functions
 			count += 1
 
 #################### Nasdaq Ticker Symbol Scraper ##############################################
+# no longer used
 def download_ticker_symbols(): # from nasdaq.com
 	headers = {
 				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -116,9 +117,10 @@ def download_ticker_symbols(): # from nasdaq.com
 
 	print line_number(), "Returning ticker download data:", len(exchange_data), "number of items"
 	return exchange_data
+# end no longer used
 
 # suggestion from Soncrates
-def stock_url_generator(exchanges=["nyse", "nasdaq"]) : # from nasdaq.com
+def nasdaq_stock_csv_url_and_headers_generator(exchanges=config.STOCK_EXCHANGE_LIST) : # from nasdaq.com
 	headers = {
 	'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
 	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
@@ -131,17 +133,19 @@ def stock_url_generator(exchanges=["nyse", "nasdaq"]) : # from nasdaq.com
 	for exchange in exchanges :
 		yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange, headers
 
-def return_webpage(url, headers, delay=15) :
+def return_webpage(url, headers, delay=15) : # I set the delay here at 15
 	print line_number(), 'Scraping nasdaq.com'
+	if delay:
+		print line_number(), "Sleeping for %d seconds to prevent potential blocking of your ip address. You may change this as a keyword argument of this function." % delay
 	time.sleep(delay)
 	response = urllib2.Request(url, headers=headers)
 	page = urllib2.urlopen(response)
 	return page.read()
 
-def csv_stock_data_parsing_generator(csv_file): 
+def nasdaq_csv_stock_data_parsing_generator(csv_file): 
 	rows_list = csv_file.splitlines()
 	for row_num in range(len(rows_list)):
-		row_data = rows_list[row_num].decode('utf-8').split(',')
+		row_data = rows_list[row_num].decode('utf-8').split('",')
 		if row_num == 0: 
 			dict_list = row_data
 			if not dict_list:
@@ -149,7 +153,9 @@ def csv_stock_data_parsing_generator(csv_file):
 				return
 			else:
 				if not dict_list[-1]:
+					# here i will remove the empty string at the end of the typical list i get
 					# this is the default list i get:
+					
 					#[u'"Symbol"',
 					# u'"Name"',
 					# u'"LastSale"',
@@ -160,18 +166,58 @@ def csv_stock_data_parsing_generator(csv_file):
 					# u'"Summary Quote"',
 					# u'']
 					dict_list.pop()
-				continue
+				else:
+					print line_number(), dict_list[-1]
+					sys.exit()
+			continue
 		dict_to_return = {}
 		if not row_data: 
 			continue
 		else:
 			for theoretical_csv_column_number in range(len(dict_list)):
 				if row_data[theoretical_csv_column_number] not in [None, u""]:
-					dict_to_return[dict_list[theoretical_csv_column_number]] = row_data[theoretical_csv_column_number]
+					#print line_number()
+					#pp.pprint(row_data[theoretical_csv_column_number])
+					dict_to_return[str(dict_list[theoretical_csv_column_number]).replace('"', "").replace(" ","_")] = str(row_data[theoretical_csv_column_number]).replace('"', "")
 		if dict_to_return:
 			yield dict_to_return
 # suggestion from Soncrates
-
+def convert_nasdaq_csv_to_stock_objects():
+	for url, headers in nasdaq_stock_csv_url_and_headers_generator():
+		if len(config.STOCK_EXCHANGE_LIST) < 5: # it should be
+			nasdaq_csv = return_webpage(url, headers, delay=0)
+		else: # incase this program grows beyond my wildest dreams
+			nasdaq_csv = return_webpage(url, headers)
+		for stock_dict in nasdaq_csv_stock_data_parsing_generator(nasdaq_csv):
+			# stock_dict:
+			# {
+			# 'Sector': 'str', 
+			# 'LastSale': 'float', 
+			# 'Summary_Quote': 'ignore', 
+			# 'Name': 'str', 
+			# 'industry': 'str', 
+			# 'Symbol': 'str', 
+			# 'MarketCap': 'str', 
+			# 'IPOyear': 'n/a or int'
+			# }
+			if ("$" in stock_dict.get("Symbol")): # this is an "option chain" and we will ignore
+				continue
+			if " " in stock_dict.get("Symbol"):
+				stock_dict["Symbol"] = stock_dict.get("Symbol").replace(" ", "")
+			stock = None
+			stock = db.create_new_Stock_if_it_doesnt_exist(stock_dict.get("Symbol"))
+			stock.firm_name = stock_dict.get("Name")
+			for attribute in stock_dict:
+				if attribute not in ["Symbol", "Summary_Quote", "LastSale"]:
+					datum = stock_dict.get(attribute)
+					if datum:
+						setattr(stock, attribute + "_na", datum)
+				elif attribute == "LastSale":
+					try:
+						float(stock_dict.get(attribute))
+						setattr(stock, attribute + "_na", float(stock_dict.get(attribute)))
+					except:
+						setattr(stock, attribute + "_na", None)
 #################### Yahoo Finance Scrapers "_yf" ##############################################
 def prepareYqlScrape(ticker_list = []): # from finance.yahoo.com
 	"returns [chunk_list, percent_of_full_scrape_done, number_of_tickers_to_scrape"

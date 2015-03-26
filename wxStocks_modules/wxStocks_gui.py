@@ -130,7 +130,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
 		sizer.Add(notebook, 1, wx.EXPAND)
 		main_frame.SetSizer(sizer)
 
-		print line_number(), "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
+		print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
 class Tab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -448,14 +448,16 @@ class TickerPage(Tab):
 
 	def downloadTickers(self):
 		print line_number(), "Begin ticker download..."
-		ticker_data = scrape.download_ticker_symbols()
-		self.saveTickerDataAsStocks(ticker_data)
+		ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
+		db.save_GLOBAL_STOCK_DICT()
+
+		#self.saveTickerDataAsStocks(ticker_data) # no longer used
 		self.showAllTickers()
 		# Update scrape page?
 		# Don't want to take the time to figure this out just now.
 		print line_number(), "Add function here to update scrape time."
 
-
+	# no longer used
 	def saveTickerDataAsStocks(self, ticker_data_from_download):
 		# first check for stocks that have fallen off the stock exchanges
 		ticker_list = []
@@ -501,6 +503,7 @@ class TickerPage(Tab):
 			stock.firm_name = firm_name
 			print line_number(), "Saving:", stock.ticker, stock.firm_name
 		db.save_GLOBAL_STOCK_DICT()
+	# end no longer used
 
 	def showAllTickers(self):
 		print line_number(), "Loading Tickers"

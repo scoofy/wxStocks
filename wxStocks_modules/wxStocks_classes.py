@@ -5,7 +5,7 @@ def line_number():
 	"""Returns the current line number in our program."""
 	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
 
-# Suffix key: "_yf" = yahoo finance, "_ms" = morningstar, "_aa" = AAII stock investor pro
+# Suffix key: "_yf" = yahoo finance, "_ms" = morningstar, "_aa" = AAII stock investor pro, "_nq" = Nasdaq.com data
 
 class Stock(object):
 	def __init__(self, symbol):
@@ -42,8 +42,9 @@ class Stock(object):
 
 		
 
-		self.yql_ticker = self.ticker.replace("^", "-P").replace("/WS/","-WT").replace("/WS","-WT").replace("/", "-")
+		self.yql_ticker = self.ticker.replace("^", "-P").replace("/WS/","-WT").replace("/WS","-WT").replace("/", "-").replace(".", "-")
 		#	# nasdaq csv seems to use "MITT^A" vs "MITT^B" to demarcate classes, 
+		#	# morningstar and AAII use "MITT.A" vs "MITT.B",
 		#	# where yahoo does by "MITT-PA" and "MITT-PB", etc.
 
 
