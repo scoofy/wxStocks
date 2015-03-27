@@ -37,7 +37,7 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
 	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
-def import_aaii_files_from_data_folder():
+def import_aaii_files_from_data_folder(time_until_data_needs_update = 604800): # one week
 	""""import aaii .xls files"""
 	current_directory = os.path.dirname(os.path.realpath(__file__))
 	parent_directory = os.path.split(current_directory)[0]
@@ -50,18 +50,17 @@ def import_aaii_files_from_data_folder():
 	expired_data = []
 	for filename in aaii_filenames:
 		current_time = time.time()
-		one_week_in_seconds = 604800
 		file_stats = os.stat(data_directory + "/" + filename)
 		file_last_modified_epoch = file_stats.st_mtime # last modified
 		#print filename, "last modified:", file_stats.st_mtime
-		if (current_time - one_week_in_seconds) > file_last_modified_epoch:
+		if (current_time - time_until_data_needs_update) > file_last_modified_epoch:
 			expired_data.append(filename)
 	if expired_data:
 		print line_number(), "Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."
 		sys.exit()
 
 	for filename in aaii_filenames:
-		print line_number(), "processing file %d of %d" % (aaii_filenames.index(filename), len(aaii_filenames) )
+		print line_number(), "\n\nprocessing file %d of %d\n" % (aaii_filenames.index(filename)+1, len(aaii_filenames) )
 		if "_Key.XLS" in filename:
 			continue
 		key_dict = process_aaii_xls_key_file(data_directory + "/" + filename[:-4] + "_Key.XLS")

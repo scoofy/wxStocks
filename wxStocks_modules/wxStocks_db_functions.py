@@ -70,14 +70,55 @@ def delete_GLOBAL_TICKER_LIST():
 def create_new_Stock_if_it_doesnt_exist(ticker):
 	if not type(ticker) == str:
 		ticker = str(ticker)
-	ticker = ticker.upper()
-	stock = config.GLOBAL_STOCK_DICT.get(ticker)
+	symbol = ticker.upper()
+	if symbol.isalpha():
+		pass
+	else:
+		if "." in symbol:
+			pass
+		if "^" in symbol:
+			# Nasdaq preferred
+			symbol = symbol.replace("^", ".P")
+		if "/" in symbol:
+			# Warrants currently ignored but this function should be reexamined if warrents to be included in the future
+			# if "/WS" in symbol:
+			# 	# Nasdaq Warrent
+			# 	if "/WS/" in symbol:
+			# 		# more complicated version of the same thing
+			# 		self.nasdaq_symbol = symbol
+			# 		self.yahoo_symbol = symbol.replace("/WS/","-WT")
+			#		# I don't know how morningstar does warrents
+			# 	else:
+			# 		self.nasdaq_symbol = symbol
+			# 		self.yahoo_symbol = symbol.replace("/WS","-WT")
+			# 	self.aaii_symbol = None
+			
+			# If bloomberg is integrated, this will need to be changed for preferred stock
+			# if "/P" in symbol:
+			# 	pass
+
+			# Nasdaq class share
+			symbol = symbol.replace("/", ".")
+		if "-" in symbol:
+			if "-P" in symbol:
+				# Yahoo preferred
+				symbol = symbol.replace("-P", ".P")
+			else:
+				# Yahoo Class
+				symbol = symbol.replace("-", ".")
+		if " PR" in symbol:
+			# AAII preferred 
+			symbol = symbol.replace(" PR", ".P")
+		# Finally:
+		# if morningstar preferred notation "XXXPRX", i don't know how to fix that since "PRE" is a valid ticker
+
+	stock = config.GLOBAL_STOCK_DICT.get(symbol)
 	if stock:
-		#print "%s already exists." % ticker
+		#print "%s already exists." % symbol
 		return stock
 	else:
-		stock = wxStocks_classes.Stock(ticker)
-		config.GLOBAL_STOCK_DICT[ticker] = stock
+		stock = wxStocks_classes.Stock(symbol)
+		config.GLOBAL_STOCK_DICT[symbol] = stock
 		return stock
 def load_GLOBAL_STOCK_DICT():
 	print line_number(), "Loading GLOBAL_STOCK_DICT"

@@ -409,6 +409,10 @@ class TickerPage(Tab):
 		download_button = wx.Button(self, label="Download Tickers", pos=(5, 30), size=(-1,-1))
 		download_button.Bind(wx.EVT_BUTTON, self.confirmDownloadTickers, download_button) 
 
+		refresh_button = wx.Button(self, label="Refresh", pos=(5, 60), size=(-1,-1))
+		refresh_button.Bind(wx.EVT_BUTTON, self.refreshTickers, refresh_button) 
+
+
 		exchanges = ""
 		for exchange_name in config.STOCK_EXCHANGE_LIST:
 			if exchange_name is config.STOCK_EXCHANGE_LIST[0]:
@@ -505,6 +509,9 @@ class TickerPage(Tab):
 		db.save_GLOBAL_STOCK_DICT()
 	# end no longer used
 
+	def refreshTickers(self, event):
+		self.showAllTickers()
+		
 	def showAllTickers(self):
 		print line_number(), "Loading Tickers"
 		ticker_list = []
@@ -898,7 +905,8 @@ class XlsImportPage(Tab):
 		confirm.ShowModal()
 
 	def import_AAII_files(self, event):
-		aaii.import_aaii_files_from_data_folder() 
+		print line_number, "Remove argument below this line after debugging"
+		aaii.import_aaii_files_from_data_folder(time_until_data_needs_update = 100000000000) 
 
 class AllStocksPage(Tab):
 	def __init__(self, parent):

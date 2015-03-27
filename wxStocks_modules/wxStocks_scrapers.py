@@ -202,6 +202,10 @@ def convert_nasdaq_csv_to_stock_objects():
 			# }
 			if ("$" in stock_dict.get("Symbol")): # this is an "option chain" and we will ignore
 				continue
+			if ("/CL" in stock_dict.get("Symbol")): # this is a called option or warrant and we will ignore
+				continue
+			if ("/W" in stock_dict.get("Symbol")): # this is a warrant and we will ignore
+				continue
 			if " " in stock_dict.get("Symbol"):
 				stock_dict["Symbol"] = stock_dict.get("Symbol").replace(" ", "")
 			stock = None
