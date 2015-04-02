@@ -690,63 +690,142 @@ def justified_trailing_PE_via_gordon_growth(equity_risk_premium,
 
 # Estimating Required Return (technically IRR) using GGM
 
-def IRR_via_gordon_growth():
+def IRR_via_gordon_growth(current_share_price,
+							dividend_growth_rate,
+
+							current_dividend = None,
+							next_period_dividend = None):
 	#     D_0(1+g)       D_1
 	# r = -------- + g = --- + g
 	#       P_0          P_0
-	D_0
-	P_0
-	g
-	D_1
+	D_0 = float(current_dividend)
+	P_0 = float(current_share_price)
+	g = float(dividend_growth_rate)
+	D_1 = float(next_period_dividend)
+
+	if ((D_1 is None) and (D_0 is None)):
+		print line_number(), "error"
+
+	if D_1 is not None:
+		IRR = (D_1/P_0) + g
+	else:
+		IRR = ((D_0(1+g))/P_0)+g
+
+	return IRR
 
 
-def two_stage_dividend_discount_model():
+def two_stage_dividend_discount_model(number_of_first_stage_periods,
+										required_return_on_equity,
+										current_dividend,
+										short_term_dividend_growth_rate,
+										long_term_dividend_growth_rate,
+
+										current_time_period = 1):
 	#         n   D_0(1+g_S)^t   D_0 * (1+g_S)^n * (1+g_L)
 	# V_0 = sigma ------------ + -------------------------
 	#        t=1    (1+r)^t          (1+r)^n * (r-g_L)
-	n = number_of_first_stage_periods
-	t = current_time_period
-	r = required_return_on_equity
-	D_0 = current_dividend
-	g_S = short_term_growth_rate
-	g_L = long_term_growth_rate
+	n = int(number_of_first_stage_periods)
+	t = int(current_time_period)
+	r = float(required_return_on_equity)
+	D_0 = float(current_dividend)
+	g_S = float(short_term_dividend_growth_rate)
+	g_L = float(long_term_dividend_growth_rate)
 
-def H_model_dividend_discount():
+	V_s1 = 0.
+	while t <= n:
+		V_t = ((D_0((1.+g_S)**t)/((1.+r)**t))
+		V_s1 += V_t
+		t += 1
+	V_n = (((D_0*((1+g_S)**n))*(1+g_L))/(((1.+r)**n)*(r-g_L))))
+	V_0 = V_s1 + V_n
+	return V_0
+
+def H_model_dividend_discount(half_life_in_years_of_high_growth_period,
+								required_return_on_equity,
+								current_dividend,
+								short_term_dividend_growth_rate,
+								long_term_dividend_growth_rate):
 	#       D_0(1+g_L)   D_0*H*(g_S-g_L)
 	# V_0 = ---------- + ---------------
 	#         r-g_L           r-g_L
-	H = half_life_in_years_of_high_growth_period # high-growth period = 2H
-	r = required_return_on_equity
-	D_0 = current_dividend
-	g_S = short_term_growth_rate
-	g_L = long_term_growth_rate
+	H = float(half_life_in_years_of_high_growth_period) # high-growth period = 2H
+	r = float(required_return_on_equity)
+	D_0 = float(current_dividend)
+	g_S = float(short_term_dividend_growth_rate)
+	g_L = float(long_term_dividend_growth_rate)
 
-def three_stage_dividend_discount_model():
+	V_0 = ((D_0(1.+g_L))/(r-g_L))/((D_0*H*(g_S-g_L))/(r-g_L))
+	return V_0
+
+def three_stage_dividend_discount_model(number_of_first_stage_periods,
+										number_of_second_stage_periods,
+										required_return_on_equity,
+										current_dividend,
+										short_term_growth_rate,
+										medium_term_growth_rate,
+										long_term_growth_rate,
+
+										current_time_period=1):
 	#         n   D_0(1+g_S)^t     m   D_0 * (1+g_S)^n * (1+g_M)^t   D_0 * (1+g_S)^n * (1+g_M)^m * (1+g_L)
 	# V_0 = sigma ------------ + sigma --------------------------- + -------------------------------------
 	#        t=1    (1+r)^t       t=n            (1+r)^t                       (1+r)^m * (r-g_L)
-	t = current_time_period
-	r = required_return_on_equity
-	n = number_of_first_stage_periods
-	m = number_of_second_stage_periods
-	D_0 = current_dividend
-	g_S = short_term_growth_rate
-	g_M = medium_term_growth_rate
-	g_L = long_term_growth_rate
+	t = int(current_time_period)
+	r = float(required_return_on_equity)
+	n = int(number_of_first_stage_periods)
+	m = int(number_of_second_stage_periods)
+	D_0 = float(current_dividend)
+	g_S = float(short_term_growth_rate)
+	g_M = float(medium_term_growth_rate)
+	g_L = float(long_term_growth_rate)
 
-def three_stage_H_model_dividend_discount():
+	V_s1 = 0.
+	while t <= n:
+		V_t = ((D_0((1.+g_S)**t))/((1.+r)**t))
+		V_s1 += V_t
+		t += 1
+
+	V_s2 = 0.
+	while (t > n) and (t <= m):
+		V_t = (D_0 * ((1.+g_S)**n) * ((1.+g_M)**t)) / ((1.+r)**t)
+		V_s2 += V_t
+		t += 1
+	V_s3 = (D_0 * ((1.+g_S)**n) * ((1.+g_M)**m) * (1.+g_L)) / (((1.+r)**m) * (r-g_L))
+
+	V_0 = V_s1 + V_s2 + V_s3
+	return V_0
+
+def three_stage_H_model_dividend_discount(half_life_in_years_of_high_growth_period,
+											number_of_first_stage_periods,
+											number_of_second_stage_periods,
+											required_return_on_equity,
+											current_dividend,
+											short_term_growth_rate,
+											medium_term_growth_rate,
+											long_term_growth_rate,
+
+											current_time_period = 1):
 	#         n   D_0(1+g_S)^t   D_0 * (1+g_S)^n * H * (g_M-g_L)   D_0 * (1+g_S)^n * (1+g_L)
 	# V_0 = sigma ------------ + ------------------------------- + -------------------------
 	#        t=1    (1+r)^t             (1+r)^n * (r-g_L)              (1+r)^n * (r-g_L)
-	H = half_life_in_years_of_high_growth_period # middle-growth period = 2H
-	t = current_time_period
-	r = required_return_on_equity
-	n = number_of_first_stage_periods
-	m = number_of_second_stage_periods
-	D_0 = current_dividend
-	g_S = short_term_growth_rate
-	g_M = medium_term_growth_rate
-	g_L = long_term_growth_rate
+	H = int(half_life_in_years_of_high_growth_period) # middle-growth period = 2H
+	t = int(current_time_period)
+	r = float(required_return_on_equity)
+	n = int(number_of_first_stage_periods)
+	m = int(number_of_second_stage_periods)
+	D_0 = float(current_dividend)
+	g_S = float(short_term_growth_rate)
+	g_M = float(medium_term_growth_rate)
+	g_L = float(long_term_growth_rate)
+
+	V_s1 = 0.
+	while t <= n:
+		V_t = (D_0 * ((1.+g_S)**t))/((1.+r)**t)
+		V_s1 += V_t
+		t += 1
+
+	V_s2_and_s3 = ((D_0 * ((1.+g_S)**n) * H * (g_M-g_L))/(((1.+r)**n) * (r-g_L))) + ((D_0 * ((1.+g_S)**n) * (1.+g_L))/(((1.+r)**n) * (r-g_L)))
+	V_0 = V_s1 + V_s2_and_s3
+	return V_0
 
 # Spreadsheet (General) Modeling
 
