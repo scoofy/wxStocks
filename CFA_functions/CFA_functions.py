@@ -82,7 +82,7 @@ def equity_risk_premium_for_share_ver_2(current_expected_risk_free_rate, beta_i,
 	#beta_i 	= equity_risk_premium
 	other_risk_premia = sum(other_risk_premia)
 	RR_i = RFR_e + beta_i + (other_risk_premia / discounts_for_i)
-	raise "look this function up"
+	raise Exception("look this function up")
 
 # Gordon Growth Model for estimating equity risk premium
 def equity_risk_premium_via_gordon_growth_model(dividend_yield_on_index_based_on_year_ahead_aggeragate_forcasted_dividends_and_aggregate_market_value,
@@ -733,10 +733,10 @@ def two_stage_dividend_discount_model(number_of_first_stage_periods,
 
 	V_s1 = 0.
 	while t <= n:
-		V_t = ((D_0((1.+g_S)**t)/((1.+r)**t))
+		V_t = ((D_0((1.+g_S)**t)/((1.+r)**t)))
 		V_s1 += V_t
 		t += 1
-	V_n = (((D_0*((1+g_S)**n))*(1+g_L))/(((1.+r)**n)*(r-g_L))))
+	V_n = (((D_0*((1+g_S)**n))*(1+g_L))/(((1.+r)**n)*(r-g_L)))
 	V_0 = V_s1 + V_n
 	return V_0
 
@@ -807,7 +807,7 @@ def three_stage_H_model_dividend_discount(half_life_in_years_of_high_growth_peri
 	#         n   D_0(1+g_S)^t   D_0 * (1+g_S)^n * H * (g_M-g_L)   D_0 * (1+g_S)^n * (1+g_L)
 	# V_0 = sigma ------------ + ------------------------------- + -------------------------
 	#        t=1    (1+r)^t             (1+r)^n * (r-g_L)              (1+r)^n * (r-g_L)
-	H = int(half_life_in_years_of_high_growth_period) # middle-growth period = 2H
+	H = float(half_life_in_years_of_high_growth_period) # middle-growth period = 2H
 	t = int(current_time_period)
 	r = float(required_return_on_equity)
 	n = int(number_of_first_stage_periods)
@@ -829,21 +829,38 @@ def three_stage_H_model_dividend_discount(half_life_in_years_of_high_growth_peri
 
 # Spreadsheet (General) Modeling
 
-def estimate_long_term_growth_rate():
+def estimate_long_term_growth_rate(long_term_retention_rate_estimate, 
+									long_term_ROE_or_required_return_estimate_or_median_industry_ROE):
 	# g_LT = (b in mature phase) * (ROE in mature phase)
 	# b (retention rate) estimate -> empirical from industry or current rates
 	# ROE -> Use DuPont formula, set ROE = r (require return) in long run, use median industry ROE
-
-def implied_IRR_from_dividend_discounting():
+	g_LT = float(long_term_retention_rate_estimate) * float(long_term_ROE_or_required_return_estimate_or_median_industry_ROE)
+	return g_LT
+def implied_IRR_from_dividend_discounting(half_life_in_years_of_high_growth_period,
+											current_dividend,
+											short_term_dividend_growth_rate,
+											long_term_dividend_growth_rate,
+											current_price):
 	#              D_0
 	# implied_r = (---)[(1+g_L) + H(g_S-g_L)] + g_L
 	#              P_0
+	D_0 = float(current_dividend)
+	P_0 = float(current_price)
+	g_S = float(short_term_dividend_growth_rate)
+	g_L = float(long_term_dividend_growth_rate)
+	H  = float(half_life_in_years_of_high_growth_period)
 
-def sustainable_growth_rate():
+	implied_IRR = (((D_0)/P_0)((1.+g_L) + (H*(g_S-g_L)))) + g_L
+	return implied_IRR
+
+def sustainable_growth_rate(retention_rate,
+							return_on_equity):
 	# g = b * ROE
-	g = sustainable_dividend_growth_rate
-	b = retention_rate
-	ROE = return_on_equity 
+	b = float(retention_rate)
+	ROE = float(return_on_equity)
+	sustainable_dividend_growth_rate = b * ROE
+	g_LT = sustainable_dividend_growth_rate
+	return g_LT
 
 def dupont():
 	ROE = NI/sales * sales/total_assets * total_assets/shareholders_equity
@@ -859,41 +876,91 @@ def firm_value_via_FCFF():
 	#               inf    FCFF_t
 	# Firm Value = sigma ----------
 	#               t=1  (1+WACC)^t
+	raise Exception("This formula isn't written, use single_stage_FCFF_valuation() instead")
+
+def single_stage_FCFF_valuation(weighted_avg_cost_of_capital,
+								FCFF_growth_rate,
+								FCFF_this_period = None,
+								FCFF_next_period = None):
+	# "free cash flow to the firm"
+	#
+	#                FCFF_1     FCFF_0 * (1+g)
+	# Firm Value = ---------- = --------------
+	#               WACC - g       WACC - g
+	FCFF_1 = float(FCFF_next_period)
+	FCFF_0 = float(FCFF_this_period)
+	g = float(FCFF_growth_rate)
+	WACC = float(weighted_avg_cost_of_capital)
+
+	if FCFF_1 is None:
+		FCFF_1 = FCFF_0 * (1.+g)
+	V_0 = FCFF_1/(WACC-g)
+	return V_0
 
 def equity_value_via_FCFF():
 	equity_value = firm_value - market_value_of_debt
 	#firm_value = firm_value_via_FCFF()
-def WACC_for_FCFF():
+	raise Exception("Not sure what this formula is for, i'll have to go back and read it.")
+
+def WACC_for_FCFF(market_value_of_debt,
+					market_value_of_common_equity,
+					cost_of_debt_captial,
+					cost_of_equity_capital,
+					marginal_tax_rate):
 	#             Debt_mv                                     Equity_mv
 	# WACC = ------------------- * r_d * (1-tax_rate)  + ------------------- * r
 	#        Debt_mv + Equity_mv                         Debt_mv + Equity_mv
 
 	# r_d(1-tax_rate) = after tax cost of debt
 	# r = cost of equity
+	debt_mv = float(market_value_of_debt)
+	equity_mv = float(market_value_of_common_equity)
+	tax = float(marginal_tax_rate)
+	r_d = float(cost_of_debt_captial)
+	r = float(cost_of_equity_capital)
 
-def FCFF_from_net_income():
-	NI = net_income_available_to_common_shareholders
-	NCC = net_non_cash_charge # depreciation, amortization, etc
-	Int = interest_expense
-	tax_rate = tax_rate
-	FCInv = fixed_capital_investment
-	WCInv = working_capital_investment
+	WACC = ((debt_mv/(debt_mv+equity_mv))*r_d*(1.-tax)) + ((equity_mv/(debt_mv + equity_mv))*r)
+	return WACC
+def FCFF_from_net_income(net_income_available_to_common_shareholders,
+						net_non_cash_charge,
+						interest_expense,
+						marginal_tax_rate,
+						fixed_capital_investment,
+						working_capital_investment):
+	NI = float(net_income_available_to_common_shareholders)
+	NCC = float(net_non_cash_charge) # depreciation, amortization, etc
+	Int = float(interest_expense)
+	tax_rate = float(marginal_tax_rate)
+	FCInv = float(fixed_capital_investment)
+	WCInv = float(working_capital_investment)
 
-	FCFF = NI + NCC + Int(1-tax_rate) - FCInv - WCInv
+	FCFF = NI + NCC + Int(1.-tax_rate) - FCInv - WCInv
 
 	return FCFF
 
-def FCFF_from_CF_statement():
-	CFO = cash_flow_from_operations
-	Int = interest_expense
-	tax_rate = tax_rate
-	FCInv = fixed_capital_investment
+def FCFF_from_CF_statement(cash_flow_from_operations,
+							interest_expense,
+							marginal_tax_rate,
+							fixed_capital_investment):
+	CFO = float(cash_flow_from_operations)
+	Int = float(interest_expense)
+	tax_rate = float(marginal_tax_rate)
+	FCInv = float(fixed_capital_investment)
 
-	FCFF = CFO + Int(1-tax_rate) - FCInv
+	FCFF = CFO + Int(1.-tax_rate) - FCInv
 
 	return FCFF
 
-def noncash_charge():
+def noncash_charge(depreciation,
+				  amortization,
+				  impairment,
+				  restructuring_expence,
+				  losses,
+				  amortization_of_long_term_bond_discounts,
+				  deferred_taxes__maybe,
+				  restructuring_income,
+				  gains,
+				  amortization_of_long_term_bond_premiums,):
 	items_to_be_added_back = [depreciation,
 							  amortization,
 							  impairment,
@@ -909,37 +976,48 @@ def noncash_charge():
 							  gains, # e.g. on sale of fixed asset
 							  amortization_of_long_term_bond_premiums,
 							 ]
-	net_noncash_charge = items_to_be_added_back - items_to_be_subtracted
+	items_to_be_added_back = [float(x) for x in items_to_be_added_back]
+	items_to_be_subtracted = [float(x) for x in items_to_be_subtracted]
+	net_noncash_charge = sum(items_to_be_added_back) - sum(items_to_be_subtracted)
 
 	return net_noncash_charge
 
 # FCFE
 
-def FCFE_via_FCFF():
-	FCFF = free_cash_flow_to_the_firm
-	Int = interest_expense
-	tax_rate = tax_rate
-	net_borrowing = net_borrowing
+def FCFE_via_FCFF(free_cash_flow_to_the_firm,
+					interest_expense,
+					marginal_tax_rate,
+					net_borrowing):
+	FCFF = float(free_cash_flow_to_the_firm)
+	Int = float(interest_expense)
+	tax_rate = float(marginal_tax_rate)
+	net_borrowing = float(net_borrowing)
 
-	FCFE = FCFF - Int(1-tax_rate) + net_borrowing
+	FCFE = FCFF - Int(1.-tax_rate) + net_borrowing
 
 	return FCFE
 
-def FCFE_via_income_statement():
-	NI = net_income_available_to_common_shareholders
-	NCC = net_non_cash_charge # depreciation, amortization, etc
-	FCInv = fixed_capital_investment
-	WCInv = working_capital_investment
-	net_borrowing = net_borrowing
+def FCFE_via_income_statement(net_income_available_to_common_shareholders,
+							net_non_cash_charge,
+							fixed_capital_investment,
+							working_capital_investment,
+							net_borrowing):
+	NI = float(net_income_available_to_common_shareholders)
+	NCC = float(net_non_cash_charge) # depreciation, amortization, etc
+	FCInv = float(fixed_capital_investment)
+	WCInv = float(working_capital_investment)
+	net_borrowing = float(net_borrowing)
 
 	FCFE = NI + NCC - FCInv - WCInv + net_borrowing
 
 	return FCFE
 
-def FCFE_via_cash_flow_statement():
-	CFO = cash_flow_from_operations
-	FCInv = fixed_capital_investment
-	net_borrowing = net_borrowing
+def FCFE_via_cash_flow_statement(cash_flow_from_operations,
+								fixed_capital_investment,
+								net_borrowing):
+	CFO = float(cash_flow_from_operations)
+	FCInv = float(fixed_capital_investment)
+	net_borrowing = float(net_borrowing)
 
 	FCFE = CFO - FCInv + net_borrowing
 
@@ -947,85 +1025,173 @@ def FCFE_via_cash_flow_statement():
 
 # FCFF & FCFE from EBIT & EBITDA
 
-def FCFF_via_EBIT():
+def FCFF_via_EBIT(earnings_before_interest_and_tax,
+				marginal_tax_rate,
+				depreciation_expense,
+				fixed_capital_investment,
+				working_capital_investment):
 	# assuming NCC includes only depreciation
-	EBIT = earnings_before_interest_and_tax
-	tax_rate = tax_rate
-	Dep = depreciation_expense
-	FCInv = fixed_capital_investment
-	WCInv = working_capital_investment
+	EBIT = float(earnings_before_interest_and_tax)
+	tax_rate = float(marginal_tax_rate)
+	Dep = float(depreciation_expense)
+	FCInv = float(fixed_capital_investment)
+	WCInv = float(working_capital_investment)
 
-	FCFF = EBIT(1-tax_rate) + Dep - FCInv - WCInv
+	FCFF = EBIT(1.-tax_rate) + Dep - FCInv - WCInv
 
 	return FCFF
 
-def FCFE_via_EBIT():
-	EBIT = earnings_before_interest_and_tax
-	tax_rate = tax_rate
-	Dep = depreciation_expense
-	FCInv = fixed_capital_investment
-	WCInv = working_capital_investment
-	net_borrowing = net_borrowing
+def FCFE_via_EBIT(earnings_before_interest_and_tax,
+					marginal_tax_rate,
+					depreciation_expense,
+					fixed_capital_investment,
+					working_capital_investment,
+					net_borrowing,):
+	EBIT = float(earnings_before_interest_and_tax)
+	tax_rate = float(marginal_tax_rate)
+	Dep = float(depreciation_expense)
+	FCInv = float(fixed_capital_investment)
+	WCInv = float(working_capital_investment)
+	net_borrowing = float(net_borrowing)
 
-	FCFF = FCFF_via_EBIT()
+	FCFF = FCFF_via_EBIT(EBIT, tax_rate, Dep, FCInv, WCInv)
 
-	FCFE = FCFF - Int(1-tax_rate) + net_borrowing
+	FCFE = FCFF - Int(1.-tax_rate) + net_borrowing
+	return FCFE
 
-def FCFF_via_EBITDA():
-	EBITDA = earnings_before_interest_tax_depreciation_and_amortization
-	tax_rate = tax_rate
-	Dep = depreciation_expense
-	FCInv = fixed_capital_investment
-	WCInv = working_capital_investment
+def FCFF_via_EBITDA(earnings_before_interest_tax_depreciation_and_amortization,
+					marginal_tax_rate,
+					depreciation_expense,
+					fixed_capital_investment,
+					working_capital_investment):
+	EBITDA = float(earnings_before_interest_tax_depreciation_and_amortization)
+	tax_rate = float(marginal_tax_rate)
+	Dep = float(depreciation_expense)
+	FCInv = float(fixed_capital_investment)
+	WCInv = float(working_capital_investment)
 
-	FCFF = EBITDA(1-tax_rate) + Dep(tax_rate) - FCInv - WCInv
+	FCFF = EBITDA(1.-tax_rate) + Dep(tax_rate) - FCInv - WCInv
+	return FCFF
 
-def FCFE_via_EBITDA():
-	EBITDA = earnings_before_interest_tax_depreciation_and_amortization
-	tax_rate = tax_rate
-	Dep = depreciation_expense
-	FCInv = fixed_capital_investment
-	WCInv = working_capital_investment
-	net_borrowing = net_borrowing
+def FCFE_via_EBITDA(earnings_before_interest_tax_depreciation_and_amortization,
+					marginal_tax_rate,
+					depreciation_expense,
+					fixed_capital_investment,
+					working_capital_investment,
+					net_borrowing):
+	EBITDA = float(earnings_before_interest_tax_depreciation_and_amortization)
+	tax_rate = float(marginal_tax_rate)
+	Dep = float(depreciation_expense)
+	FCInv = float(fixed_capital_investment)
+	WCInv = float(working_capital_investment)
+	net_borrowing = float(net_borrowing)
 	
-	FCFF = FCFF_via_EBITDA()
+	FCFF = FCFF_via_EBITDA(EBITDA, tax_rate, Dep, FCInv, WCInv)
 
-	FCFE = FCFF - Int(1-tax_rate) + net_borrowing
+	FCFE = FCFF - Int(1.-tax_rate) + net_borrowing
+	return FCFE
 
 # forcasting FCFF and FCFE
 
-def estimated_FCInv():
+def estimated_FCInv(capital_expenditures,
+					depreciation_expense,
+					sales_current_period,
+					sales_previous_period):
+	CapEx = float(capital_expenditures)
+	Dep = float(depreciation_expense)
+	sales_increase = float(sales_current_period) - float(sales_previous_period)
 	FCInv_e = (CapEx - Dep)/sales_increase
 	return FCInv_e
 
-def estimated_WCInv():
+def estimated_WCInv(working_capital_current_period,
+					working_capital_previous_period,
+					sales_current_period,
+					sales_previous_period):
+	wc_increase = float(working_capital_current_period) - float(working_capital_previous_period)
+	sales_increase = float(sales_current_period) - float(sales_previous_period)
 	WCInv_e = wc_increase/sales_increase
 	return WCInv_e
 
-def estimated_FCFE():
+def estimated_FCFE(capital_expenditures,
+					depreciation_expense,
+					sales_current_period,
+					sales_previous_period,
+					working_capital_current_period,
+					working_capital_previous_period,
+
+					net_income,
+					debt_ratio):
 	# assumes relationship between FCInv-Dep & WCInv to sales
 	# assumes constant debt ratio
 
 	# from: FCFE = NI - (FCInv - Dep) - WCInv + Net Borrowing
 	# and: -> Net Borrowing = DR(FCInv-Dep) + DR(WCInv)
-	DR = debt_ratio
+	DR = float(debt_ratio)
+	NI = float(net_income)
+	Dep = float(depreciation_expense)
 
-	FCFE_e = NI - (1-DR)(FCInv_e-Dep) - (1-DR)(WCInv_e)
+	FCInv_e = estimated_FCInv(capital_expenditures, depreciation_expense, sales_current_period, sales_previous_period)
+	WCInv_e = estimated_WCInv(working_capital_current_period, working_capital_previous_period, sales_current_period, sales_previous_period)
 
+	FCFE_e = NI - (1.-DR)(FCInv_e-Dep) - (1.-DR)(WCInv_e)
 	return FCFE_e
 
-def FCFF_two_stage_model():
+def FCFF_two_stage_model(number_of_periods,
+						FCFF_estimate_list,
+						FCFF_growth_rate,
+						WACC,
+						current_time_period = 1):
 	#              n     FCFF_t            FCFF_n+1
 	# Firm_V_0 = sigma ----------  + ---------------------
 	#             t=1  (1+WACC)^t    (1+WACC)^n * (WACC-g)
+	t = int(current_time_period)
+	n = int(number_of_periods)
+	WACC = float(WACC)
+	FCFF_estimate_list = [float(x) for x in FCFF_estimate_list]
+	if len(FCFF_estimate_list) != n:
+		raise Exception("The FCFF estimate list needs to be the same length as the number of periods")
+	g = float(FCFF_growth_rate)
+	FCFF_terminal = float(FCFF_estimate_list[-1] * (1.+g))
+	
+	V_s1 = 0.
+	while t <= n:
+		V_t = FCFF_estimate_list[t]/((1.+WACC)**t)
+		V_s1 += V_t
+		t += 1
+	V_terminal = FCFF_terminal/(((1.+WACC)**n)*(WACC-g))
+	Firm_V_0 = V_s1 + V_terminal
+	return Firm_V_0
 
-def FCFE_two_stage_model():
+def FCFE_two_stage_model(number_of_periods,
+						FCFE_estimate_list,
+						FCFE_growth_rate,
+						required_return,
+
+						current_time_period = 1):
 	#                n   FCFE_t        FCFE_n+1
 	# Equity_V_0 = sigma -------  + ---------------
 	#               t=1  (1+r)^t    (1+r)^n * (r-g)
+	t = int(current_time_period)
+	n = int(number_of_periods)
+	r = float(required_return)
+	FCFE_estimate_list = [float(x) for x in FCFE_estimate_list]
+	if len(FCFE_estimate_list) != n:
+		raise Exception("The FCFF estimate list needs to be the same length as the number of periods")
+	g = float(FCFE_growth_rate)
+	FCFE_terminal = float(FCFE_estimate_list[-1] * (1.+g))
+	
+	V_s1 = 0.
+	while t <= n:
+		V_t = FCFE_estimate_list[t]/((1.+r)**t)
+		V_s1 += V_t
+		t += 1
+	V_terminal = FCFE_terminal/(((1.+r)**n)*(r-g))
+	Firm_V_0 = V_s1 + V_terminal
+	return Firm_V_0
 
-def value_of_firm():
-	V = value_of_operating_assets + value_of_nonoperating_assets
+
+def value_of_firm(value_of_operating_assets, value_of_nonoperating_assets):
+	V = float(value_of_operating_assets) + float(value_of_nonoperating_assets)
 	return V
 
 
@@ -1033,18 +1199,34 @@ def value_of_firm():
 
 # P/E
 
-def pe_ratio():
-	PE = price/earnings
+def pe_ratio(current_price, earnings):
+	PE = float(price)/float(earnings)
+	return PE
 
-def forward_pe_ratio():
+def forward_pe_ratio_annual(current_price, next_period_earnings):
+	price_0 = float(current_price)
+	earnings_1 = float(next_period_earnings)
 	PE_f = price_0/earnings_1
-
+	return PE_f
+def forward_pe_ratio_quarterly(current_price, 
+								EPS_estimate_list_for_next_four_quarters):
 	#CFA uses forcasted quarters # terms below: "EPS (expected for) Quarter t+1"
+	price_0 = float(current_price)
+
+	EPS_eQ_t1 = float(EPS_estimate_list_for_next_four_quarters[0])
+	EPS_eQ_t2 = float(EPS_estimate_list_for_next_four_quarters[1])
+	EPS_eQ_t3 = float(EPS_estimate_list_for_next_four_quarters[2])
+	EPS_eQ_t4 = float(EPS_estimate_list_for_next_four_quarters[3])
+	
 	EPS_eY1 = EPS_eQ_t1 + EPS_eQ_t2 + EPS_eQ_t3 + EPS_eQ_t4
 
 	forward_PE = price_0/EPS_eY1
+	return forward_PE
 
-def next_12_months_pe(): # Less used than quarterly. Acheieve by an offset of predicted eps from next two years.
+def next_12_months_pe(this_years_expected_earnings,
+						next_years_expected_earnings,
+						number_of_months_since_last_annual_report): 
+	# Less used than quarterly. Acheieve by an offset of predicted eps from next two years.
 	EPS_eY1 = float(this_years_expected_earnings)
 	EPS_eY2 = float(next_years_expected_earnings)
 	month_offset_ratio = float(number_of_months_since_last_annual_report)
@@ -1054,13 +1236,18 @@ def next_12_months_pe(): # Less used than quarterly. Acheieve by an offset of pr
 	NTM_PE = ((months_till/12)*EPS_eY1) + ((month_offset_ratio/12)*EPS_eY2)
 	return NTM_PE
 
-def trailing_pe_ratio(): # or "current pe"
-	PE_ttm = price_0/earnings_ttm
+def trailing_pe_ratio(current_price,
+						earnings_ttm):
+	# or "current pe"
+	price_0 = float(current_price)
+	PE_ttm = price_0/float(earnings_ttm)
+	return PE_ttm
 
 def normalized_pe_ratio():
 	# based on historic pe
 	# or preferably:
 	# based on historic ROE * BVPS
+	raise Exception("not exactly a formula")
 
 # common inverse ratios and their originals
 
@@ -1096,6 +1283,7 @@ def thomson_first_call_pe():
 	# forward pe based on the mean of analysts' current fiscal year (probably has some actual values in caluculation)
 	# forward pe based on the mean of analysts' following fiscal year (estimates)
 	# p.387
+	raise Exception("not finished yet")
 
 def justified_pe_based_on_equity_valuation():
 	V_0 = value_of_equity_determined_by_some_means
@@ -1215,12 +1403,13 @@ def enterprise_value_to_EBITDAR(): # + rent expense (used for airlines)
 
 def unexpected_earnings():
 	#UE_t = EPS_t - E(EPS_t)
+	raise Exception("not finished yet")
 
 def standardized_unexpected_earnings():
 	#SUE_t = EPS_t - E(EPS_t) / sigma[EPS_t - E(EPS_t)]
 	#
 	# sigma is st dev over some historical time period
-
+	raise Exception("not finished yet")
 # issues in practice 
 
 
@@ -1233,11 +1422,11 @@ def harmonic_mean(data_list):
 	denominator = None
 	for data in data_list:
 		if data != 0:
-			denominator += (1/float(data)
+			denominator += 1/float(data)
 		else:
 			print "Error: divide by zero"
 			return
-	if denominator != 0
+	if denominator != 0:
 		X_WH = len(data_list)/denominator
 	else:
 		print "Error: divide by zero"
@@ -1256,11 +1445,11 @@ def weighted_harmonic_mean(HarmonicMeanData_list):
 	denominator = None
 	for unit in HarmonicMeanData_list:
 		if unit.data != 0:
-			denominator += (float(unit.weight)/float(unit.data)
+			denominator += float(unit.weight)/float(unit.data)
 		else:
 			print "Error: divide by zero"
 			return
-	if denominator != 0
+	if denominator != 0:
 		X_WH = 1/denominator
 	else:
 		print "Error: divide by zero"
@@ -1275,7 +1464,7 @@ def economic_value_added():
 	C_percent = cost_of_capital 
 	TC = total_capital
 
-	EVA = NOPAT - (C_percent x TC)
+	EVA = NOPAT - (C_percent * TC)
 
 def market_value_added():
 	MVA = market_value_of_the_company - accounting_book_value_of_total_capital
@@ -1298,12 +1487,12 @@ def residual_income_via_ROE():
 	#              inf  (ROE_t - r)B_t_minus_1
 	# V_0 = B_0 + sigma ----------------------
 	#              t=1         (1+r)^t
-
+	raise Exception("not finished yet")
 def residual_income_constant_growth():
 	#             ROE - r
 	# V_0 = B_0 + -------(B_0)
 	#               r-g
-
+	raise Exception("not finished yet")
 def tobins_q(): # not on exam
 	T_q = market_value_of_debt_and_equity/replacement_cost_of_total_assets
 
@@ -1311,16 +1500,19 @@ def residual_income_multi_stage():
 	#               T   (E_t - r(B_t_minus_1))   P_T - B_T
 	# V_0 = B_0 + sigma ---------------------- + ---------
 	#              t=1         (1+r)^t            (1+r)^T
+	raise Exception("not finished yet")
 
 def residual_income_multi_stage_via_ROE():
 	#               T   (ROE_t - r)B_t_minus_1   P_T - B_T
 	# V_0 = B_0 + sigma ---------------------- + ---------
 	#              t=1         (1+r)^t            (1+r)^T
+	raise Exception("not finished yet")
 
 def residual_income_multi_stage_declining():
 	#               T   (E_t - r(B_t_minus_1))     E_T - r(B_T_minus_1)
 	# V_0 = B_0 + sigma ---------------------- + -------------------------
 	#              t=1         (1+r)^t           (1+r-w) * (1+r)^T_minus_1
+	raise Exception("not finished yet")
 
 	w = persistence_factor # 1 > w > 0 # 1 will not fade, 0 will fade after first period
 
@@ -1332,11 +1524,13 @@ def capitalized_CF_method_FCFF():
 	#       FCFF_1
 	# V_f = ------
 	#       WACC-g
+	raise Exception("not finished yet")
 
 def capitalized_CF_method_FCFE():
 	#     FCFE_1
 	# V = ------
 	#      r-g
+	raise Exception("not finished yet")
 
 
 # Lack of control discounts
@@ -1424,14 +1618,14 @@ def receivables_turnover_ratio(total_revenue, average_receivables):
 	return (float(total_revenue)/float(average_receivables))
 
 def days_of_sales_outstanding(number_of_days_in_period, receivables_turnover_ratio):
-	DSO = number_of_days_in_period/receivables_turnover_ratio
+	DSO = float(number_of_days_in_period)/float(receivables_turnover_ratio)
 	return DSO
 
 def inventory_turnover_ratio(COGS, average_inventory):
 	return (float(COGS)/float(average_inventory))
 
 def days_of_inventory_on_hand(number_of_days_in_period, inventory_turnover_ratio):
-	DOH = number_of_days_in_period/inventory_turnover_ratio
+	DOH = float(number_of_days_in_period)/float(inventory_turnover_ratio)
 	return DOH
 
 def payables_turnover_ratio(purchases, average_trade_payables):
@@ -1482,7 +1676,7 @@ def return_on_total_capital(EBIT, shareholders_equity, interest_bearing_debt):
 	return float(EBIT)/(float(shareholders_equity)+float(interest_bearing_debt))
 
 def return_on_common_equity(net_income, preferred_dividends, average_common_shareholders_equity):
-	return (float(net_income)-float(preferred_dividends)/float(average_common_shareholders_equity)
+	return float(net_income)-float(preferred_dividends)/float(average_common_shareholders_equity)
 
 def tax_burden(net_income, EBT):
 	return float(net_income)/float(EBT)
