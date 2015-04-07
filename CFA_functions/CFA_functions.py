@@ -1251,32 +1251,59 @@ def normalized_pe_ratio():
 
 # common inverse ratios and their originals
 
-def earnings_yield(): # or "inverse price ratio" # commonly used
+def earnings_yield(current_earnings, current_price): # or "inverse price ratio" # commonly used
+	price = float(current_price)
+	earnings = float(current_earnings)
 	earnings_yield = earnings/price
+	return earnings_yield
 
-def price_to_book():
+def price_to_book(current_price, book_value_per_share):
+	price = float(current_price)
+	BVPS = float(book_value_per_share)
 	PB = price/BVPS
+	return PB
 
-def book_to_market(): # commonly used
+def book_to_market(book_value_per_share, current_price): # commonly used
+	price = float(current_price)
+	BVPS = float(book_value_per_share)
 	book_to_market = BVPS/price
+	return book_to_market
 
-def price_to_sales():
+def price_to_sales(current_price, current_sales):
+	price = float(current_price)
+	sales = float(current_sales)
 	price_to_sales = price/sales
+	return price_to_sales
 
-def sales_to_price(): # rarely used
+def sales_to_price(current_sales, current_price): # rarely used
+	price = float(current_price)
+	sales = float(current_sales)
 	sales_to_price = sales/price
+	return sales_to_price
 
-def price_to_cashflow():
+def price_to_cashflow(current_price, current_cashflow):
+	price = float(current_price)
+	cashflow = float(current_cashflow)
 	price_to_cf = price/cashflow
+	return price_to_cf
 
-def cashflow_yield(): # commonly used
+def cashflow_yield(current_cashflow, current_price): # commonly used
+	price = float(current_price)
+	cashflow = float(current_cashflow)
 	cf_yield = cashflow/price
+	return cf_yield
 
-def dividend_yield():
+def dividend_yield(current_dividend, current_price):
+	dividend = float(current_dividend)
+	price = float(current_price)
 	div_yield = dividend/price
+	return div_yield
 
-def price_to_dividend(): # rarely used
+def price_to_dividend(current_price, current_dividend): # rarely used
+	price = float(current_price)
+	dividend = float(current_dividend)
 	price_to_dividend = price/dividend
+	return price_to_dividend
 
 def thomson_first_call_pe():
 	# two calculations
@@ -1289,15 +1316,16 @@ def justified_pe_based_on_equity_valuation():
 	V_0 = value_of_equity_determined_by_some_means
 	E = earnings
 	PE_j = V_0/E
+	raise Exception("this should be more properly defined")
 
 # Peer-company multiples
 
-def PEG_ratio():
-	P = price
-	E = earnings
-	g = earnings_growth
-
+def PEG_ratio(current_price, some_earnings_measure, some_earnings_growth_measure):
+	P = float(current_price)
+	E = float(some_earnings_measure)
+	g = float(some_earnings_growth_measure)
 	PEG = (P/E)/g
+	return PEG
 
 # overall market multiples
 
@@ -1310,12 +1338,16 @@ def fed_model():
 
 	# if earnings yield > bond yield: stocks are under-valued (or bonds are trading at a unjustified premium).
 	# if earnings yield < bond yield: stocks are over-valued (or bonds are trading at a unjustified discount).
+	raise Exception("not really usable in current form i don't think")
 
-def yardeni_model():
-	CEY = current_earnings_yield_on_market_index
-	CBY = current_moodys_investor_service_a_rated_corporate_bond_yield
-	LTEG = five_year_growth_rate_forcast_for_market_index
-	b = weight_of_5_year_forcast # historically 0.10, but now has been reported 0.10, 0.20, 0.25 (p.402)
+def yardeni_model(current_earnings_yield_on_market_index,
+					current_moodys_investor_service_a_rated_corporate_bond_yield,
+					five_year_growth_rate_forcast_for_market_index,
+					weight_of_5_year_forcast):
+	CEY = float(current_earnings_yield_on_market_index)
+	CBY = float(current_moodys_investor_service_a_rated_corporate_bond_yield)
+	LTEG = float(five_year_growth_rate_forcast_for_market_index)
+	b = float(weight_of_5_year_forcast) # historically 0.10, but now has been reported 0.10, 0.20, 0.25 (p.402)
 	# Residual = ??? # literally cannot find what this is supposed to be and other sources don't have it.
 
 	CEY == CBY - b(LTEG) + Residual
@@ -1327,77 +1359,117 @@ def yardeni_model():
 	b = b
 
 	EP_mkt == Y_CB_rA - b(g_mkt_5y)
+	raise Exception("Need to review this formula, it doesn't seem to be a function")
 
 
 # Price to Book
 
-def price_to_book():
-	# a bunch of ways
+def price_to_book_via_BVPS(current_price, book_value_per_share):
+	price = float(current_price)
+	BVPS = float(book_value_per_share)
 	PB = price/BVPS
-	# or
+	return PB
+def price_to_book_via_equity(current_price, shareholders_equity, shares_outstanding):
+	price = float(current_price)
+	shareholders_equity = float(shareholders_equity)
+	number_of_common_shares = float(shares_outstanding)
 	PB = price/(shareholders_equity/number_of_common_shares)
-	# or 
+	return PB
+
+def price_to_book_via_assets_and_liabilities(current_price, 
+											total_assets,
+											total_labilities,
+											shares_outstanding): 
+	price = float(current_price)
+	total_assets = float(total_assets)
+	total_labilities = float(total_labilities)
+	number_of_common_shares = float(shares_outstanding)
 	PB = price/((total_assets-total_liabilities)/number_of_common_shares)
+	return PB
 
-def book_value_per_share():
-	BVPS = (common_shareholders_equity/number_of_common_shares)
+def book_value_per_share(common_shareholders_equity, common_shares_outstanding):
+	BVPS = float(common_shareholders_equity)/float(number_of_common_shares)
 	# or 
-	BVPS = ((total_assets-total_liabilities)/number_of_common_shares)
+def book_value_per_share_via_assets_and_liabilities(total_labilities, total_labilities, number_of_common_shares):
+	BVPS = (float(total_assets)-float(total_liabilities))/float(number_of_common_shares)
+	return BVPS
 
-def common_shareholders_equity():
-	V_sr = total_value_of_equity_claims_that_are_senior_to_common_stock
-	common_shareholders_equity = shareholders_equity - V_sr
+def common_shareholders_equity(shareholder_equity, total_value_of_equity_claims_that_are_senior_to_common_stock):
+	V_sr = float(total_value_of_equity_claims_that_are_senior_to_common_stock)
+	common_shareholders_equity = float(shareholders_equity) - V_sr
+	return common_shareholders_equity
 
-
-def justified_price_to_book_via_ROE():
-	PB_0 = P_0/B_0
-
+def justified_price_to_book_via_ROE(ROE, earnings_growth, required_return_on_equity):
+	ROE = float(ROE)
+	g = float(earnings_growth)
+	r = float(required_return_on_equity)
 	PB_0 = (ROE-g)/(r-g)
+	# PB_0 = P_0/B_0
+	return PB_0
 
-def justified_price_to_book_via_residual_earnings():
-	PB_0 = P_0/B_0
-	residual_earnings_PV = present_value_of_expected_future_residual_earnings
+def justified_price_to_book_via_residual_earnings(current_book_value, present_value_of_expected_future_residual_earnings):
+	residual_earnings_PV = float(present_value_of_expected_future_residual_earnings)
+	B_0 = float(current_book_value)
 	PB_0 = (residual_earnings_PV/B_0) + 1
-
+	# PB_0 = P_0/B_0
+	return PB_0
 
 # price to sales
 
-def price_to_sales():
-	P = price_per_share
-	S = annual_net_sales_per_share # total sales - customer discounts
-	PS = P/S
+# def price_to_sales():
+#	P = price_per_share
+#	S = annual_net_sales_per_share # total sales - customer discounts
+#	PS = P/S
 
-def justified_price_to_sales():
-	PS_0 = P_0/S_0
-
+def justified_price_to_sales(current_earnings,
+							current_sales,
+							retention_rate,
+							earnings_growth,
+							required_return_on_equity):
+	E_0 = float(current_earnings)
+	S_0 = float(current_sales)
+	b = float(retention_rate)
+	g = float(earnings_growth)
+	r = float(required_return_on_equity)
 	PS_0 = (E_0/S_0)(1-b)(1+g) / (r-g)
-
+	#PS_0 = P_0/S_0
+	return PS_0
 # Dividend yield
 
-def justified_dividend_yield():
-	DP_0 = D_0/P_0
-
+def justified_dividend_yield(dividend_growth_rate, required_return_on_equity):
+	g = float(dividend_growth_rate)
+	r = float(required_return_on_equity)
 	DP_0 = (r-g)/(1+g)
-	# p.
+	#DP_0 = D_0/P_0
+	return DP_0
 
 # enterprise value / ebitda
 
-def enterprise_value():
-	nonearning_assets = cash + cash_equivalents + short_term_investments
-	V_ce = market_value_of_common_equity
-	V_ps = market_value_of_preferred_stock
-	V_d = market_value_of_debt
+def enterprise_value(cash, 
+					cash_equivalents, 
+					short_term_investments,
+					market_value_of_common_equity,
+					market_value_of_preferred_stock,
+					market_value_of_debt):
+	nonearning_assets = float(cash) + float(cash_equivalents) + float(short_term_investments)
+	V_ce = float(market_value_of_common_equity)
+	V_ps = float(market_value_of_preferred_stock)
+	V_d = float(market_value_of_debt)
 
 	EV = V_ce + V_ps + V_d - nonearning_assets
+	return EV
 
-def enterprise_value_to_EBITDA():
-	EV_to_EBITDA = EV/EBITDA
+def enterprise_value_to_EBITDA(EV, EBITDA):
+	EV_to_EBITDA = float(EV)/float(EBITDA)
+	return EV_to_EBITDA
 
-def enterprise_value_to_FCFF():
-	EV_to_FCFF = EV/FCFF
+def enterprise_value_to_FCFF(EV, FCFF):
+	EV_to_FCFF = float(EV)/float(FCFF)
+	return EV_to_FCFF
 
-def enterprise_value_to_EBITDAR(): # + rent expense (used for airlines)
-	EV_to_EBITDAR = EV/EBITDAR
+def enterprise_value_to_EBITDAR(EV, EBITDAR): # + rent expense (used for airlines)
+	EV_to_EBITDAR = float(EV)/float(EBITDAR)
+	return EV_to_EBITDAR
 
 # Momentum Valuation Indicatiors
 
@@ -1421,15 +1493,15 @@ def harmonic_mean(data_list):
 	#        i=1  X_i
 	denominator = None
 	for data in data_list:
-		if data != 0:
+		if data != 0.:
 			denominator += 1/float(data)
 		else:
-			print "Error: divide by zero"
+			raise Exception("Error: divide by zero")
 			return
-	if denominator != 0:
+	if denominator != 0.:
 		X_WH = len(data_list)/denominator
 	else:
-		print "Error: divide by zero"
+		raise Exception("Error: divide by zero")
 		return
 	return X_WH
 
@@ -1444,12 +1516,12 @@ def weighted_harmonic_mean(HarmonicMeanData_list):
 
 	denominator = None
 	for unit in HarmonicMeanData_list:
-		if unit.data != 0:
+		if unit.data != 0.:
 			denominator += float(unit.weight)/float(unit.data)
 		else:
 			print "Error: divide by zero"
 			return
-	if denominator != 0:
+	if denominator != 0.:
 		X_WH = 1/denominator
 	else:
 		print "Error: divide by zero"
@@ -1459,15 +1531,19 @@ def weighted_harmonic_mean(HarmonicMeanData_list):
 
 # Residual Income
 
-def economic_value_added():
-	NOPAT = net_operating_profit_after_taxes
-	C_percent = cost_of_capital 
-	TC = total_capital
+def economic_value_added(net_operating_profit_after_taxes,
+						cost_of_capital,
+						total_capital):
+	NOPAT = float(net_operating_profit_after_taxes)
+	C_percent = float(cost_of_capital)
+	TC = float(total_capital)
 
 	EVA = NOPAT - (C_percent * TC)
+	return EVA
 
-def market_value_added():
-	MVA = market_value_of_the_company - accounting_book_value_of_total_capital
+def market_value_added(market_value_of_the_company,
+						accounting_book_value_of_total_capital):
+	MVA = float(market_value_of_the_company) - float(accounting_book_value_of_total_capital)
 
 def residual_income():
 	#              inf   RI_t            inf  E_t - r(B_t_minus_1)
@@ -1479,28 +1555,56 @@ def residual_income():
 	r = required_return_on_equity # cost of equity
 	E_t = expected_EPS_for_period_t
 	RI_t = expected_per_share_residual_income # RI_t = E_t - r(B_t_minus_1)
-
+	raise Exception("i'm not exactly sure how to deal with these infinite sigma additions")
 def clean_surplus_relation():
 	B_t = B_t_minus_1 + E_t - D_t
-
+	raise Exception("not actually a useful equation, since it typically does not hold")
 def residual_income_via_ROE():
 	#              inf  (ROE_t - r)B_t_minus_1
 	# V_0 = B_0 + sigma ----------------------
 	#              t=1         (1+r)^t
 	raise Exception("not finished yet")
-def residual_income_constant_growth():
+def residual_income_constant_growth(current_book_value,
+									ROE,
+									ROE_constant_growth_rate,
+									required_return_on_equity):
 	#             ROE - r
 	# V_0 = B_0 + -------(B_0)
 	#               r-g
-	raise Exception("not finished yet")
-def tobins_q(): # not on exam
-	T_q = market_value_of_debt_and_equity/replacement_cost_of_total_assets
+	B_0 = float(current_book_value)
+	ROE = float(ROE)
+	g = float(ROE_constant_growth_rate)
+	r = float(required_return_on_equity)
 
-def residual_income_multi_stage():
+	V_0 = B_0 + (B_0 * ((ROE-r)/(r-g)))
+	return V_0
+
+def tobins_q(market_value_of_debt_and_equity,
+				replacement_cost_of_total_assets): # not on exam
+	T_q = float(market_value_of_debt_and_equity)/float(replacement_cost_of_total_assets)
+	return T_q
+
+def residual_income_multi_stage(number_of_periods_in_stage_1,
+								list_of_earnings_in_stage_1,
+								list_of_book_values_in_stage_1,
+								current_book_value,
+								terminal_price,
+								terminal_book_value,
+								required_return_on_equity,
+
+								current_time_period = 1):
 	#               T   (E_t - r(B_t_minus_1))   P_T - B_T
 	# V_0 = B_0 + sigma ---------------------- + ---------
 	#              t=1         (1+r)^t            (1+r)^T
-	raise Exception("not finished yet")
+	B_0 = float(current_book_value)
+	r = float(required_return_on_equity)
+	T = int(number_of_periods_in_stage_1)
+
+	if not len(list_of_earnings_in_stage_1) == T and len(list_of_book_values_in_stage_1) == T:
+		raise Exception("earnings and book values need to be list length of the time periods.")
+	for i in len(T)
+
+	finish this equation next
 
 def residual_income_multi_stage_via_ROE():
 	#               T   (ROE_t - r)B_t_minus_1   P_T - B_T
