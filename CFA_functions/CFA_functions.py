@@ -81,7 +81,7 @@ def equity_risk_premium_for_share_ver_2(current_expected_risk_free_rate, beta_i,
 	RFR_e 	= float(current_expected_risk_free_rate)
 	#beta_i 	= equity_risk_premium
 	other_risk_premia = sum(other_risk_premia)
-	RR_i = RFR_e + beta_i + (other_risk_premia / discounts_for_i)
+	RR_i = RFR_e + float(beta_i) + (other_risk_premia / discounts_for_i)
 	raise Exception("look this function up")
 
 # Gordon Growth Model for estimating equity risk premium
@@ -1310,13 +1310,13 @@ def thomson_first_call_pe():
 	# forward pe based on the mean of analysts' current fiscal year (probably has some actual values in caluculation)
 	# forward pe based on the mean of analysts' following fiscal year (estimates)
 	# p.387
-	raise Exception("not finished yet")
+	raise Exception("not finished yet, look this up")
 
 def justified_pe_based_on_equity_valuation():
 	V_0 = value_of_equity_determined_by_some_means
 	E = earnings
 	PE_j = V_0/E
-	raise Exception("this should be more properly defined")
+	raise Exception("this should be more properly defined, look it up")
 
 # Peer-company multiples
 
@@ -1390,7 +1390,7 @@ def price_to_book_via_assets_and_liabilities(current_price,
 def book_value_per_share(common_shareholders_equity, common_shares_outstanding):
 	BVPS = float(common_shareholders_equity)/float(number_of_common_shares)
 	# or 
-def book_value_per_share_via_assets_and_liabilities(total_labilities, total_labilities, number_of_common_shares):
+def book_value_per_share_via_assets_and_liabilities(total_assets, total_liabilities, number_of_common_shares):
 	BVPS = (float(total_assets)-float(total_liabilities))/float(number_of_common_shares)
 	return BVPS
 
@@ -1473,15 +1473,17 @@ def enterprise_value_to_EBITDAR(EV, EBITDAR): # + rent expense (used for airline
 
 # Momentum Valuation Indicatiors
 
-def unexpected_earnings():
-	#UE_t = EPS_t - E(EPS_t)
-	raise Exception("not finished yet")
+def unexpected_earnings(current_period_actual_earnings, current_period_expected_earnings):
+	EPS_t = float(current_period_actual_earnings)
+	eEPS_t = float(current_period_expected_earnings)
+	unexpected_EPS_t = EPS_t - eEPS_t
+	return unexpected_EPS_t
 
 def standardized_unexpected_earnings():
 	#SUE_t = EPS_t - E(EPS_t) / sigma[EPS_t - E(EPS_t)]
 	#
 	# sigma is st dev over some historical time period
-	raise Exception("not finished yet")
+	raise Exception("not finished yet, look this up")
 # issues in practice 
 
 
@@ -1563,7 +1565,7 @@ def residual_income_via_ROE():
 	#              inf  (ROE_t - r)B_t_minus_1
 	# V_0 = B_0 + sigma ----------------------
 	#              t=1         (1+r)^t
-	raise Exception("not finished yet")
+	raise Exception("not finished yet, infinite summation, not sure how to impliment, look up")
 def residual_income_constant_growth(current_book_value,
 									ROE,
 									ROE_constant_growth_rate,
@@ -1600,56 +1602,131 @@ def residual_income_multi_stage(number_of_periods_in_stage_1,
 	r = float(required_return_on_equity)
 	T = int(number_of_periods_in_stage_1)
 
-	if not len(list_of_earnings_in_stage_1) == T and len(list_of_book_values_in_stage_1) == T:
+	if not (len(list_of_earnings_in_stage_1) == T) and (len(list_of_book_values_in_stage_1) == T):
 		raise Exception("earnings and book values need to be list length of the time periods.")
-	for i in len(T)
 
-	finish this equation next
+	V_s1 = 0.
+	for t in range(T):
+		print t
+		if t == 0:
+			B_t_minus_1 = B_0
+		else:
+			B_t_minus_1 = float(list_of_book_values_in_stage_1[t-1])
+		V_s1 += (float(list_of_earnings_in_stage_1[t]) - (r * float(B_t_minus_1)))/((1.+r)**t)
+		print V_s1, B_t_minus_1, list_of_book_values_in_stage_1[t]
+	V_T = (float(terminal_price) - float(terminal_book_value))/((1+r)**T)
+	print V_T
+	V_0 = B_0 + V_s1 + V_T
+	print V_0
+	return V_0
 
-def residual_income_multi_stage_via_ROE():
+def residual_income_multi_stage_via_ROE(number_of_periods_in_stage_1,
+										list_of_ROE_in_stage_1,
+										list_of_book_values_in_stage_1,
+										current_book_value,
+										terminal_price,
+										terminal_book_value,
+										required_return_on_equity,
+
+										current_time_period = 1):
 	#               T   (ROE_t - r)B_t_minus_1   P_T - B_T
 	# V_0 = B_0 + sigma ---------------------- + ---------
 	#              t=1         (1+r)^t            (1+r)^T
-	raise Exception("not finished yet")
+	B_0 = float(current_book_value)
+	r = float(required_return_on_equity)
+	T = int(number_of_periods_in_stage_1)
 
-def residual_income_multi_stage_declining():
+	if not (len(list_of_ROE_in_stage_1) == T) and (len(list_of_book_values_in_stage_1) == T):
+		raise Exception("earnings and book values need to be list length of the time periods.")
+
+	V_s1 = 0.
+	for t in range(T):
+		print t
+		if t == 0:
+			B_t_minus_1 = B_0
+		else:
+			B_t_minus_1 = float(list_of_book_values_in_stage_1[t-1])
+		V_s1 += (float(list_of_ROE_in_stage_1[t]) - (r * float(B_t_minus_1)))/((1.+r)**t)
+		print V_s1, B_t_minus_1, list_of_book_values_in_stage_1[t]
+	V_T = (float(terminal_price) - float(terminal_book_value))/((1+r)**T)
+	print V_T
+	V_0 = B_0 + V_s1 + V_T
+	print V_0
+	return V_0
+
+def residual_income_multi_stage_declining(number_of_periods_in_stage_1,
+										list_of_earnings_in_stage_1,
+										list_of_book_values_in_stage_1,
+										current_book_value,
+										terminal_earnings,
+										required_return_on_equity,
+										persistence_factor,
+
+										current_time_period = 1):
 	#               T   (E_t - r(B_t_minus_1))     E_T - r(B_T_minus_1)
 	# V_0 = B_0 + sigma ---------------------- + -------------------------
 	#              t=1         (1+r)^t           (1+r-w) * (1+r)^T_minus_1
-	raise Exception("not finished yet")
 
-	w = persistence_factor # 1 > w > 0 # 1 will not fade, 0 will fade after first period
+	w = int(persistence_factor) # 1 > w > 0 # 1 will not fade, 0 will fade after first period
+	B_0 = float(current_book_value)
+	r = float(required_return_on_equity)
+	T = int(number_of_periods_in_stage_1)
+
+
+	if not (len(list_of_earnings_in_stage_1) == T) and (len(list_of_book_values_in_stage_1) == T):
+		raise Exception("earnings and book values need to be list length of the time periods.")
+
+	V_s1 = 0.
+	for t in range(T):
+		print t
+		if t == 0:
+			B_t_minus_1 = B_0
+		else:
+			B_t_minus_1 = float(list_of_book_values_in_stage_1[t-1])
+		V_s1 += (float(list_of_earnings_in_stage_1[t]) - (r * float(B_t_minus_1)))/((1.+r)**t)
+		print V_s1, B_t_minus_1, list_of_book_values_in_stage_1[t]
+	V_T = (float(terminal_earnings) - (r * float(list_of_book_values_in_stage_1[-1])))/((1+r-w)*((1+r)**(T-1)))
+	print V_T
+	V_0 = B_0 + V_s1 + V_T
+	print V_0
+	return V_0
+
+residual_income_multi_stage_declining(10, [float(x+100) for x in range(10)], [float(x+100) for x in range(10)], 100, 500, .06, 5)
 
 ## Private Companies
 
 # Capitalized CF Method
 
-def capitalized_CF_method_FCFF():
+def capitalized_CF_method_FCFF(FCFF_next_period, WACC, growth_rate):
 	#       FCFF_1
 	# V_f = ------
 	#       WACC-g
-	raise Exception("not finished yet")
+	V_f = float(FCFF_next_period)/(float(WACC) - float(g))
+	return V_f
 
-def capitalized_CF_method_FCFE():
+def capitalized_CF_method_FCFE(FCFE_next_period, required_return, growth_rate):
 	#     FCFE_1
 	# V = ------
 	#      r-g
-	raise Exception("not finished yet")
-
+	V = float(FCFE_next_period)/(float(required_return)-float(growth_rate))
+	return V
 
 # Lack of control discounts
 
 def discount_for_lack_of_control(control_premium): # not on exam
-	DLOC = 1-(1/(1-control_premium))
+	DLOC = 1.-(1./(1.-float(control_premium)))
+	return DLOC
 
 def discount_for_lack_of_marketability(marketability_premium): # not on exam
-	DLOM = 1-(1/(1-marketability_premium))
+	DLOM = 1.-(1./(1.-float(marketability_premium)))
+	return DLOM
 
 def return_multiple_discounts(*discounts):
-	placeholder_discount = 1
-	for discount in discounts:
-		placeholder_discount = placeholder_discount * (1-discount)
-	total_discount = 1 - placeholder_discount
+	placeholder_discount = 1.
+	for discount in enumerate(discounts):
+		placeholder_discount = placeholder_discount * (1.-float(discount))
+	total_discount = 1. - placeholder_discount
+	return total_discount
 
 
 
@@ -1736,12 +1813,12 @@ def payables_turnover_ratio(purchases, average_trade_payables):
 	return (float(purchases)/float(average_trade_payables))
 
 def number_of_days_of_payables(number_of_days_in_period, payables_turnover_ratio):
-	return (number_of_days_in_period/payables_turnover_ratio)
+	return float(number_of_days_in_period)/float(payables_turnover_ratio)
 
 def cash_conversion_cycle(days_of_inventory_on_hand, days_of_sales_outstanding, number_of_days_of_payables):
-	DOH = days_of_inventory_on_hand
-	DSO = days_of_sales_outstanding
-	return (DOH + DSO - number_of_days_of_payables)
+	DOH = float(days_of_inventory_on_hand)
+	DSO = float(days_of_sales_outstanding)
+	return (DOH + DSO - float(number_of_days_of_payables))
 
 def working_capital_turnover_ratio(total_revenue, average_working_capital):
 	return (float(total_revenue)/float(average_working_capital))
@@ -1780,7 +1857,7 @@ def return_on_total_capital(EBIT, shareholders_equity, interest_bearing_debt):
 	return float(EBIT)/(float(shareholders_equity)+float(interest_bearing_debt))
 
 def return_on_common_equity(net_income, preferred_dividends, average_common_shareholders_equity):
-	return float(net_income)-float(preferred_dividends)/float(average_common_shareholders_equity)
+	return (float(net_income)-float(preferred_dividends))/float(average_common_shareholders_equity)
 
 def tax_burden(net_income, EBT):
 	return float(net_income)/float(EBT)
@@ -1798,7 +1875,7 @@ def financial_leverage_ratio(average_total_assets, average_shareholders_equity):
 def total_debt():
 	# Total interest bearing short term and long term debt.
 	# Excluding liabilities such as accrued expences and accounts payable.
-	return
+	raise Exception("not finished yet, look this up")
 
 def debt_to_assets(total_debt, total_assets):
 	return float(total_debt)/float(total_assets)
@@ -1825,7 +1902,7 @@ def retention_rate_via_payout_ratio(payout_ratio):
 	return 1 - float(payout_ratio)
 
 def sustainable_growth_rate(retention_rate, ROE):
-	return retention_rate * ROE
+	return float(retention_rate) * float(ROE)
 
 def EPS(net_income, preferred_dividends, weighted_average_number_of_ordinary_shares_outstanding):
 	return (float(net_income) - float(preferred_dividends))/float(weighted_average_number_of_ordinary_shares_outstanding)
@@ -1898,3 +1975,4 @@ def FIFO_net_income_via_LIFO_net_income(LIFO_net_income, LIFO_reserve_0, LIFO_re
 
 
 
+# end of line
