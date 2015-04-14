@@ -37,15 +37,17 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
 	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
-def import_aaii_files_from_data_folder(time_until_data_needs_update = 604800): # one week
+def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 604800): # one week
 	""""import aaii .xls files"""
-	current_directory = os.path.dirname(os.path.realpath(__file__))
-	parent_directory = os.path.split(current_directory)[0]
-	grandparent_directory = os.path.split(current_directory)[0]
-	great_grandparent_directory = os.path.split(grandparent_directory)[0]
-	data_directory = os.path.join(great_grandparent_directory, "AAII_data_import_folder")
+	#current_directory = os.path.dirname(os.path.realpath(__file__))
+	#parent_directory = os.path.split(current_directory)[0]
+	#grandparent_directory = os.path.split(current_directory)[0]
+	#great_grandparent_directory = os.path.split(grandparent_directory)[0]
+	#data_directory = os.path.join(great_grandparent_directory, "AAII_data_import_folder")
+	data_directory = str(path)
 
-	aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename)) and filename != "!.gitignore"]
+	aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename)) and filename not in ["!.gitignore", ".DS_Store"]]
+	print line_number(), aaii_filenames
 
 	expired_data = []
 	for filename in aaii_filenames:

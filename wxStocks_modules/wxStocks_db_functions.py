@@ -121,7 +121,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 		config.GLOBAL_STOCK_DICT[symbol] = stock
 		return stock
 def load_GLOBAL_STOCK_DICT():
-	print line_number(), "Loading GLOBAL_STOCK_DICT"
+	print line_number(), "Loading GLOBAL_STOCK_DICT: this may take a couple of minutes..."
 	try:
 		pickled_file = open(all_stocks_path, 'rb')
 		stock_dict = pickle.load(pickled_file)
