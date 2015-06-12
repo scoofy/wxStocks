@@ -47,9 +47,9 @@ class MainFrame(wx.Frame): # reorder tab postions here
         # except Exception, e:
         #   print e
         #   print line_number(), 'Change "Error" to "Crypto" before deploying.'
-        #   confirm = wx.MessageDialog(self, 
-        #                                  "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.", 
-        #                                  'You do not have pycrypto installed.', 
+        #   confirm = wx.MessageDialog(self,
+        #                                  "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.",
+        #                                  'You do not have pycrypto installed.',
         #                                  style = wx.YES_NO
         #                                  )
         #   confirm.SetYesNoLabels(("&Close"), ("&I Understand And Want To Continue Without Encryption"))
@@ -125,8 +125,8 @@ class Tab(wx.Panel):
 class WelcomePage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1, 
-                             "Welcome to wxStocks", 
+        welcome_page_text = wx.StaticText(self, -1,
+                             "Welcome to wxStocks",
                              (10,10)
                              )
         instructions_text = '''
@@ -145,19 +145,19 @@ class WelcomePage(Tab):
 
     Saved Screens:  This page allows you to recall old screens you've saved.
 
-    Rank:       This page allows you to rank stocks along certain criteria. 
+    Rank:       This page allows you to rank stocks along certain criteria.
 
     Sale Prep:  This page allows you to estimate the amount of funds generated from a potential stock sale.
 
-    Trade:      This page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated, 
+    Trade:      This page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated,
                 and lets you estimate the volume of stocks to buy to satisfy your diversification requirements.
 
     Portfolio:  This page allows you to load your portfolios from which you plan on making trades.
                 If you have more than one portfolio you plan on working from, you may add more.
     '''
 
-        instructions = wx.StaticText(self, -1, 
-                                    instructions_text, 
+        instructions = wx.StaticText(self, -1,
+                                    instructions_text,
                                     (10,20)
                                     )
 
@@ -200,56 +200,56 @@ class WelcomePage(Tab):
         #   self.turn_encryption_off_button.Hide()
 
 
-        # self.encryption_message = wx.StaticText(self, -1, 
-        #                           self.encryption_message_default + self.encryption_status, 
+        # self.encryption_message = wx.StaticText(self, -1,
+        #                           self.encryption_message_default + self.encryption_status,
         #                           (encryption_text_horizontal_position, encryption_text_vertical_position)
         #                           )
 
         self.reset_password_button = None
         self.reset_password_button_horizontal_position = 10
         self.reset_password_button_vertical_position = 550
-        
-        if config.ENCRYPTION_POSSIBLE:          
+
+        if config.ENCRYPTION_POSSIBLE:
             self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
             self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
 
         text_field_offset = 180
         text_field_vertical_offset = -3
         current_password_text = "Current Password:"
-        self.current_password_static_text = wx.StaticText(self, -1, current_password_text, 
+        self.current_password_static_text = wx.StaticText(self, -1, current_password_text,
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position + 30))
         self.current_password_field = wx.TextCtrl(self, -1, "",
-                                       (self.reset_password_button_horizontal_position + text_field_offset, 
+                                       (self.reset_password_button_horizontal_position + text_field_offset,
                                         self.reset_password_button_vertical_position + text_field_vertical_offset + 30),
                                        style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
-        
+
         new_password_text = "New Password:"
-        self.new_password_static_text = wx.StaticText(self, -1, new_password_text, 
+        self.new_password_static_text = wx.StaticText(self, -1, new_password_text,
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position + 60))
         self.new_password_field = wx.TextCtrl(self, -1, "",
-                                   (self.reset_password_button_horizontal_position + text_field_offset, 
+                                   (self.reset_password_button_horizontal_position + text_field_offset,
                                     self.reset_password_button_vertical_position + text_field_vertical_offset + 60),
                                    style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
-        
+
         confirm_password_text = "Confirm New Password:"
-        self.confirm_password_static_text = wx.StaticText(self, -1, confirm_password_text, 
+        self.confirm_password_static_text = wx.StaticText(self, -1, confirm_password_text,
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position + 90))
         self.confirm_new_password_field = wx.TextCtrl(self, -1, "",
-                                           (self.reset_password_button_horizontal_position + text_field_offset, 
+                                           (self.reset_password_button_horizontal_position + text_field_offset,
                                             self.reset_password_button_vertical_position + text_field_vertical_offset + 90),
                                            style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
-        
+
 
         encryption_hardness_text = "Optional:\nEncryption Strength (1-24):"
         optional_offset = 18
-        self.encryption_hardness_static_text = wx.StaticText(self, -1, encryption_hardness_text, 
+        self.encryption_hardness_static_text = wx.StaticText(self, -1, encryption_hardness_text,
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position + 120))
         self.encryption_hardness_field = wx.TextCtrl(self, -1, "",
-                                           (self.reset_password_button_horizontal_position + text_field_offset, 
+                                           (self.reset_password_button_horizontal_position + text_field_offset,
                                             self.reset_password_button_vertical_position + text_field_vertical_offset + 120 + optional_offset),
                                            ) #style=wx.TE_PASSWORD | wx.TE_PROCESS_ENTER)
         self.encryption_hardness_field.SetHint("default = 8")
@@ -268,7 +268,7 @@ class WelcomePage(Tab):
         self.reset_password_submit_button.Bind(wx.EVT_BUTTON, self.resetPassword, self.reset_password_submit_button)
         self.reset_password_submit_button.Hide()
 
-        self.password_reset_status_static_text = wx.StaticText(self, -1, "", 
+        self.password_reset_status_static_text = wx.StaticText(self, -1, "",
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position - 30))
 
@@ -276,7 +276,7 @@ class WelcomePage(Tab):
 
     def resetPasswordPrep(self, event):
         self.reset_password_button.Hide()
-        
+
         self.current_password_field.Clear()
         self.new_password_field.Clear()
         self.confirm_new_password_field.Clear()
@@ -326,7 +326,7 @@ class WelcomePage(Tab):
             self.confirm_new_password_field.Clear()
             self.encryption_hardness_field.Clear()
             return
-        
+
         # Success!
         # reset password and all relevant files
         db.reset_all_encrypted_files_with_new_password(old_password, new_password, encryption_strength)
@@ -373,9 +373,9 @@ class WelcomePage(Tab):
 
 
     # def checkRemoveEncryption(self):
-    #   confirm = wx.MessageDialog(None, 
-    #                              "Are you sure you want to remove automatic encryption?", 
-    #                              'Remove Encryption?', 
+    #   confirm = wx.MessageDialog(None,
+    #                              "Are you sure you want to remove automatic encryption?",
+    #                              'Remove Encryption?',
     #                              style = wx.YES_NO
     #                              )
     #   confirm.SetYesNoLabels(("&Yes, Remove Encryption"), ("&Cancel"))
@@ -392,32 +392,33 @@ class GetDataPage(Tab):
         get_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         get_data_notebook = wx.Notebook(get_data_page_panel)
 
-        self.portfolio_page = PortfolioPage(get_data_notebook)
-        get_data_notebook.AddPage(self.portfolio_page, "Import Portfolios")     
-
         self.ticker_page = TickerPage(get_data_notebook)
-        get_data_notebook.AddPage(self.ticker_page, "Download Ticker Data")     
+        get_data_notebook.AddPage(self.ticker_page, "Download Ticker Data")
 
         self.yql_scrape_page = YqlScrapePage(get_data_notebook)
-        get_data_notebook.AddPage(self.yql_scrape_page, "Scrape YQL")        
+        get_data_notebook.AddPage(self.yql_scrape_page, "Scrape YQL")
 
         self.spreadsheet_import_page = SpreadsheetImportPage(get_data_notebook)
         get_data_notebook.AddPage(self.spreadsheet_import_page, "Import Data Spreadsheets")
 
+        self.portfolio_page = PortfolioPage(get_data_notebook)
+        get_data_notebook.AddPage(self.portfolio_page, "Import Portfolios")
+
         sizer2 = wx.BoxSizer()
         sizer2.Add(get_data_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
+        self.SetSizer(sizer2)
         ####
+
 class PortfolioPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         ####
         portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
-                
+
         #print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
         portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
-                
+
         default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
         if not portfolios_that_already_exist:
             config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
@@ -464,22 +465,241 @@ class PortfolioPage(Tab):
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
+        self.SetSizer(sizer2)
         ####
 
         print line_number(), "PortfolioPage loaded"
+
+class PortfolioAccountTab(Tab):
+    def __init__(self, parent, tab_number):
+        tab_panel = wx.Panel.__init__(self, parent, tab_number)
+
+        self.portfolio_id = tab_number
+        #print line_number(), "self.portfolio_id =", self.portfolio_id
+        self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
+
+        if not self.portfolio_obj:
+            if config.ENCRYPTION_POSSIBLE:
+                db.load_portfolio_object(self.portfolio_id)
+            else:
+                try:
+                    db.load_portfolio_object(self.portfolio_id)
+                except Exception, e:
+                    print line_number(), e
+                    self.portfolio_obj = None
+
+        if self.portfolio_obj:
+            self.add_button = wx.Button(self, label="Update with .csv", pos=(5,0), size=(-1,-1))
+        else:
+            self.add_button = wx.Button(self, label="Add account .csv", pos=(5,0), size=(-1,-1))
+        self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button)
+
+        self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
+        self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
+
+        self.triple_list = meta.return_portfolio_import_function_triple()
+
+        self.portfolio_import_name = None
+
+
+        delete_button = wx.Button(self, label="Delete this portfolio", pos=(800,0), size=(-1,-1))
+        delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, delete_button)
+
+        rename_button = wx.Button(self, label="Rename this portfolio", pos=(355,0), size=(-1,-1))
+        rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, rename_button)
+
+        change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(518,0), size=(-1,-1))
+        change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, change_number_of_portfolios_button)
+
+        #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
+        #print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button)
+
+        self.current_account_spreadsheet = AccountDataGrid(self, -1, size=config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1])
+        if self.portfolio_obj:
+            self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_obj)
+        self.screen_grid = None
+
+        print line_number(), "PortfolioAccountTab loaded"
+
+
+    def printData(self, event):
+        if self.account_obj:
+            print line_number(),"cash:", self.account_obj.availble_cash
+            for account_attribute in dir(self.account_obj):
+                if not account_attribute.startswith("_"):
+                    print line_number(),account_attribute, ":"
+                    try:
+                        for stock_attribute in dir(getattr(self.account_obj, account_attribute)):
+                            if not stock_attribute.startswith("_"):
+                                print line_number(),stock_attribute, getattr(getattr(self.account_obj, account_attribute), stock_attribute)
+                    except Exception, exception:
+                        print line_number(),exception
+    def changeNumberOfPortfolios(self, event):
+        num_of_portfolios_popup = wx.NumberEntryDialog(None,
+                                      "What would you like to call this portfolio?",
+                                      "Rename tab",
+                                      "Caption",
+                                      config.NUMBER_OF_PORTFOLIOS,
+                                      0,
+                                      10
+                                      )
+        if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
+            return
+
+        new_number_of_portfolios = num_of_portfolios_popup.GetValue()
+        num_of_portfolios_popup.Destroy()
+
+        config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
+        config.DATA_ABOUT_PORTFOLIOS[0] = new_number_of_portfolios
+        # password = ""
+        # if config.ENCRYPTION_POSSIBLE:
+        #   password = self.get_password()
+        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+        confirm = wx.MessageDialog(self,
+                                 "The number of portfolios has changed. The change will be applied the next time you launch this program.",
+                                 'Restart Required',
+                                 style = wx.ICON_EXCLAMATION
+                                 )
+        confirm.ShowModal()
+        confirm.Destroy()
+    def spreadSheetFill(self, spreadsheet, portfolio_obj):
+        if self.current_account_spreadsheet:
+            self.current_account_spreadsheet.Destroy()
+        self.screen_grid = create_account_spread_sheet(self, portfolio_obj)
+        if self.screen_grid:
+            self.screen_grid.Show()
+        return
+
+    def addAccountCSV(self, event):
+        '''append a csv to current ticker list'''
+        self.portfolio_import_name = self.drop_down.GetValue()
+
+        # Identify the function mapped to screen name
+        for triple in self.triple_list:
+            if self.portfolio_import_name == triple.doc:
+                portfolio_import_function = triple.function
+            # in case doc string is too many characters...
+            elif self.portfolio_import_name == triple.name:
+                portfolio_import_function = triple.function
+
+        if not portfolio_import_function:
+            print line_number(), "Error, somthing went wrong locating the correct import function to use."
+
+        self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
+
+        self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
+
+        # this is used in sale prep page:
+        config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
+
+        print line_number(), "Portfolio CSV import complete."
+
+    def changeTabName(self, event):
+        old_name = self.GetLabel()
+        rename_popup = wx.TextEntryDialog(None,
+                                      "What would you like to call this portfolio?",
+                                      "Rename tab",
+                                      str(self.GetLabel())
+                                      )
+        rename_popup.ShowModal()
+        new_name = str(rename_popup.GetValue())
+        rename_popup.Destroy()
+
+
+        portfolio_name_list = config.DATA_ABOUT_PORTFOLIOS[1]
+        new_portfolio_names = []
+        if new_name != old_name:
+            if new_name not in portfolio_name_list:
+                for i in portfolio_name_list:
+                    if i == old_name:
+                        new_portfolio_names.append(new_name)
+                    else:
+                        new_portfolio_names.append(i)
+                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
+
+                print ""
+                print line_number(), "This file opening needs to be removed."
+                # password = ""
+                # if config.ENCRYPTION_POSSIBLE:
+                #   password = self.get_password()
+                db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+                print ""
+                print line_number(), config.DATA_ABOUT_PORTFOLIOS
+                confirm = wx.MessageDialog(self,
+                                         "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
+                                         'Restart Required',
+                                         style = wx.ICON_EXCLAMATION
+                                         )
+                confirm.ShowModal()
+                confirm.Destroy()
+
+            else:
+                error = wx.MessageDialog(self,
+                                         'Each portfolio must have a unique name.',
+                                         'Name Error',
+                                         style = wx.ICON_ERROR
+                                         )
+                error.ShowModal()
+                error.Destroy()
+
+    def confirmDeleteAccount(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to delete your current account data. Are you sure you want to delete this data?",
+                                   'Delete Portfolio Data?',
+                                   wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.deleteAccountList()
+    def deleteAccountList(self):
+        '''delete account'''
+        # password = ""
+        # if config.ENCRYPTION_POSSIBLE:
+        #   password = self.get_password()
+        db.delete_portfolio_object(self.portfolio_id) #, password = password)
+
+
+        # Reset to default name in data about portfolios
+        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
+        if self.portfolio_id < 10:
+            portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
+        else:
+            portfolio_name = "%dth" % (self.portfolio_id+1)
+        if self.portfolio_id in range(len(default_portfolio_names)):
+            portfolio_name = default_portfolio_names[self.portfolio_id]
+        config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
+        # password = ""
+        # if config.ENCRYPTION_POSSIBLE:
+        #   password = self.get_password()
+        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+
+        self.delete_button.Hide()
+
+        self.portfolio_data = Account(self.portfolio_id)
+
+        if self.current_account_spreadsheet:
+            self.current_account_spreadsheet.Destroy()
+            self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
+            self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
+        self.account_obj = None
+        return
+
+
 class TickerPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the ticker page.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the ticker page.",
                              (10,10)
                              )
         download_button = wx.Button(self, label="Download Tickers", pos=(5, 30), size=(-1,-1))
-        download_button.Bind(wx.EVT_BUTTON, self.confirmDownloadTickers, download_button) 
+        download_button.Bind(wx.EVT_BUTTON, self.confirmDownloadTickers, download_button)
 
         refresh_button = wx.Button(self, label="Refresh", pos=(5, 60), size=(-1,-1))
-        refresh_button.Bind(wx.EVT_BUTTON, self.refreshTickers, refresh_button) 
+        refresh_button.Bind(wx.EVT_BUTTON, self.refreshTickers, refresh_button)
 
 
         exchanges = ""
@@ -494,8 +714,8 @@ class TickerPage(Tab):
             else:
                 exchanges = exchanges + ", " + exchange_name.upper()
 
-        more_text = wx.StaticText(self, -1, 
-                             "Currently downloads tickers from %s. To add or remove exchanges, edit the config file." % exchanges, 
+        more_text = wx.StaticText(self, -1,
+                             "Currently downloads tickers from %s. To add or remove exchanges, edit the config file." % exchanges,
                              (145,36)
                              )
 
@@ -503,9 +723,9 @@ class TickerPage(Tab):
         print line_number(), "TickerPage loaded"
 
     def confirmDownloadTickers(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.", 
-                                   'Confirm Download', 
+        confirm = wx.MessageDialog(None,
+                                   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.",
+                                   'Confirm Download',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
@@ -572,7 +792,7 @@ class TickerPage(Tab):
                 print line_number(), 'Ticker %s with "$" symbol found, not sure if ligitimate, so not saving it.' % ticker_symbol
                 continue
 
-            stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)           
+            stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)
             stock.firm_name = firm_name
             print line_number(), "Saving:", stock.ticker, stock.firm_name
         db.save_GLOBAL_STOCK_DICT()
@@ -580,7 +800,7 @@ class TickerPage(Tab):
 
     def refreshTickers(self, event):
         self.showAllTickers()
-        
+
     def showAllTickers(self):
         print line_number(), "Loading Tickers"
         ticker_list = []
@@ -601,8 +821,8 @@ class TickerPage(Tab):
         height_var = 100
         #print line_number()
         #pp.pprint(config.GLOBAL_STOCK_DICT)
-        file_display = wx.TextCtrl(self, -1, 
-                                    ticker_list_massive_str, 
+        file_display = wx.TextCtrl(self, -1,
+                                    ticker_list_massive_str,
                                     (10, height_var),
                                     size = (765, 625),
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
@@ -610,8 +830,8 @@ class TickerPage(Tab):
 class YqlScrapePage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the scrape page", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the scrape page",
                              (10,10)
                              )
         self.scrape_button = wx.Button(self, label="Scrape YQL", pos=(5,100), size=(-1,-1))
@@ -624,7 +844,7 @@ class YqlScrapePage(Tab):
 
         self.progress_bar = wx.Gauge(self, -1, 100, size=(995, -1), pos = (0, 200))
         self.progress_bar.Hide()
-        
+
         self.numScrapedStocks = 0
         self.number_of_tickers_to_scrape = 0
         self.total_relevant_tickers = 0
@@ -633,19 +853,19 @@ class YqlScrapePage(Tab):
         self.number_of_unscraped_stocks = 0
 
 
-        self.total_relevant_tickers = wx.StaticText(self, -1, 
-                             label = "Total number of tickers = %d" % (self.numScrapedStocks + self.number_of_tickers_to_scrape), 
+        self.total_relevant_tickers = wx.StaticText(self, -1,
+                             label = "Total number of tickers = %d" % (self.numScrapedStocks + self.number_of_tickers_to_scrape),
                              pos = (10,30)
                              )
-        self.tickers_to_scrape = wx.StaticText(self, -1, 
-                             label = "Tickers that need to be scraped = %d" % self.number_of_tickers_to_scrape, 
+        self.tickers_to_scrape = wx.StaticText(self, -1,
+                             label = "Tickers that need to be scraped = %d" % self.number_of_tickers_to_scrape,
                              pos = (10,50)
                              )
         sleep_time = config.SCRAPE_SLEEP_TIME
         scrape_time_secs = (self.number_of_tickers_to_scrape/config.SCRAPE_CHUNK_LENGTH) * sleep_time * 2
         scrape_time = utils.time_from_epoch(scrape_time_secs)
-        self.scrape_time_text = wx.StaticText(self, -1, 
-                     label = "Time = %s" % scrape_time, 
+        self.scrape_time_text = wx.StaticText(self, -1,
+                     label = "Time = %s" % scrape_time,
                      pos = (10,70)
                      )
 
@@ -657,7 +877,7 @@ class YqlScrapePage(Tab):
     def calculate_scrape_times(self):
         print line_number(), "Calculating scrape times..."
         sleep_time = config.SCRAPE_SLEEP_TIME
-        
+
         # calculate number of stocks and stuff to scrape
         self.numScrapedStocks = 0
         self.number_of_tickers_to_scrape = 0
@@ -675,7 +895,7 @@ class YqlScrapePage(Tab):
         scrape_time = utils.time_from_epoch(scrape_time_secs)
 
         self.total_relevant_tickers.SetLabel("Total number of tickers = %d" % self.number_of_tickers_to_scrape)
-        
+
         self.tickers_to_scrape.SetLabel("Tickers that need to be scraped = %d" % self.number_of_unscraped_stocks)
 
         self.scrape_time_text.SetLabel("Time = %s" % scrape_time)
@@ -683,9 +903,9 @@ class YqlScrapePage(Tab):
         print line_number(), "Calculation done"
 
     def confirmScrape(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "You are about to scrape of Yahoo's YQL database. If you do this too often Yahoo may temporarily block your IP address.", 
-                                   'Scrape stock data?', 
+        confirm = wx.MessageDialog(None,
+                                   "You are about to scrape of Yahoo's YQL database. If you do this too often Yahoo may temporarily block your IP address.",
+                                   'Scrape stock data?',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
@@ -710,11 +930,11 @@ class YqlScrapePage(Tab):
         self.progress_bar.SetValue(percent_of_full_scrape_done)
         self.progress_bar.Show()
         self.scrape_button.Hide()
-        self.abort_scrape_button.Show() 
+        self.abort_scrape_button.Show()
 
         # Process the scrape while updating a progress bar
         timer = threading.Timer(0, self.executeScrapePartOne, [chunk_list, 0])
-        timer.start()   
+        timer.start()
 
         #scrape_thread = threading.Thread(target=self.executeOneScrape, args = (ticker_chunk,))
         #scrape_thread.daemon = True
@@ -811,20 +1031,20 @@ class SpreadsheetImportPage(Tab):
         spreadsheet_notebook = wx.Notebook(spreadsheet_page_panel)
 
         self.xls_import_page = XlsImportPage(spreadsheet_notebook)
-        spreadsheet_notebook.AddPage(self.xls_import_page, "Import .XLS Data")      
+        spreadsheet_notebook.AddPage(self.xls_import_page, "Import .XLS Data")
 
         self.csv_import_page = CsvImportPage(spreadsheet_notebook)
-        spreadsheet_notebook.AddPage(self.csv_import_page, "Import .CSV Data")      
+        spreadsheet_notebook.AddPage(self.csv_import_page, "Import .CSV Data")
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(spreadsheet_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
+        self.SetSizer(sizer2)
         ####
 class CsvImportPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the CSV data import page page.\nYou can make your own import functions under the function tab.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the CSV data import page page.\nYou can make your own import functions under the function tab.",
                              (10,10)
                              )
 
@@ -883,17 +1103,17 @@ class CsvImportPage(Tab):
         print line_number(), "importCSV done"
 
 
-        confirm = wx.MessageDialog(None, 
-                                   success_string, 
-                                   title_string, 
+        confirm = wx.MessageDialog(None,
+                                   success_string,
+                                   title_string,
                                    style = message_style
                                    )
         confirm.ShowModal()
 class XlsImportPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the XLS data import page page.\nYou can make your own import functions under the function tab.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the XLS data import page page.\nYou can make your own import functions under the function tab.",
                              (10,10)
                              )
 
@@ -956,15 +1176,15 @@ class XlsImportPage(Tab):
         print line_number(), "importXLS done"
 
 
-        confirm = wx.MessageDialog(None, 
-                                   success_string, 
-                                   title_string, 
+        confirm = wx.MessageDialog(None,
+                                   success_string,
+                                   title_string,
                                    style = message_style
                                    )
         confirm.ShowModal()
 
     def import_AAII_files(self, event):
-        print line_number, "Remove argument below this line after debugging"    
+        print line_number, "Remove argument below this line after debugging"
         path = None
         aaii_data_folder_dialogue = wx.DirDialog(self, "Choose a directory:")
         if aaii_data_folder_dialogue.ShowModal() == wx.ID_OK:
@@ -984,20 +1204,20 @@ class ViewDataPage(Tab):
         view_data_notebook = wx.Notebook(view_data_page_panel)
 
         self.all_stocks_page = AllStocksPage(view_data_notebook)
-        view_data_notebook.AddPage(self.all_stocks_page, "View All Stocks")     
+        view_data_notebook.AddPage(self.all_stocks_page, "View All Stocks")
 
         self.stock_data_page = StockDataPage(view_data_notebook)
-        view_data_notebook.AddPage(self.stock_data_page, "View One Stock")     
+        view_data_notebook.AddPage(self.stock_data_page, "View One Stock")
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(view_data_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
+        self.SetSizer(sizer2)
         ####
 class AllStocksPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1, 
-                             "Full Stock List", 
+        welcome_page_text = wx.StaticText(self, -1,
+                             "Full Stock List",
                              (10,10)
                              )
 
@@ -1015,7 +1235,7 @@ class AllStocksPage(Tab):
         print line_number(), "AllStocksPage loaded"
 
     def spreadSheetFillAllStocks(self, event):
-        if self.first_spread_sheet_load:        
+        if self.first_spread_sheet_load:
             self.first_spread_sheet_load = False
         else:
             try:
@@ -1043,11 +1263,11 @@ class StockDataPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
-        rank_page_text = wx.StaticText(self, -1, 
-                             "Data for stock:", 
+        rank_page_text = wx.StaticText(self, -1,
+                             "Data for stock:",
                              (10,10)
                              )
-        self.ticker_input = wx.TextCtrl(self, -1, 
+        self.ticker_input = wx.TextCtrl(self, -1,
                                    "",
                                    (110, 8),
                                    style=wx.TE_PROCESS_ENTER
@@ -1055,32 +1275,32 @@ class StockDataPage(Tab):
         self.ticker_input.SetHint("ticker")
         self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
 
-        load_screen_button = wx.Button(self, 
-                                          label="look up", 
-                                          pos=(210,5), 
+        load_screen_button = wx.Button(self,
+                                          label="look up",
+                                          pos=(210,5),
                                           size=(-1,-1)
                                           )
-        update_yql_basic_data_button = wx.Button(self, 
-                                         label="update basic data", 
-                                         pos=(300,5), 
+        update_yql_basic_data_button = wx.Button(self,
+                                         label="update basic data",
+                                         pos=(300,5),
                                          size=(-1,-1)
                                          )
-        #update_annual_data_button = wx.Button(self, 
-        #                                 label="update annual data", 
-        #                                 pos=(430,5), 
+        #update_annual_data_button = wx.Button(self,
+        #                                 label="update annual data",
+        #                                 pos=(430,5),
         #                                 size=(-1,-1)
         #                                 )
-        #update_analyst_estimates_button = wx.Button(self, 
-        #                                 label="update analyst estimates", 
-        #                                 pos=(570,5), 
+        #update_analyst_estimates_button = wx.Button(self,
+        #                                 label="update analyst estimates",
+        #                                 pos=(570,5),
         #                                 size=(-1,-1)
         #                                 )
 
         load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
-        
-        update_additional_data_button = wx.Button(self, 
-                                          label="update additional data", 
-                                          pos=(430,5), 
+
+        update_additional_data_button = wx.Button(self,
+                                          label="update additional data",
+                                          pos=(430,5),
                                           size=(-1,-1)
                                           )
         update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
@@ -1097,7 +1317,7 @@ class StockDataPage(Tab):
             return
         scrape.scrape_all_additional_data_prep([ticker])
         self.createOneStockSpreadSheet("event")
-    
+
     def createOneStockSpreadSheet(self, event):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker" or not ticker:
@@ -1141,20 +1361,20 @@ class MetaScreenPage(Tab):
         meta_screen_notebook = wx.Notebook(meta_screen_page_panel)
 
         self.screen_page = ScreenPage(meta_screen_notebook)
-        meta_screen_notebook.AddPage(self.screen_page, "Screen")     
+        meta_screen_notebook.AddPage(self.screen_page, "Screen")
 
         self.saved_screen_page = SavedScreenPage(meta_screen_notebook)
-        meta_screen_notebook.AddPage(self.saved_screen_page, "View Saved Screens")     
+        meta_screen_notebook.AddPage(self.saved_screen_page, "View Saved Screens")
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(meta_screen_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
+        self.SetSizer(sizer2)
         ####
 class ScreenPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1, 
-                             "Screen Stocks", 
+        welcome_page_text = wx.StaticText(self, -1,
+                             "Screen Stocks",
                              (10,10)
                              )
         screen_button = wx.Button(self, label="screen", pos=(110,4), size=(-1,-1))
@@ -1197,7 +1417,7 @@ class ScreenPage(Tab):
                 conforming_stocks.append(stock)
 
         config.CURRENT_SCREEN_LIST = conforming_stocks
- 
+
         self.createSpreadsheet(conforming_stocks)
 
 
@@ -1225,8 +1445,8 @@ class ScreenPage(Tab):
             # current_screen_dict must at least be {}
 
         save_popup = wx.TextEntryDialog(None,
-                                          "What would you like to name this group?", 
-                                          "Save Screen", 
+                                          "What would you like to name this group?",
+                                          "Save Screen",
                                           "%s screen saved at %s" % (str(time.strftime("%Y-%m-%d")),str(time.strftime("%H:%M:%S")))
                                          )
         if save_popup.ShowModal() == wx.ID_OK:
@@ -1251,7 +1471,7 @@ class ScreenPage(Tab):
             else:
                 config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST.append([saved_screen_name, float(time.time())])
                 #print line_number(), config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
-                
+
                 # Save global dict
                 db.save_GLOBAL_STOCK_STREEN_DICT()
                 # Save screen name results
@@ -1265,8 +1485,8 @@ class ScreenPage(Tab):
 class SavedScreenPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1, 
-                             "Saved screens", 
+        welcome_page_text = wx.StaticText(self, -1,
+                             "Saved screens",
                              (10,10)
                              )
         refresh_screen_button = wx.Button(self, label="refresh list", pos=(110,5), size=(-1,-1))
@@ -1275,14 +1495,14 @@ class SavedScreenPage(Tab):
         load_screen_button = wx.Button(self, label="load screen", pos=(200,5), size=(-1,-1))
         load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
 
-        
+
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
             self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
 
         self.drop_down = wx.ComboBox(self, value="",
-                                     pos=(305, 6), 
+                                     pos=(305, 6),
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -1292,15 +1512,15 @@ class SavedScreenPage(Tab):
         self.delete_screen_button.Bind(wx.EVT_BUTTON, self.deleteScreen, self.delete_screen_button)
         self.delete_screen_button.Hide()
 
-        self.first_spread_sheet_load = True     
+        self.first_spread_sheet_load = True
         self.screen_grid = None
 
         print line_number(), "SavedScreenPage loaded"
 
     def deleteScreen(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "You are about to delete this screen.", 
-                                   'Are you sure?', 
+        confirm = wx.MessageDialog(None,
+                                   "You are about to delete this screen.",
+                                   'Are you sure?',
                                    wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
@@ -1341,8 +1561,8 @@ class SavedScreenPage(Tab):
         self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
 
 
-        self.drop_down = wx.ComboBox(self, 
-                                     pos=(305, 6), 
+        self.drop_down = wx.ComboBox(self,
+                                     pos=(305, 6),
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -1377,7 +1597,7 @@ class SavedScreenPage(Tab):
     def spreadSheetFill(self):
         self.spreadsheet = create_megagrid_from_stock_list(config.CURRENT_SAVED_SCREEN_LIST, self)
         self.spreadsheet.Show()
-        
+
         self.delete_screen_button.Show()
 ####
 class RankPage(Tab):
@@ -1389,8 +1609,8 @@ class RankPage(Tab):
 
         self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
 
-        rank_page_text = wx.StaticText(self, -1, 
-                             "Rank", 
+        rank_page_text = wx.StaticText(self, -1,
+                             "Rank",
                              (10,10)
                              )
 
@@ -1419,21 +1639,21 @@ class RankPage(Tab):
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
             self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
-        self.drop_down = wx.ComboBox(self, 
-                                     pos=(305, 6), 
+        self.drop_down = wx.ComboBox(self,
+                                     pos=(305, 6),
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
 
-        
+
         self.portfolio_name_tuple_list = []
         for i in range(len(config.PORTFOLIO_NAMES)):
             tuple_to_append = [config.PORTFOLIO_NAMES[i], (i+1)]
             self.portfolio_name_tuple_list.append(tuple_to_append)
             #print line_number(), self.portfolio_name_tuple_list
 
-        self.accounts_drop_down = wx.ComboBox(self, 
-                                     pos=(305, 31), 
+        self.accounts_drop_down = wx.ComboBox(self,
+                                     pos=(305, 31),
                                      choices=config.PORTFOLIO_NAMES,
                                      style = wx.TE_READONLY
                                      )
@@ -1451,8 +1671,8 @@ class RankPage(Tab):
         if [attribute for attribute in config.GLOBAL_ATTRIBUTE_SET if (len(str(attribute)) > 50)]:
             sort_drop_down_width = 480
 
-        self.sort_drop_down = wx.ComboBox(self, 
-                                     pos=(520, 31), 
+        self.sort_drop_down = wx.ComboBox(self,
+                                     pos=(520, 31),
                                      choices=self.full_attribute_list,
                                      style = wx.TE_READONLY,
                                      size = (sort_drop_down_width, -1)
@@ -1464,8 +1684,8 @@ class RankPage(Tab):
         self.rank_name_list = meta.return_rank_function_short_names()
         self.rank_button =  wx.Button(self, label="Rank by:", pos=(420, 5), size=(-1,-1))
         self.rank_button.Bind(wx.EVT_BUTTON, self.rankStocks, self.rank_button)
-        self.rank_drop_down = wx.ComboBox(self, 
-                                     pos=(520, 6), 
+        self.rank_drop_down = wx.ComboBox(self,
+                                     pos=(520, 6),
                                      choices=self.rank_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -1545,13 +1765,13 @@ class RankPage(Tab):
         for stock in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
             ticker_list.append(stock.symbol)
         scrape.scrape_all_additional_data_prep(ticker_list)
-        
+
         self.createSpreadSheet(stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS)
 
     def clearGrid(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "You are about to clear this grid.", 
-                                   'Are you sure?', 
+        confirm = wx.MessageDialog(None,
+                                   "You are about to clear this grid.",
+                                   'Are you sure?',
                                    wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Clear"), ("&Cancel"))
@@ -1588,22 +1808,22 @@ class RankPage(Tab):
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
             self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
-        self.drop_down = wx.ComboBox(self, 
-                                     pos=(305, 6), 
+        self.drop_down = wx.ComboBox(self,
+                                     pos=(305, 6),
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
 
 
-        
+
         self.portfolio_name_tuple_list = []
         for i in range(len(config.PORTFOLIO_NAMES)):
             tuple_to_append = [config.PORTFOLIO_NAMES[i], (i+1)]
             self.portfolio_name_tuple_list.append(tuple_to_append)
             print line_number(), self.portfolio_name_tuple_list
 
-        self.accounts_drop_down = wx.ComboBox(self, 
-                                     pos=(305, 31), 
+        self.accounts_drop_down = wx.ComboBox(self,
+                                     pos=(305, 31),
                                      choices=config.PORTFOLIO_NAMES,
                                      style = wx.TE_READONLY
                                      )
@@ -1635,7 +1855,7 @@ class RankPage(Tab):
             else:
                 print line_number(), stock.symbol, "skipped"
         self.createUnrankedSpreadsheet()
-        
+
 
     def loadAccount(self, event):
         selected_account_name = self.accounts_drop_down.GetValue()
@@ -1667,10 +1887,10 @@ class RankPage(Tab):
 
         for ticker in saved_account.stock_shares_dict:
             stock = utils.return_stock_by_symbol(ticker)
-            
+
             if stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
                 config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
-            
+
             if str(stock.symbol) not in self.held_ticker_list:
                 self.held_ticker_list.append(str(stock.symbol))
             if str(stock.symbol) not in self.full_ticker_list:
@@ -1706,15 +1926,15 @@ class RankPage(Tab):
                 incompatible_stock_list.append(rank_tuple)
 
         num_stock_value_list.sort(key = lambda x: x.value, reverse=reverse_var)
-        
+
         str_stock_value_list.sort(key = lambda x: x.value)
 
         incompatible_stock_list.sort(key = lambda x: x.stock.symbol)
 
         sorted_tuple_list = num_stock_value_list + str_stock_value_list + incompatible_stock_list
-        
+
         self.createRankedSpreadsheet(sorted_tuple_list, sort_field)
-        
+
         self.sort_drop_down.SetStringSelection(sort_field)
 
 class SalePrepPage(Tab):
@@ -1733,11 +1953,11 @@ class SalePrepPage(Tab):
 
 
         wx.Panel.__init__(self, parent)
-        trade_page_text = wx.StaticText(self, -1, 
-                             "Sale Prep", 
+        trade_page_text = wx.StaticText(self, -1,
+                             "Sale Prep",
                              (10,10)
                              )
-        self.ticker_list = []       
+        self.ticker_list = []
         self.checkbox_list = []
         for i in range(config.NUMBER_OF_PORTFOLIOS):
             portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
@@ -1747,14 +1967,14 @@ class SalePrepPage(Tab):
             horizontal_offset = 0
             if i>=5:
                 horizontal_offset = 200
-            checkbox_to_add = wx.CheckBox(self, -1, 
-                                          config.PORTFOLIO_NAMES[i], 
-                                          pos=((600+ horizontal_offset), (16*i)), 
+            checkbox_to_add = wx.CheckBox(self, -1,
+                                          config.PORTFOLIO_NAMES[i],
+                                          pos=((600+ horizontal_offset), (16*i)),
                                           size=(-1,-1)
                                           )
             checkbox_to_add.SetValue(True)
             self.checkbox_list.append(checkbox_to_add)
-        
+
         line = wx.StaticLine(self, -1, pos=(0,83), size=(1000,-1))
 
         refresh_button = wx.Button(self, label="Clear and Refresh Spreadsheet", pos=(110,5), size=(-1,-1))
@@ -1767,13 +1987,13 @@ class SalePrepPage(Tab):
         self.save_button.Bind(wx.EVT_BUTTON, self.exportSaleCandidates, self.save_button)
         self.save_button.Hide()
 
-        self.saved_text = wx.StaticText(self, -1, 
-                                        "Data is now in memory.", 
+        self.saved_text = wx.StaticText(self, -1,
+                                        "Data is now in memory.",
                                         (433,55)
                                         )
         self.saved_text.Hide()
 
-        self.commission = config.DEFAULT_COMMISSION 
+        self.commission = config.DEFAULT_COMMISSION
 
         self.set_spreadsheet_values()
         self.grid = None
@@ -1790,7 +2010,7 @@ class SalePrepPage(Tab):
 
     def cell_is_writable(self, row_num, col_num):
         default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
-        
+
         if ((row_num >= default_rows) and col_num in [self.num_of_shares_cell.col, self.percent_of_shares_cell.col]):
             return True
         elif (row_num, col_num) == (3, 14):
@@ -1806,9 +2026,9 @@ class SalePrepPage(Tab):
         self.dark_cell_color_hex = "#333333"
 
 
-        
+
         Cell_Reference = namedtuple("Cell_Reference", ["row", "col", "text"])
-        
+
         # row 2
         self.carryover_text_cell = Cell_Reference(2, 14, "Input carryover loss (if any)")
 
@@ -1864,7 +2084,7 @@ class SalePrepPage(Tab):
         num_rows = self.grid.GetNumberRows()
 
         default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
-        
+
         sell_tuple_list = [] # this will end up being a list of tuples for each stock to sell
         for column_num in range(num_columns):
             for row_num in range(num_rows):
@@ -1902,10 +2122,10 @@ class SalePrepPage(Tab):
                                                                 ]
         print config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
         self.saved_text.Show()
-        
+
     def refreshAccountData(self, event):
         ######## Rebuild Checkbox List in case of new accounts
-        
+
         for i in self.checkbox_list:
             try:
                 i.Destroy()
@@ -1919,12 +2139,12 @@ class SalePrepPage(Tab):
             horizontal_offset = 0
             if i>=5:
                 horizontal_offset = 200
-            checkbox_to_add = wx.CheckBox(self, -1, 
-                                          config.PORTFOLIO_NAMES[i], 
-                                          pos=((600 + horizontal_offset), (16*i)), 
+            checkbox_to_add = wx.CheckBox(self, -1,
+                                          config.PORTFOLIO_NAMES[i],
+                                          pos=((600 + horizontal_offset), (16*i)),
                                           size=(-1,-1)
                                           )
-            
+
             portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
             checkbox_to_add.SetValue(True)
             self.checkbox_list.append(checkbox_to_add)
@@ -1932,7 +2152,7 @@ class SalePrepPage(Tab):
 
     def hideSaveButtonWhileEnteringData(self, event):
         # This function has been deactivated, unfortunately it causes too many false positives...
-        
+
         # color = self.grid.GetCellBackgroundColour(event.GetRow(), event.GetCol())
         # print color
         # print type(color)
@@ -1941,17 +2161,17 @@ class SalePrepPage(Tab):
         #   print 'it works'
         #   self.save_button.Hide()
         # event.Skip()
-        
+
         pass
 
 
-    def spreadSheetFill(self, event):       
+    def spreadSheetFill(self, event):
         try:
             self.grid.Destroy()
         except Exception, exception:
             pass
             #print line_number(), exception
-        
+
         relevant_portfolios_list = []
         for i in range(len(self.checkbox_list)):
             box = self.checkbox_list[i]
@@ -1961,7 +2181,7 @@ class SalePrepPage(Tab):
 
         default_columns = self.total_number_of_columns
         default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
-        
+
         num_columns = default_columns
         num_rows = default_rows
         for account in relevant_portfolios_list:
@@ -2007,7 +2227,7 @@ class SalePrepPage(Tab):
 
         # set row 7
         self.grid.SetCellValue(self.totals_cell.row, self.totals_cell.col, self.totals_cell.text)
-        
+
 
         # set row 5
         for cell in self.row_five_cell_list:
@@ -2062,7 +2282,7 @@ class SalePrepPage(Tab):
             except Exception as e:
                 print line_number(), e, ": An account appears to not be loaded, but this isn't a problem."
         self.grid.AutoSizeColumns()
-    
+
     def updateGrid(self, event):
         row = event.GetRow()
         column = event.GetCol()
@@ -2184,12 +2404,12 @@ class TradePage(Tab):
 
 
         wx.Panel.__init__(self, parent)
-        trade_page_text = wx.StaticText(self, -1, 
-                             "Set up trades", 
+        trade_page_text = wx.StaticText(self, -1,
+                             "Set up trades",
                              (10,10)
                              )
         self.ticker_list = []
-        
+
         self.relevant_portfolios_list = []
         self.sale_tuple_list = []
 
@@ -2215,8 +2435,8 @@ class TradePage(Tab):
         self.stocks_to_update = []
         self.number_of_tickers_to_scrape = 0
 
-        self.stock_update_pending_text = wx.StaticText(self, -1, 
-                             "Currently Updating Stocks", 
+        self.stock_update_pending_text = wx.StaticText(self, -1,
+                             "Currently Updating Stocks",
                              (700,30)
                              )
         self.stock_update_pending_text.Hide()
@@ -2231,9 +2451,9 @@ class TradePage(Tab):
             self.update_stocks_button.Hide()
             return
         if len(self.stocks_to_update) > config.SCRAPE_CHUNK_LENGTH:
-            error_message = wx.MessageDialog(None, 
-                                   "The number of stocks to scrape is too large. Please use the Scrape tab to perform a full scrape.", 
-                                   'Scrape Too Large', 
+            error_message = wx.MessageDialog(None,
+                                   "The number of stocks to scrape is too large. Please use the Scrape tab to perform a full scrape.",
+                                   'Scrape Too Large',
                                    style = wx.ICON_EXCLAMATION
                                    )
             error_message.ShowModal()
@@ -2309,7 +2529,7 @@ class TradePage(Tab):
 
         self.relevant_portfolios_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
         self.sale_tuple_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]
-        
+
         for portfolio in self.relevant_portfolios_list:
             id_number = portfolio.id_number
             print line_number(), "Portfolio %d:" % id_number, config.PORTFOLIO_NAMES[id_number - 1]
@@ -2333,7 +2553,7 @@ class TradePage(Tab):
         # self.grid = TradeGrid(self, -1, size=(1000,650), pos=(0,83))
         # # calc rows
         # global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
-        # 
+        #
         # relevant_portfolio_name_list = []
         # try:
         #   self.relevant_portfolios_list = []
@@ -2388,7 +2608,7 @@ class TradePage(Tab):
         #   # Column 1:
         #   this_column_number = 1
 
-        #   num_shares_cell = [3, this_column_number,"# shares"]        
+        #   num_shares_cell = [3, this_column_number,"# shares"]
         #   spreadsheet_cell_list.append(num_shares_cell)
 
         #   # Column 2:
@@ -2483,7 +2703,7 @@ class TradePage(Tab):
         #   cost_cell = [3, this_column_number, "Cost"]
         #   spreadsheet_cell_list.append(cost_cell)
 
-        #   # Column 16: 
+        #   # Column 16:
         #   # empty
 
         #   # Column 17:
@@ -2516,7 +2736,7 @@ class TradePage(Tab):
         #       number_of_shares_to_sell = stock_tuple[1]
         #       stock = return_stock_by_symbol(ticker)
         #       correct_row = counter + default_rows
-                
+
         #       ticker_cell = [correct_row, this_column_number, ticker]
         #       number_of_shares_to_sell_cell = [correct_row, (this_column_number + 1), str(number_of_shares_to_sell)]
 
@@ -2567,7 +2787,7 @@ class TradePage(Tab):
 
         #   ## percent of portfolio that is cash after sale
         #   percent_cash_row = 7
-            
+
         #   total_cash = 0.00
         #   for account in self.relevant_portfolios_list:
         #       total_cash += float(account.availble_cash.replace("$",""))
@@ -2672,11 +2892,11 @@ class TradePage(Tab):
 
     def newGridFill(self, cursor_positon = (0,0) ):
         #print cursor_positon
-        
+
         # CREATE A GRID HERE
         new_grid = TradeGrid(self, -1, size=(1000,650), pos=(0,83))
         # calc rows
-        
+
         relevant_portfolio_name_list = []
         try:
             self.relevant_portfolios_list = []
@@ -2731,7 +2951,7 @@ class TradePage(Tab):
             # Column 1:
             this_column_number = 1
 
-            num_shares_cell = [3, this_column_number,"# shares"]        
+            num_shares_cell = [3, this_column_number,"# shares"]
             spreadsheet_cell_list.append(num_shares_cell)
 
             # Column 2:
@@ -2826,7 +3046,7 @@ class TradePage(Tab):
             cost_cell = [3, this_column_number, "Cost"]
             spreadsheet_cell_list.append(cost_cell)
 
-            # Column 16: 
+            # Column 16:
             # empty
 
             # Column 17:
@@ -2859,7 +3079,7 @@ class TradePage(Tab):
                 number_of_shares_to_sell = stock_tuple[1]
                 stock = utils.return_stock_by_symbol(ticker)
                 correct_row = counter + default_rows
-                
+
                 ticker_cell = [correct_row, this_column_number, ticker]
                 number_of_shares_to_sell_cell = [correct_row, (this_column_number + 1), str(number_of_shares_to_sell)]
 
@@ -2910,7 +3130,7 @@ class TradePage(Tab):
 
             ## percent of portfolio that is cash after sale
             percent_cash_row = 7
-            
+
             total_cash = 0.00
             for account in self.relevant_portfolios_list:
                 total_cash += float(str(account.availble_cash).replace("$",""))
@@ -2967,7 +3187,7 @@ class TradePage(Tab):
                     if count in range(len(self.buy_candidates)):
                         new_grid.SetCellValue(row_num, column_num - 1, str(count + 1))
                         new_grid.SetCellValue(row_num, column_num, self.buy_candidates[count])
-                        
+
                         stock = utils.return_stock_by_symbol(self.buy_candidates[count])
                         new_grid.SetCellValue(row_num, column_num + 1, str(stock.firm_name))
 
@@ -3027,7 +3247,7 @@ class TradePage(Tab):
         this_column_number = 18
 
         total_cost_row = 1
-        
+
         total_cost_sum_cell = [total_cost_row, this_column_number, "$" + str(total_buy_cost)]
         spreadsheet_cell_list.append(total_cost_sum_cell)
 
@@ -3077,268 +3297,6 @@ class TradePage(Tab):
         new_grid.SetFocus()
         self.grid = new_grid
 
-class PortfolioAccountTab(Tab):
-    def __init__(self, parent, tab_number):
-        tab_panel = wx.Panel.__init__(self, parent, tab_number)
-        
-        self.portfolio_id = tab_number
-        #print line_number(), "self.portfolio_id =", self.portfolio_id
-        self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
-
-        if not self.portfolio_obj:
-            if config.ENCRYPTION_POSSIBLE:
-                db.load_portfolio_object(self.portfolio_id)
-            else:
-                try:
-                    db.load_portfolio_object(self.portfolio_id)
-                except Exception, e:
-                    print line_number(), e
-                    self.portfolio_obj = None
-
-        if self.portfolio_obj:
-            self.add_button = wx.Button(self, label="Update with .csv", pos=(5,0), size=(-1,-1))
-        else:
-            self.add_button = wx.Button(self, label="Add account .csv", pos=(5,0), size=(-1,-1))
-        self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button) 
-        
-        self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
-        self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
-
-        self.triple_list = meta.return_portfolio_import_function_triple()
-
-        self.portfolio_import_name = None
-
-
-        delete_button = wx.Button(self, label="Delete this portfolio", pos=(830,0), size=(-1,-1))
-        delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, delete_button) 
-
-        rename_button = wx.Button(self, label="Rename this portfolio", pos=(355,0), size=(-1,-1))
-        rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, rename_button) 
-
-        change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(518,0), size=(-1,-1))
-        change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, change_number_of_portfolios_button) 
-
-        #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
-        #print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button) 
-
-        self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-        if self.portfolio_obj:
-            self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_obj)
-        self.screen_grid = None
-
-        print line_number(), "PortfolioAccountTab loaded"
-
-
-    def printData(self, event):
-        if self.account_obj:
-            print line_number(),"cash:", self.account_obj.availble_cash
-            for account_attribute in dir(self.account_obj):
-                if not account_attribute.startswith("_"):
-                    print line_number(),account_attribute, ":"
-                    try:
-                        for stock_attribute in dir(getattr(self.account_obj, account_attribute)):
-                            if not stock_attribute.startswith("_"):
-                                print line_number(),stock_attribute, getattr(getattr(self.account_obj, account_attribute), stock_attribute)
-                    except Exception, exception:
-                        print line_number(),exception
-    def changeNumberOfPortfolios(self, event):
-        
-        num_of_portfolios_popup = wx.NumberEntryDialog(None,
-                                      "What would you like to call this portfolio?", 
-                                      "Rename tab",
-                                      "Caption", 
-                                      config.NUMBER_OF_PORTFOLIOS,
-                                      0,
-                                      10
-                                      )
-        if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
-            return
-
-        new_number_of_portfolios = num_of_portfolios_popup.GetValue()
-        num_of_portfolios_popup.Destroy()
-
-        config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
-        config.DATA_ABOUT_PORTFOLIOS[0] = new_number_of_portfolios
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-        confirm = wx.MessageDialog(self,
-                                 "The number of portfolios has changed. The change will be applied the next time you launch this program.",
-                                 'Restart Required',
-                                 style = wx.ICON_EXCLAMATION
-                                 )
-        confirm.ShowModal()
-        confirm.Destroy()
-    def spreadSheetFill(self, spreadsheet, portfolio_obj):
-        if self.current_account_spreadsheet:
-            self.current_account_spreadsheet.Destroy()
-        self.screen_grid = create_account_spread_sheet(self, portfolio_obj)
-        if self.screen_grid:
-            self.screen_grid.Show()
-        return
-        
-        #####################################################
-
-        num_rows = len(portfolio_obj.stock_shares_dict) + 2
-        num_columns = 0
-
-        attribute_list = []
-        # get all possible attributes
-        for ticker in portfolio_obj.stock_shares_dict:
-            if config.GLOBAL_STOCK_DICT.get(ticker):
-                for attribute in dir(config.GLOBAL_STOCK_DICT[ticker]):
-                    if not attribute.startswith("_"):
-                        if attribute not in attribute_list:
-                            attribute_list.append(attribute)
-        if not attribute_list:
-            print line_number(), "Portfolio empty"
-            num_columns = 0
-        else:
-            num_columns = len(attribute_list)
-        
-        # build spreadsheet
-        spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-        spreadsheet.CreateGrid(num_rows, num_columns)
-        spreadsheet.EnableEditing(False)
-
-        row_count = 0
-        col_count = 0
-        for ticker in portfolio_obj.stock_shares_dict:
-            for attribute in attribute_list:
-                if row_count == 0:
-                    spreadsheet.SetColLabelValue(col_count, attribute)
-                else:
-                    try:
-                        spreadsheet.SetCellValue(row_count, col_count, getattr(config.GLOBAL_STOCK_DICT[ticker], attribute))
-                    except Exception as e:
-                        print line_number(), e
-                        pass
-                col_count += 1
-            row_count += 1
-            col_count = 0
-        
-
-        spreadsheet.AutoSizeColumns()
-        self.current_account_spreadsheet = spreadsheet
-
-    def addAccountCSV(self, event):
-        '''append a csv to current ticker list'''
-        self.portfolio_import_name = self.drop_down.GetValue()
-
-        # Identify the function mapped to screen name
-        for triple in self.triple_list:
-            if self.portfolio_import_name == triple.doc:
-                portfolio_import_function = triple.function
-            # in case doc string is too many characters...
-            elif self.portfolio_import_name == triple.name:
-                portfolio_import_function = triple.function
-
-        if not portfolio_import_function:
-            print line_number(), "Error, somthing went wrong locating the correct import function to use."
-
-        self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
-        
-        self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
-        
-        # this is used in sale prep page:
-        config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
-
-        print line_number(), "Portfolio CSV import complete."
-
-    def changeTabName(self, event):
-        old_name = self.GetLabel()
-        rename_popup = wx.TextEntryDialog(None,
-                                      "What would you like to call this portfolio?", 
-                                      "Rename tab", 
-                                      str(self.GetLabel())
-                                      )
-        rename_popup.ShowModal()
-        new_name = str(rename_popup.GetValue())
-        rename_popup.Destroy()
-
-        
-        portfolio_name_list = config.DATA_ABOUT_PORTFOLIOS[1]
-        new_portfolio_names = []
-        if new_name != old_name:
-            if new_name not in portfolio_name_list:
-                for i in portfolio_name_list:
-                    if i == old_name:
-                        new_portfolio_names.append(new_name)
-                    else:
-                        new_portfolio_names.append(i)
-                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
-
-                print ""
-                print line_number(), "This file opening needs to be removed."
-                # password = ""
-                # if config.ENCRYPTION_POSSIBLE:
-                #   password = self.get_password()
-                db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-                print ""
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
-                confirm = wx.MessageDialog(self,
-                                         "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
-                                         'Restart Required',
-                                         style = wx.ICON_EXCLAMATION
-                                         )
-                confirm.ShowModal()
-                confirm.Destroy()
-
-            else:
-                error = wx.MessageDialog(self,
-                                         'Each portfolio must have a unique name.',
-                                         'Name Error',
-                                         style = wx.ICON_ERROR
-                                         )
-                error.ShowModal()
-                error.Destroy()
-    
-    def confirmDeleteAccount(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "You are about to delete your current account data. Are you sure you want to delete this data?", 
-                                   'Delete Portfolio Data?', 
-                                   wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.deleteAccountList()
-    def deleteAccountList(self):
-        '''delete account'''
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.delete_portfolio_object(self.portfolio_id) #, password = password)
-
-
-        # Reset to default name in data about portfolios
-        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
-        if self.portfolio_id < 10:
-            portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
-        else:
-            portfolio_name = "%dth" % (self.portfolio_id+1)
-        if self.portfolio_id in range(len(default_portfolio_names)):
-            portfolio_name = default_portfolio_names[self.portfolio_id]
-        config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-
-        self.delete_button.Hide()
-
-        self.portfolio_data = Account(self.portfolio_id)
-
-        if self.current_account_spreadsheet:
-            self.current_account_spreadsheet.Destroy()
-            self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-            self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
-        self.account_obj = None
-        return
-
 class UserFunctionsPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -3348,10 +3306,10 @@ class UserFunctionsPage(Tab):
 
 
         self.user_created_tests = UserCreatedTestsPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_created_tests, "Screen Tests")     
+        user_function_notebook.AddPage(self.user_created_tests, "Screen Tests")
 
         self.user_ranking_functions = UserCreatedRankFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_ranking_functions, "Ranking Functions")        
+        user_function_notebook.AddPage(self.user_ranking_functions, "Ranking Functions")
 
         self.user_csv_import_functions = UserCreatedCsvImportFunctionPage(user_function_notebook)
         user_function_notebook.AddPage(self.user_csv_import_functions, "CSV Import Functions")
@@ -3365,24 +3323,24 @@ class UserFunctionsPage(Tab):
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(user_function_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
+        self.SetSizer(sizer2)
         ####
 
 class UserCreatedTestsPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the user generated test page.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the user generated test page.",
                              (10,10)
                              )
         save_button = wx.Button(self, label="Save Tests", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
 
         reset_button = wx.Button(self, label="Reset Tests to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
 
-        more_text = wx.StaticText(self, -1, 
-                             "Create stock screen tests to be imported into screen or rank pages.", 
+        more_text = wx.StaticText(self, -1,
+                             "Create stock screen tests to be imported into screen or rank pages.",
                              (145,36)
                              )
 
@@ -3392,8 +3350,8 @@ class UserCreatedTestsPage(Tab):
 
 
         self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (955, 580),
                                     style = wx.TE_MULTILINE ,
@@ -3404,9 +3362,9 @@ class UserCreatedTestsPage(Tab):
 
 
     def confirmSave(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you want to save your work? This action cannot be undone.", 
-                                   'Confirm Save', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you want to save your work? This action cannot be undone.",
+                                   'Confirm Save',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
@@ -3420,9 +3378,9 @@ class UserCreatedTestsPage(Tab):
         db.save_user_created_tests(text)
 
     def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you reset to file default? This action cannot be undone.", 
-                                   'Confirm Reset', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you reset to file default? This action cannot be undone.",
+                                   'Confirm Reset',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
@@ -3433,12 +3391,12 @@ class UserCreatedTestsPage(Tab):
             self.resetToDefault()
     def resetToDefault(self):
         self.file_display.Destroy()
-        
+
         self.file_text = db.load_default_tests()
         db.save_user_created_tests(self.file_text)
 
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (765, 625),
                                     style = wx.TE_MULTILINE ,
@@ -3447,18 +3405,18 @@ class UserCreatedTestsPage(Tab):
 class UserCreatedRankFunctionPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the user created ranking function page.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the user created ranking function page.",
                              (10,10)
                              )
         save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
 
         reset_button = wx.Button(self, label="Reset Ranking Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
 
-        more_text = wx.StaticText(self, -1, 
-                             "Create stock ranking functions to be imported into the rank page.", 
+        more_text = wx.StaticText(self, -1,
+                             "Create stock ranking functions to be imported into the rank page.",
                              (145,36)
                              )
 
@@ -3468,8 +3426,8 @@ class UserCreatedRankFunctionPage(Tab):
 
 
         self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (955, 580),
                                     style = wx.TE_MULTILINE ,
@@ -3480,9 +3438,9 @@ class UserCreatedRankFunctionPage(Tab):
 
 
     def confirmSave(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you want to save your work? This action cannot be undone.", 
-                                   'Confirm Save', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you want to save your work? This action cannot be undone.",
+                                   'Confirm Save',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
@@ -3496,9 +3454,9 @@ class UserCreatedRankFunctionPage(Tab):
         db.save_user_ranking_functions(text)
 
     def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you reset to file default? This action cannot be undone.", 
-                                   'Confirm Reset', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you reset to file default? This action cannot be undone.",
+                                   'Confirm Reset',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
@@ -3509,12 +3467,12 @@ class UserCreatedRankFunctionPage(Tab):
             self.resetToDefault()
     def resetToDefault(self):
         self.file_display.Destroy()
-        
+
         self.file_text = db.load_default_ranking_functions()
         db.save_user_ranking_functions(self.file_text)
 
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (765, 625),
                                     style = wx.TE_MULTILINE ,
@@ -3523,18 +3481,18 @@ class UserCreatedRankFunctionPage(Tab):
 class UserCreatedCsvImportFunctionPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the user created csv import function page.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the user created csv import function page.",
                              (10,10)
                              )
         save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
 
         reset_button = wx.Button(self, label="Reset CSV Import Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
 
-        more_text = wx.StaticText(self, -1, 
-                             "Create CSV import functions to be imported into the import page.", 
+        more_text = wx.StaticText(self, -1,
+                             "Create CSV import functions to be imported into the import page.",
                              (145,36)
                              )
 
@@ -3544,8 +3502,8 @@ class UserCreatedCsvImportFunctionPage(Tab):
 
 
         self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (955, 580),
                                     style = wx.TE_MULTILINE ,
@@ -3556,9 +3514,9 @@ class UserCreatedCsvImportFunctionPage(Tab):
 
 
     def confirmSave(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you want to save your work? This action cannot be undone.", 
-                                   'Confirm Save', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you want to save your work? This action cannot be undone.",
+                                   'Confirm Save',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
@@ -3572,9 +3530,9 @@ class UserCreatedCsvImportFunctionPage(Tab):
         db.save_user_csv_import_functions(text)
 
     def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you reset to file default? This action cannot be undone.", 
-                                   'Confirm Reset', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you reset to file default? This action cannot be undone.",
+                                   'Confirm Reset',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
@@ -3585,12 +3543,12 @@ class UserCreatedCsvImportFunctionPage(Tab):
             self.resetToDefault()
     def resetToDefault(self):
         self.file_display.Destroy()
-        
+
         self.file_text = db.load_default_csv_import_functions()
         db.save_user_csv_import_functions(self.file_text)
 
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (765, 625),
                                     style = wx.TE_MULTILINE ,
@@ -3599,18 +3557,18 @@ class UserCreatedCsvImportFunctionPage(Tab):
 class UserCreatedXlsImportFunctionPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the user created .xls import function page.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the user created .xls import function page.",
                              (10,10)
                              )
         save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
 
         reset_button = wx.Button(self, label="Reset XLS Import Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
 
-        more_text = wx.StaticText(self, -1, 
-                             "Create XLS import functions to be imported into the import page.", 
+        more_text = wx.StaticText(self, -1,
+                             "Create XLS import functions to be imported into the import page.",
                              (145,36)
                              )
 
@@ -3620,8 +3578,8 @@ class UserCreatedXlsImportFunctionPage(Tab):
 
 
         self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (955, 580),
                                     style = wx.TE_MULTILINE ,
@@ -3632,9 +3590,9 @@ class UserCreatedXlsImportFunctionPage(Tab):
 
 
     def confirmSave(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you want to save your work? This action cannot be undone.", 
-                                   'Confirm Save', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you want to save your work? This action cannot be undone.",
+                                   'Confirm Save',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
@@ -3648,9 +3606,9 @@ class UserCreatedXlsImportFunctionPage(Tab):
         db.save_user_xls_import_functions(text)
 
     def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you reset to file default? This action cannot be undone.", 
-                                   'Confirm Reset', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you reset to file default? This action cannot be undone.",
+                                   'Confirm Reset',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
@@ -3661,12 +3619,12 @@ class UserCreatedXlsImportFunctionPage(Tab):
             self.resetToDefault()
     def resetToDefault(self):
         self.file_display.Destroy()
-        
+
         self.file_text = db.load_default_xls_import_functions()
         db.save_user_xls_import_functions(self.file_text)
 
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (765, 625),
                                     style = wx.TE_MULTILINE ,
@@ -3675,18 +3633,18 @@ class UserCreatedXlsImportFunctionPage(Tab):
 class UserCreatedPortfolioImportFunctionPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1, 
-                             "Welcome to the user created portfolio import function page.", 
+        text = wx.StaticText(self, -1,
+                             "Welcome to the user created portfolio import function page.",
                              (10,10)
                              )
         save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button) 
+        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
 
         reset_button = wx.Button(self, label="Reset Portfolio Import Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button) 
+        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
 
-        more_text = wx.StaticText(self, -1, 
-                             "Create stock portfolio import functions to be imported into the portfolio page.", 
+        more_text = wx.StaticText(self, -1,
+                             "Create stock portfolio import functions to be imported into the portfolio page.",
                              (145,36)
                              )
 
@@ -3696,8 +3654,8 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
 
 
         self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (955, 580),
                                     style = wx.TE_MULTILINE ,
@@ -3708,9 +3666,9 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
 
 
     def confirmSave(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you want to save your work? This action cannot be undone.", 
-                                   'Confirm Save', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you want to save your work? This action cannot be undone.",
+                                   'Confirm Save',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
@@ -3724,9 +3682,9 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
         db.save_user_portfolio_import_functions(text)
 
     def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None, 
-                                   "Are you sure you reset to file default? This action cannot be undone.", 
-                                   'Confirm Reset', 
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you reset to file default? This action cannot be undone.",
+                                   'Confirm Reset',
                                    style = wx.YES_NO
                                    )
         confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
@@ -3737,12 +3695,12 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
             self.resetToDefault()
     def resetToDefault(self):
         self.file_display.Destroy()
-        
+
         self.file_text = db.load_default_portfolio_import_functions()
         db.save_user_portfolio_import_functions(self.file_text)
 
-        self.file_display = wx.TextCtrl(self, -1, 
-                                    self.file_text, 
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
                                     (10, self.height_var),
                                     size = (765, 625),
                                     style = wx.TE_MULTILINE ,
@@ -3752,6 +3710,8 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
 # ###########################################################################################
 
 # ###################### wx grids #######################################################
+
+## no longer used i think, will remove soon.
 class GridAllStocks(wx.grid.Grid):
     def __init__(self, *args, **kwargs):
         wx.grid.Grid.__init__(self, *args, **kwargs)
@@ -3814,6 +3774,7 @@ class RankPageGrid(wx.grid.Grid):
                     num_attributes += 1
             if self.num_columns < num_attributes:
                 self.num_columns = num_attributes
+# end should remove, probably
 
 class SalePrepGrid(wx.grid.Grid):
     def __init__(self, *args, **kwargs):
@@ -3825,257 +3786,257 @@ class AccountDataGrid(wx.grid.Grid):
     def __init__(self, *args, **kwargs):
         wx.grid.Grid.__init__(self, *args, **kwargs)
 
-class MegaTable(wx.grid.PyGridTableBase): 
-    """ 
-    A custom wxGrid Table using user supplied data 
-    """ 
-    def __init__(self, data, colnames, plugins = {}): 
-        """data is a list of the form 
-        [(rowname, dictionary), 
-        dictionary.get(colname, None) returns the data for column 
-        colname 
+class MegaTable(wx.grid.PyGridTableBase):
+    """
+    A custom wxGrid Table using user supplied data
+    """
+    def __init__(self, data, colnames, plugins = {}):
+        """data is a list of the form
+        [(rowname, dictionary),
+        dictionary.get(colname, None) returns the data for column
+        colname
         """
-        # The base class must be initialized *first* 
-        wx.grid.PyGridTableBase.__init__(self) 
-        self.data = data 
-        self.colnames = colnames 
-        self.plugins = plugins or {} 
-        # XXX 
-        # we need to store the row length and collength to 
-        # see if the table has changed size 
-        self._rows = self.GetNumberRows() 
-        self._cols = self.GetNumberCols() 
+        # The base class must be initialized *first*
+        wx.grid.PyGridTableBase.__init__(self)
+        self.data = data
+        self.colnames = colnames
+        self.plugins = plugins or {}
+        # XXX
+        # we need to store the row length and collength to
+        # see if the table has changed size
+        self._rows = self.GetNumberRows()
+        self._cols = self.GetNumberCols()
 
-    def GetNumberCols(self): 
-        return len(self.colnames) 
+    def GetNumberCols(self):
+        return len(self.colnames)
 
-    def GetNumberRows(self): 
-        return len(self.data) 
+    def GetNumberRows(self):
+        return len(self.data)
 
-    def GetColLabelValue(self, col): 
-        return self.colnames[col] 
+    def GetColLabelValue(self, col):
+        return self.colnames[col]
 
-    def GetRowLabelValues(self, row): 
-        return self.data[row][0] 
+    def GetRowLabelValues(self, row):
+        return self.data[row][0]
 
-    def GetValue(self, row, col): 
-        return str(self.data[row][1].get(self.GetColLabelValue(col), "")) 
+    def GetValue(self, row, col):
+        return str(self.data[row][1].get(self.GetColLabelValue(col), ""))
 
-    def GetRawValue(self, row, col): 
-        return self.data[row][1].get(self.GetColLabelValue(col), "") 
+    def GetRawValue(self, row, col):
+        return self.data[row][1].get(self.GetColLabelValue(col), "")
 
-    def SetValue(self, row, col, value): 
-        self.data[row][1][self.GetColLabelValue(col)] = value 
+    def SetValue(self, row, col, value):
+        self.data[row][1][self.GetColLabelValue(col)] = value
 
-    def ResetView(self, grid): 
-        """ 
-        (wxGrid) -> Reset the grid view.   Call this to 
-        update the grid if rows and columns have been added or deleted 
-        """ 
-        grid.BeginBatch() 
-        for current, new, delmsg, addmsg in [ 
-            (self._rows, self.GetNumberRows(), wxGRIDTABLE_NOTIFY_ROWS_DELETED, wxGRIDTABLE_NOTIFY_ROWS_APPENDED), 
-            (self._cols, self.GetNumberCols(), wxGRIDTABLE_NOTIFY_COLS_DELETED, wxGRIDTABLE_NOTIFY_COLS_APPENDED), 
-        ]: 
-            if new < current: 
-                msg = wxGridTableMessage(self,delmsg,new,current-new) 
-                grid.ProcessTableMessage(msg) 
-            elif new > current: 
-                msg = wxGridTableMessage(self,addmsg,new-current) 
-                grid.ProcessTableMessage(msg) 
-                self.UpdateValues(grid) 
-        grid.EndBatch() 
-            
-        self._rows = self.GetNumberRows() 
-        self._cols = self.GetNumberCols() 
-        # update the column rendering plugins 
-        self._updateColAttrs(grid) 
-        
-        # XXX 
-        # Okay, this is really stupid, we need to "jiggle" the size 
-        # to get the scrollbars to recalibrate when the underlying 
-        # grid changes. 
-        h,w = grid.GetSize() 
-        grid.SetSize((h+1, w)) 
-        grid.SetSize((h, w)) 
-        grid.ForceRefresh() 
+    def ResetView(self, grid):
+        """
+        (wxGrid) -> Reset the grid view.   Call this to
+        update the grid if rows and columns have been added or deleted
+        """
+        grid.BeginBatch()
+        for current, new, delmsg, addmsg in [
+            (self._rows, self.GetNumberRows(), wxGRIDTABLE_NOTIFY_ROWS_DELETED, wxGRIDTABLE_NOTIFY_ROWS_APPENDED),
+            (self._cols, self.GetNumberCols(), wxGRIDTABLE_NOTIFY_COLS_DELETED, wxGRIDTABLE_NOTIFY_COLS_APPENDED),
+        ]:
+            if new < current:
+                msg = wxGridTableMessage(self,delmsg,new,current-new)
+                grid.ProcessTableMessage(msg)
+            elif new > current:
+                msg = wxGridTableMessage(self,addmsg,new-current)
+                grid.ProcessTableMessage(msg)
+                self.UpdateValues(grid)
+        grid.EndBatch()
 
-    def UpdateValues(self, grid): 
-        """Update all displayed values""" 
-        # This sends an event to the grid table to update all of the values 
-        msg = wxGridTableMessage(self, wxGRIDTABLE_REQUEST_VIEW_GET_VALUES) 
-        grid.ProcessTableMessage(msg) 
+        self._rows = self.GetNumberRows()
+        self._cols = self.GetNumberCols()
+        # update the column rendering plugins
+        self._updateColAttrs(grid)
 
-    def _updateColAttrs(self, grid): 
-        """ 
-        wxGrid -> update the column attributes to add the 
-        appropriate renderer given the column name.  (renderers 
-        are stored in the self.plugins dictionary) 
+        # XXX
+        # Okay, this is really stupid, we need to "jiggle" the size
+        # to get the scrollbars to recalibrate when the underlying
+        # grid changes.
+        h,w = grid.GetSize()
+        grid.SetSize((h+1, w))
+        grid.SetSize((h, w))
+        grid.ForceRefresh()
 
-        Otherwise default to the default renderer. 
-        """ 
-        col = 0 
-        for colname in self.colnames: 
-            attr = wxGridCellAttr() 
-            if colname in self.plugins: 
-                renderer = self.plugins[colname](self) 
-                if renderer.colSize: 
-                    grid.SetColSize(col, renderer.colSize) 
-                if renderer.rowSize: 
-                    grid.SetDefaultRowSize(renderer.rowSize) 
-                attr.SetReadOnly(true) 
-                attr.SetRenderer(renderer) 
-            grid.SetColAttr(col, attr) 
-            col += 1 
-                
-    # ------------------------------------------------------ 
-    # begin the added code to manipulate the table (non wx related) 
-    def AppendRow(self, row): 
-        entry = {} 
-        for name in self.colnames: 
-            entry[name] = "Appended_%i"%row 
-        # XXX Hack 
-        # entry["A"] can only be between 1..4 
-        entry["A"] = random.choice(range(4)) 
-        self.data.insert(row, ["Append_%i"%row, entry]) 
+    def UpdateValues(self, grid):
+        """Update all displayed values"""
+        # This sends an event to the grid table to update all of the values
+        msg = wxGridTableMessage(self, wxGRIDTABLE_REQUEST_VIEW_GET_VALUES)
+        grid.ProcessTableMessage(msg)
 
-    def DeleteCols(self, cols): 
-        """ 
-        cols -> delete the columns from the dataset 
-        cols hold the column indices 
-        """ 
-        # we'll cheat here and just remove the name from the 
-        # list of column names.  The data will remain but 
-        # it won't be shown 
-        deleteCount = 0 
-        cols = cols[:] 
-        cols.sort() 
-        for i in cols: 
-            self.colnames.pop(i-deleteCount) 
-            # we need to advance the delete count 
-            # to make sure we delete the right columns 
-            deleteCount += 1 
-        if not len(self.colnames): 
-            self.data = [] 
-            
-    def DeleteRows(self, rows): 
-        """ 
-        rows -> delete the rows from the dataset 
-        rows hold the row indices 
-        """ 
-        deleteCount = 0 
-        rows = rows[:] 
-        rows.sort() 
-        for i in rows: 
-            self.data.pop(i-deleteCount) 
-            # we need to advance the delete count 
-            # to make sure we delete the right rows 
-            deleteCount += 1 
+    def _updateColAttrs(self, grid):
+        """
+        wxGrid -> update the column attributes to add the
+        appropriate renderer given the column name.  (renderers
+        are stored in the self.plugins dictionary)
 
-    def SortColumn(self, col): 
-        """ 
-        col -> sort the data based on the column indexed by col 
-        """ 
-        name = self.colnames[col] 
-        _data = [] 
-        for row in self.data: 
-            rowname, entry = row 
-            _data.append((entry.get(name, None), row)) 
+        Otherwise default to the default renderer.
+        """
+        col = 0
+        for colname in self.colnames:
+            attr = wxGridCellAttr()
+            if colname in self.plugins:
+                renderer = self.plugins[colname](self)
+                if renderer.colSize:
+                    grid.SetColSize(col, renderer.colSize)
+                if renderer.rowSize:
+                    grid.SetDefaultRowSize(renderer.rowSize)
+                attr.SetReadOnly(true)
+                attr.SetRenderer(renderer)
+            grid.SetColAttr(col, attr)
+            col += 1
 
-        _data.sort() 
-        self.data = [] 
-        for sortvalue, row in _data: 
-            self.data.append(row) 
+    # ------------------------------------------------------
+    # begin the added code to manipulate the table (non wx related)
+    def AppendRow(self, row):
+        entry = {}
+        for name in self.colnames:
+            entry[name] = "Appended_%i"%row
+        # XXX Hack
+        # entry["A"] can only be between 1..4
+        entry["A"] = random.choice(range(4))
+        self.data.insert(row, ["Append_%i"%row, entry])
 
-    # end table manipulation code 
-    # ---------------------------------------------------------- 
-class MegaGrid(wx.grid.Grid): 
+    def DeleteCols(self, cols):
+        """
+        cols -> delete the columns from the dataset
+        cols hold the column indices
+        """
+        # we'll cheat here and just remove the name from the
+        # list of column names.  The data will remain but
+        # it won't be shown
+        deleteCount = 0
+        cols = cols[:]
+        cols.sort()
+        for i in cols:
+            self.colnames.pop(i-deleteCount)
+            # we need to advance the delete count
+            # to make sure we delete the right columns
+            deleteCount += 1
+        if not len(self.colnames):
+            self.data = []
+
+    def DeleteRows(self, rows):
+        """
+        rows -> delete the rows from the dataset
+        rows hold the row indices
+        """
+        deleteCount = 0
+        rows = rows[:]
+        rows.sort()
+        for i in rows:
+            self.data.pop(i-deleteCount)
+            # we need to advance the delete count
+            # to make sure we delete the right rows
+            deleteCount += 1
+
+    def SortColumn(self, col):
+        """
+        col -> sort the data based on the column indexed by col
+        """
+        name = self.colnames[col]
+        _data = []
+        for row in self.data:
+            rowname, entry = row
+            _data.append((entry.get(name, None), row))
+
+        _data.sort()
+        self.data = []
+        for sortvalue, row in _data:
+            self.data.append(row)
+
+    # end table manipulation code
+    # ----------------------------------------------------------
+class MegaGrid(wx.grid.Grid):
     def __init__(self, parent, data, colnames, plugins=None, size=(1000,680), pos=(0,50), enable_editing = False
-        ): 
-        """parent, data, colnames, plugins=None 
-        Initialize a grid using the data defined in data and colnames 
-        (see MegaTable for a description of the data format) 
-        plugins is a dictionary of columnName -> column renderers. 
-        """ 
-        
-        # The base class must be initialized *first* 
-        wx.grid.Grid.__init__(self, parent, -1, size = size, pos = pos) 
-        self._table = MegaTable(data, colnames, plugins) 
-        self.SetTable(self._table) 
-        self._plugins = plugins 
+        ):
+        """parent, data, colnames, plugins=None
+        Initialize a grid using the data defined in data and colnames
+        (see MegaTable for a description of the data format)
+        plugins is a dictionary of columnName -> column renderers.
+        """
+
+        # The base class must be initialized *first*
+        wx.grid.Grid.__init__(self, parent, -1, size = size, pos = pos)
+        self._table = MegaTable(data, colnames, plugins)
+        self.SetTable(self._table)
+        self._plugins = plugins
 
         wx.grid.EVT_GRID_LABEL_RIGHT_CLICK(self, self.OnLabelRightClicked)
         self.EnableEditing(enable_editing)
 
-    def Reset(self): 
-        """reset the view based on the data in the table.  Call 
-        this when rows are added or destroyed""" 
-        self._table.ResetView(self) 
+    def Reset(self):
+        """reset the view based on the data in the table.  Call
+        this when rows are added or destroyed"""
+        self._table.ResetView(self)
 
-    def OnLabelRightClicked(self, evt): 
-        # Did we click on a row or a column? 
-        row, col = evt.GetRow(), evt.GetCol() 
-        if row == -1: self.colPopup(col, evt) 
-        elif col == -1: self.rowPopup(row, evt) 
+    def OnLabelRightClicked(self, evt):
+        # Did we click on a row or a column?
+        row, col = evt.GetRow(), evt.GetCol()
+        if row == -1: self.colPopup(col, evt)
+        elif col == -1: self.rowPopup(row, evt)
 
-    def rowPopup(self, row, evt): 
-        """(row, evt) -> display a popup menu when a row label is right clicked""" 
-        appendID = wxNewId() 
-        deleteID = wxNewId() 
-        x = self.GetRowSize(row)/2 
-        if not self.GetSelectedRows(): 
-            self.SelectRow(row) 
-        menu = wxMenu() 
-        xo, yo = evt.GetPosition() 
-        menu.Append(appendID, "Append Row") 
-        menu.Append(deleteID, "Delete Row(s)") 
+    def rowPopup(self, row, evt):
+        """(row, evt) -> display a popup menu when a row label is right clicked"""
+        appendID = wxNewId()
+        deleteID = wxNewId()
+        x = self.GetRowSize(row)/2
+        if not self.GetSelectedRows():
+            self.SelectRow(row)
+        menu = wxMenu()
+        xo, yo = evt.GetPosition()
+        menu.Append(appendID, "Append Row")
+        menu.Append(deleteID, "Delete Row(s)")
 
-        def append(event, self=self, row=row): 
-            self._table.AppendRow(row) 
-            self.Reset() 
+        def append(event, self=self, row=row):
+            self._table.AppendRow(row)
+            self.Reset()
 
-        def delete(event, self=self, row=row): 
-            rows = self.GetSelectedRows() 
-            self._table.DeleteRows(rows) 
-            self.Reset() 
+        def delete(event, self=self, row=row):
+            rows = self.GetSelectedRows()
+            self._table.DeleteRows(rows)
+            self.Reset()
 
-        EVT_MENU(self, appendID, append) 
-        EVT_MENU(self, deleteID, delete) 
-        self.PopupMenu(menu, wxPoint(x, yo)) 
-        menu.Destroy() 
-    
-    def colPopup(self, col, evt): 
-        """(col, evt) -> display a popup menu when a column label is 
-        right clicked""" 
-        x = self.GetColSize(col)/2 
-        menu = wxMenu() 
-        id1 = wxNewId() 
-        sortID = wxNewId() 
-        
-        xo, yo = evt.GetPosition() 
-        self.SelectCol(col) 
-        cols = self.GetSelectedCols() 
-        self.Refresh() 
-        menu.Append(id1, "Delete Col(s)") 
-        menu.Append(sortID, "Sort Column") 
+        EVT_MENU(self, appendID, append)
+        EVT_MENU(self, deleteID, delete)
+        self.PopupMenu(menu, wxPoint(x, yo))
+        menu.Destroy()
 
-        def delete(event, self=self, col=col): 
-            cols = self.GetSelectedCols() 
-            self._table.DeleteCols(cols) 
-            self.Reset() 
-            
-        def sort(event, self=self, col=col): 
-            self._table.SortColumn(col) 
-            self.Reset() 
-            
-        EVT_MENU(self, id1, delete) 
-        if len(cols) == 1: 
-            EVT_MENU(self, sortID, sort) 
-        self.PopupMenu(menu, wxPoint(xo, 0)) 
-        menu.Destroy() 
+    def colPopup(self, col, evt):
+        """(col, evt) -> display a popup menu when a column label is
+        right clicked"""
+        x = self.GetColSize(col)/2
+        menu = wxMenu()
+        id1 = wxNewId()
+        sortID = wxNewId()
 
-# -------------------------------------------------------------------- 
-# Sample wxGrid renderers 
+        xo, yo = evt.GetPosition()
+        self.SelectCol(col)
+        cols = self.GetSelectedCols()
+        self.Refresh()
+        menu.Append(id1, "Delete Col(s)")
+        menu.Append(sortID, "Sort Column")
+
+        def delete(event, self=self, col=col):
+            cols = self.GetSelectedCols()
+            self._table.DeleteCols(cols)
+            self.Reset()
+
+        def sort(event, self=self, col=col):
+            self._table.SortColumn(col)
+            self.Reset()
+
+        EVT_MENU(self, id1, delete)
+        if len(cols) == 1:
+            EVT_MENU(self, sortID, sort)
+        self.PopupMenu(menu, wxPoint(xo, 0))
+        menu.Destroy()
+
+# --------------------------------------------------------------------
+# Sample wxGrid renderers
 
 # ###########################################################################################
 
@@ -4098,10 +4059,10 @@ def create_megagrid_from_stock_list(stock_list, parent, size=config.FULL_SPREADS
 
 
     # Create correctly sized grid
-    """data is a list of the form 
-    [(rowname, dictionary), 
-    dictionary.get(colname, None) returns the data for column 
-    colname 
+    """data is a list of the form
+    [(rowname, dictionary),
+    dictionary.get(colname, None) returns the data for column
+    colname
     """
     data = [("",{})]
     # remove stocks that failed to load
@@ -4137,10 +4098,10 @@ def create_ranked_megagrid_from_tuple_list(ranked_tuple_list, parent, rank_name,
 
 
     # Create correctly sized grid
-    """data is a list of the form 
-    [(rowname, dictionary), 
-    dictionary.get(colname, None) returns the data for column 
-    colname 
+    """data is a list of the form
+    [(rowname, dictionary),
+    dictionary.get(colname, None) returns the data for column
+    colname
     """
     data = []
     for this_tuple in ranked_tuple_list:
@@ -4155,12 +4116,12 @@ def create_ranked_megagrid_from_tuple_list(ranked_tuple_list, parent, rank_name,
     return spreadsheet
 
 def create_account_spread_sheet(
-    wxWindow, 
+    wxWindow,
     account_obj,
-    held_ticker_list = [] # not used currentl  
-    , height = 637
-    , width = 980
-    , position = (0,60)
+    held_ticker_list = [] # not used currentl
+    , height = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0][1]
+    , width = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0][0]
+    , position = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1]
     , enable_editing = False
     ):
     stock_shares_dict = account_obj.stock_shares_dict
@@ -4210,12 +4171,12 @@ def create_account_spread_sheet(
                     if attribute not in attribute_list:
                         attribute_list.append(str(attribute))
         if num_columns < len(attribute_list):
-            num_columns = len(attribute_list)   
-    
+            num_columns = len(attribute_list)
+
     num_columns += 1 # for number of shares held
     num_rows += 1   # for cash
-                                    
-    
+
+
     if not attribute_list:
         print line_number(), 'attribute list empty'
         return
@@ -4280,11 +4241,11 @@ def create_account_spread_sheet(
 
 
 def create_spread_sheet_for_one_stock(
-    wxWindow, 
-    ticker, 
-    height = 637, 
-    width = 980, 
-    position = (0,60), 
+    wxWindow,
+    ticker,
+    height = 637,
+    width = 980,
+    position = (0,60),
     enable_editing = False
     ):
 
@@ -4309,7 +4270,7 @@ def create_spread_sheet_for_one_stock(
                     else:
                         print "%s.%s" % (ticker, attribute), "is a duplicate"
 
-    
+
     if num_rows < num_attributes:
         num_rows = num_attributes
 

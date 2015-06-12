@@ -20,8 +20,8 @@ SCRAPE_SLEEP_TIME = 18
 # Had ip banned for 24 hour periods scraping yql at a greater rate than this,
 # however, their documentation says you can scrape at a faster rate.
 # Note that i was banned for periods for scraping at the max rate they officially allow.
-ADDITIONAL_DATA_SCRAPE_SLEEP_TIME = 2 
-# Less important, because the number of scraping functions you exicute multiplies this by site, 
+ADDITIONAL_DATA_SCRAPE_SLEEP_TIME = 2
+# Less important, because the number of scraping functions you exicute multiplies this by site,
 # but you should adjust this significantly if you get your ip banned.
 
 
@@ -144,7 +144,7 @@ NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR = 100
 
 
 STOCK_SCRAPE_UPDATE_ATTRIBUTES = ["last_yql_basic_scrape_update",
-	
+
 	"last_balance_sheet_update_yf",
 	"last_cash_flow_update_yf",
 	"last_income_statement_update_yf",
@@ -166,6 +166,7 @@ NUMBER_OF_DEFAULT_PORTFOLIOS = 3
 FULL_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,637),(0,50)) # size=(width, height), pos=(x-axis, y-axis)
 RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,637),(0,60))
 RANK_PAGE_ATTRIBUTES_THAT_DO_NOT_SORT_REVERSED = ["symbol", "firm_name"]
+PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((960,580),(0,50))
 
 ###################################################################################################
 ################# Do not edit below, all are reset to saved values on startup #####################
@@ -182,14 +183,14 @@ ENCRYPTION_HARDNESS_LEVEL = None
 # Portfolio globals
 PASSWORD = None
 
-DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS,[]] 
-# Structure of this variable below, 
+DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS,[]]
+# Structure of this variable below,
 # see "wxStocks_db_functions.load_DATA_ABOUT_PORTFOLIOS" for more info about loading.
 
 # DATA_ABOUT_PORTFOLIOS = 	[
 #								NUMBER_OF_PORTFOLIOS (this will be an integer),
 #								[
-#									"Portfolio Name" (this will be a string), 
+#									"Portfolio Name" (this will be a string),
 #									etc...
 #								]
 #							]

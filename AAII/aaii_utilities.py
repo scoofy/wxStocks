@@ -74,7 +74,7 @@ def return_aaii_formula_standard_deviation_of_each_stock_in_group(stock_list, fo
     print "\n"
     new_tuple_list = []
     for stock_tuple in tuple_list:
-        global avg_value, standard_deviation
+        avg_value, standard_deviation
         new_stock_tuple = stock_tuple._replace(avg_value = avg_value)
         new_stock_tuple = new_stock_tuple._replace(standard_deviation = standard_deviation)
         new_tuple_list.append(new_stock_tuple)
