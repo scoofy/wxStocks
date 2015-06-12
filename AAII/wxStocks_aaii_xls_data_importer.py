@@ -124,9 +124,10 @@ def process_aaii_xls_data_file(filename, key_dict):
 	ticker_location = spreadsheet_list_of_row_data[0].index(u'ticker')
 	#print line_number(), spreadsheet_list_of_row_data[0]
 
-
+	current_time = time.time()
 	for row_list in spreadsheet_list_of_row_data[1:]:
-		current_stock = db.create_new_Stock_if_it_doesnt_exist(str(row_list[ticker_location]))
+		ticker = str(row_list[ticker_location])
+		current_stock = db.create_new_Stock_if_it_doesnt_exist(ticker)
 		for attribute in spreadsheet_list_of_row_data[0]:
 			attribute_index = spreadsheet_list_of_row_data[0].index(attribute)
 			if attribute_index == ticker_location:
@@ -136,10 +137,14 @@ def process_aaii_xls_data_file(filename, key_dict):
 			long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name)
 			#print line_number(), long_attribute_name
 			datum = row_list[attribute_index]
-			if datum is not None:
-				setattr(current_stock, long_attribute_name + "_aa", str(datum))
-			else:
-				setattr(current_stock, long_attribute_name + "_aa", None)
+			db.set_Stock_attribute(current_stock, attribute, datum, "_aa")
+		# set last update time
+		if not current_stock.firm_name:
+			try:
+				current_stock.firm_name = current_stock.Company_name_aa
+			except:
+				pass
+		current_stock.last_aaii_update_aa = current_time
 
 def remove_inappropriate_characters_from_attribute_name(attribute_string):
 	attribute_string = str(attribute_string)
@@ -151,13 +156,13 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 		unicode_acceptable_characters.append(unicode(char))
 	acceptable_characters = acceptable_characters + unicode_acceptable_characters
 	new_attribute_name = ""
-	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%"]
+	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%", "#", u"#", ":", u":", "*", u"*"]
 	string_fails = [char for char in unacceptible_characters if char in attribute_string]
 	if string_fails:
 		#print line_number(), string_fails
 		for char in attribute_string:
 			if char not in acceptable_characters:
-				if char in [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")"]:
+				if char in [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "#", u"#", ":", u":", "*", u"*"]:
 					new_char = "_"
 				elif char in ["/", u"/"]:
 					new_char = "_to_"
@@ -165,6 +170,8 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 					new_char = "_and_"
 				elif char in ["%", u"%"]:
 					new_char = "percent"
+				elif char in []:
+					new_char = "_"
 				else:
 					print line_number(), "Error:", char, ":", attribute_string
 					sys.exit()

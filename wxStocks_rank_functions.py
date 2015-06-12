@@ -22,6 +22,16 @@
 
 ################################################################################################################
 
+def rank_stocks_by_ticker_alphabetically(Stock, decending=False, rank_error_as_median=False):
+	'''Ticker Length'''
+	try:
+		relevant_value = getattr(Stock, "symbol")
+	except:
+		relevant_value = None
+	relevant_value = len(relevant_value)
+
+	return (relevant_value, Stock, decending, rank_error_as_median)
+
 def rank_stocks_by_peg_ratio(Stock, decending=False, rank_error_as_median=False):
 	'''PEG ratio'''
 	try:

@@ -131,7 +131,9 @@ def nasdaq_stock_csv_url_and_headers_generator(exchanges=config.STOCK_EXCHANGE_L
 	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/*;q=0.8'
 	}
 	for exchange in exchanges :
+		config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = exchange.upper()
 		yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange, headers
+	config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
 
 def return_webpage(url, headers, delay=15) : # I set the delay here at 15
 	print line_number(), 'Scraping nasdaq.com'
@@ -200,6 +202,7 @@ def convert_nasdaq_csv_to_stock_objects():
 			# 'MarketCap': 'str', 
 			# 'IPOyear': 'n/a or int'
 			# }
+			# add ".Exchange" below
 			if ("$" in stock_dict.get("Symbol")): # this is an "option chain" and we will ignore
 				continue
 			if ("/CL" in stock_dict.get("Symbol")): # this is a called option or warrant and we will ignore
@@ -215,13 +218,14 @@ def convert_nasdaq_csv_to_stock_objects():
 				if attribute not in ["Symbol", "Summary_Quote", "LastSale"]:
 					datum = stock_dict.get(attribute)
 					if datum:
-						setattr(stock, attribute + "_na", datum)
+						db.set_Stock_attribute(stock, attribute, datum, "_na")
 				elif attribute == "LastSale":
 					try:
-						float(stock_dict.get(attribute))
-						setattr(stock, attribute + "_na", float(stock_dict.get(attribute)))
+						datum = float(stock_dict.get(attribute))
+						db.set_Stock_attribute(stock, attribute, datum, "_na")
 					except:
-						setattr(stock, attribute + "_na", None)
+						db.set_Stock_attribute(stock, attribute, None, "_na")
+			stock.Exchange_na = config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE
 #################### Yahoo Finance Scrapers "_yf" ##############################################
 def prepareYqlScrape(ticker_list = []): # from finance.yahoo.com
 	"returns [chunk_list, percent_of_full_scrape_done, number_of_tickers_to_scrape"
@@ -380,10 +384,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 			# This adds the attribute of every possible attribute that can be passed
 			if key == "symbol":
 				continue # already have this, don't need it again, in fact, the yql symbol is different for many terms
-			setattr(new_stock, 
-					str(key) + "_yf", 
-					value
-					)
+			db.set_Stock_attribute(new_stock, str(key), value, "_yf")
 		print line_number(), "Success, saving %s: Data 1 (Yahoo Quote)" % new_stock.yql_ticker
 	#save
 	db.save_GLOBAL_STOCK_DICT()
@@ -421,6 +422,8 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 						#logging.warning(i)
 						try:
 							key_str = str(key)
+							date = None
+							date_str = None
 							term = str(i["term"])
 							term = term.replace(" ", "_")
 							term = term.replace(",", "")
@@ -429,76 +432,50 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 							key_term = utils.strip_string_whitespace(key_term)
 							if "p_52_WeekHigh" in key_term:
 								date = key_term[14:]
-								setattr(new_stock, 
-									"p_52_WeekHigh_Date" + "_yf", 
-									date
-									)
+								date_str = "p_52_WeekHigh_Date"
 								key_str = "p_52_WeekHigh"
 							elif "p_52_WeekLow" in key_term:
 								date = key_term[13:]
-								setattr(new_stock, 
-									"p_52_WeekLow_Date" + "_yf", 
-									date
-									)
+								date_str = "p_52_WeekLow_Date"
 								key_str = "p_52_WeekLow"
 							elif "ForwardPE_fye" in key_term:
 								date = key_term[14:]
-								setattr(new_stock, 
-									"ForwardPE_fiscal_y_end_Date" + "_yf", 
-									date
-									)
+								date_str = "ForwardPE_fiscal_y_end_Date"
 								key_str = "ForwardPE"
 							elif "EnterpriseValue_" in key_term:
 								date = key_term[16:]
-								setattr(new_stock, 
-									"EnterpriseValue_Date" + "_yf", 
-									date
-									)
+								date_str = "EnterpriseValue_Date"
 								key_str = "EnterpriseValue"
 							elif "TrailingPE_ttm_" in key_term:
 								date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
-								setattr(new_stock, 
-									"TrailingPE_ttm_Date" + "_yf", 
-									date
-									)
+								date_str = "TrailingPE_ttm_Date"
 								key_str = "TrailingPE_ttm"
 							elif "SharesShort_as_of" in key_term:
 								date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
-								setattr(new_stock, 
-									"SharesShort_as_of_Date" + "_yf", 
-									date
-									)
+								date_str = "SharesShort_as_of_Date"
 								key_str = "SharesShort"
 							elif "ShortRatio_as_of" in key_term:
 								date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
-								setattr(new_stock, 
-									"ShortRatio_as_of_Date" + "_yf", 
-									date
-									)
+								date_str = "ShortRatio_as_of_Date"
 								key_str = "ShortRatio"
 							elif "ShortPercentageofFloat_as_of" in key_term:
 								date = key_term[29:]
-								setattr(new_stock, 
-									"ShortPercentageofFloat_as_of_Date" + "_yf", 
-									date
-									)
+								date_str = "ShortPercentageofFloat_as_of_Date"
 								key_str = "ShortPercentageofFloat"
 							else:
+								date = None
+								date_str = None
 								key_str = str(key + "_" + term)
 							content = str(i["content"])
-							setattr(new_stock, 
-									key_str + "_yf", 
-									content
-									)
+							db.set_Stock_attribute(new_stock, key_str, content, "_yf")
+							if date_str:
+								db.set_Stock_attribute(new_stock, date_str, date, "_yf")
 						except Exception, e:
 							line_number()
 							logging.warning(repr(i))
 							logging.warning("complex list method did not work")
 							logging.exception(e)
-							setattr(new_stock, 
-									str(key) + "_yf", 
-									x
-									)
+							db.set_Stock_attribute(new_stock, str(key), x, "_yf")
 
 				elif x[0] == "{":
 					y = ast.literal_eval(x)
@@ -513,6 +490,8 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 					#logging.warning(y)
 					try:
 						key_str = str(key)
+						date = None
+						date_str = None
 						term = str(y["term"])
 						term = term.replace(" ", "_")
 						term = term.replace(",", "")
@@ -521,87 +500,55 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 						key_term = utils.strip_string_whitespace(key_term)
 						if "p_52_WeekHigh" in key_term:
 							date = key_term[14:]
-							setattr(new_stock, 
-								"p_52_WeekHigh_Date" + "_yf", 
-								date
-								)
+							date_str = "p_52_WeekHigh_Date" 
 							key_str = "p_52_WeekHigh"
 						elif "p_52_WeekLow" in key_term:
 							date = key_term[13:]
-							setattr(new_stock, 
-								"p_52_WeekLow_Date" + "_yf", 
-								date
-								)
+							date_str = "p_52_WeekLow_Date"
 							key_str = "p_52_WeekLow"
 						elif "ForwardPE_fye" in key_term:
 							date = key_term[14:]
-							setattr(new_stock, 
-								"ForwardPE_fiscal_y_end_Date" + "_yf", 
-								date
-								)
+							date_str = "ForwardPE_fiscal_y_end_Date" 
 							key_str = "ForwardPE"
 						elif "EnterpriseValue_" in key_term:
 							date = key_term[16:]
-							setattr(new_stock, 
-								"EnterpriseValue_Date" + "_yf", 
-								date
-								)
+							date_str = "EnterpriseValue_Date"
 							key_str = "EnterpriseValue"
 						elif "TrailingPE_ttm_" in key_term:
 							date = key_term[15:] # will be of form  TrailingPE_ttm__intraday 
-							setattr(new_stock, 
-								"TrailingPE_ttm_Date" + "_yf", 
-								date
-								)
+							date_str = "TrailingPE_ttm_Date"
 							key_str = "TrailingPE_ttm"
 						elif "SharesShort_as_of" in key_term:
 							date = key_term[18:] # will be of form SharesShort_as_of_Jul_15__2013 
-							setattr(new_stock, 
-								"SharesShort_as_of_Date" + "_yf", 
-								date
-								)
+							date_str = "SharesShort_as_of_Date"
 							key_str = "SharesShort"
 						elif "ShortRatio_as_of" in key_term:
 							date = key_term[16:] # will be of form SharesShort_as_of_Jul_15__2013 
-							setattr(new_stock, 
-								"ShortRatio_as_of_Date" + "_yf", 
-								date
-								)
+							date_str = "ShortRatio_as_of_Date"
 							key_str = "ShortRatio"
 						elif "ShortPercentageofFloat_as_of" in key_term:
 							date = key_term[29:]
-							setattr(new_stock, 
-								"ShortPercentageofFloat_as_of_Date" + "_yf", 
-								date
-								)
+							date_str = "ShortPercentageofFloat_as_of_Date"
 							key_str = "ShortPercentageofFloat"
 						else:
 							key_str = str(key + "_" + term)
 						content = str(y["content"])
-						setattr(new_stock, 
-								key_str + "_yf", 
-								content
-								)
+						db.set_Stock_attribute(new_stock, key_str, content, "_yf")
+						if date_str:
+							db.set_Stock_attribute(new_stock, date_str, date, "_yf")
 					except Exception, e:
 						print line_number()
 						logging.warning("complex dict method did not work")
 						logging.exception(e)
-						setattr(new_stock, 
-								str(key) + "_yf", 
-								x
-								)
+						db.set_Stock_attribute(new_stock, str(key), x, "_yf")
 				else:
 					key_str = str(key)
-					setattr(new_stock, 
-						key_str + "_yf", 
-						x
-						)
+					db.set_Stock_attribute(new_stock, key_str, x, "_yf")
+
 			else:
 				key_str = str(key)
-				setattr(new_stock, 
-						key_str + "_yf", 
-						value
-						)
+				db.set_Stock_attribute(new_stock, key_str, value, "_yf")
+
 		new_stock.last_yql_basic_scrape_update = float(time.time())
 		print line_number(), "Success, saving %s: Data 2 (Yahoo Key Statistics)" % new_stock.yql_ticker
 
@@ -1209,8 +1156,7 @@ def create_or_update_yf_StockAnnualData(ticker, data_list, data_type):
 			for k in range(default_amount_of_data):
 				year_list = ["", "_t1y", "_t2y"]
 				year = year_list[k]
-
-				setattr(stock, attribute + year + "_yf", attribute_data_list[k])
+				db.set_Stock_attribute(stock, attribute + year, attribute_data_list[k], "_yf")
 				
 				### I abandoned the method of years below, 
 				### it seemed stupid in retrospect to put the years on the object.attributes
@@ -1221,7 +1167,8 @@ def create_or_update_yf_StockAnnualData(ticker, data_list, data_type):
 				# 	if not year:
 				# 		year = year_fail_list[k]
 				# 	year = "_" + year
-				# setattr(stock, attribute + year, attribute_data_list[k])
+				# #setattr(stock, attribute + year, attribute_data_list[k])
+				# db.set_Stock_attribute(stock, str(attribute + year, attribute_data_list[k], "_yf")
 
 
 	for attribute in dir(stock):
@@ -1461,7 +1408,7 @@ def yf_analyst_estimates_scrape(ticker):
 			stock_attribute_name = stock_attribute_name.replace("(","")
 			stock_attribute_name = stock_attribute_name.replace(")","")
 
-			setattr(stock, stock_attribute_name + "_yf", i)
+			db.set_Stock_attribute(stock, stock_attribute_name, i, "_yf")
 
 			print line_number(), "%d > %s.%s = %s" % (count, stock.symbol, stock_attribute_name, i)
 			do_print = False
@@ -1498,11 +1445,10 @@ def ms_annual_cash_flow_scrape(ticker):
 		exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
 		if exchange == 'NYSE':
 			exchange_code = "XNYS"
-		elif exchange == "NasdaqNM":
+		elif exchange in ["NasdaqNM", "NASDAQ"]:
 			exchange_code = "XNAS"
 		else:
-			print line_number(), "Unknown Exchange Code for", basic_data.symbol
-			print line_number()
+			print line_number(), "Unknown Exchange Code for", stock.symbol
 			return
 	else:
 		print line_number(), 'Stock cannot be updated, need exchange symbol'
@@ -1631,12 +1577,12 @@ def ms_annual_cash_flow_scrape(ticker):
 			if data_list[i] == u'\u2014':
 				data_list[i] = "-"
 			try:
-				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
 				print line_number(), stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", int(data_list[i])
 				success = True
 			except:
 				try:
-					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
 					print line_number(), stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", str(data_list[i])
 					success = True
 				except Exception, exception:
@@ -1663,10 +1609,10 @@ def ms_annual_income_statement_scrape(ticker):
 		exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
 		if exchange == 'NYSE':
 			exchange_code = "XNYS"
-		elif exchange == "NasdaqNM":
+		elif exchange in ["NasdaqNM", "NASDAQ"]:
 			exchange_code = "XNAS"
 		else:
-			print line_number(), "Unknown Exchange Code for", basic_data.symbol
+			print line_number(), "Unknown Exchange Code for", stock.symbol
 			print line_number()
 			return
 	else:
@@ -1845,12 +1791,12 @@ def ms_annual_income_statement_scrape(ticker):
 			elif data_list[i] == "nbsp":
 				continue
 			try:
-				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
 				print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])
 				success = True
 			except:
 				try:
-					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
 					print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])
 					success = True
 				except Exception, exception:
@@ -1880,7 +1826,7 @@ def ms_annual_balance_sheet_scrape(ticker):
 		elif exchange == "NasdaqNM":
 			exchange_code = "XNAS"
 		else:
-			print line_number(), "Unknown Exchange Code for", basic_data.symbol
+			print line_number(), "Unknown Exchange Code for", stock.symbol
 			print line_number()
 			return
 	else:
@@ -2054,12 +2000,12 @@ def ms_annual_balance_sheet_scrape(ticker):
 			if data_list[i] == u'\u2014':
 				data_list[i] = "-"
 			try:
-				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
 				print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])
 				success = True
 			except:
 				try:
-					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
 					print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])
 					success = True
 				except Exception, exception:
@@ -2072,7 +2018,7 @@ def ms_annual_balance_sheet_scrape(ticker):
 
 # Morningstar Key Ratios (Not increadibly reliable for all data (rounding large numbers), consider alternatives if necessary)
 def ms_key_ratios_scrape(ticker):
-	stock_exchange_var = "StockExchange_yf"
+	stock_exchange_var = config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE
 
 	print line_number(), "Starting: ms_key_ratios_scrape for %s" % ticker
 	ticker = ticker.upper()
@@ -2089,7 +2035,7 @@ def ms_key_ratios_scrape(ticker):
 	exchange = getattr(stock, stock_exchange_var)
 	if exchange == 'NYSE':
 		exchange_code = "XNYS"
-	elif exchange == "NasdaqNM":
+	elif exchange in ["NasdaqNM", "NASDAQ"]:
 		exchange_code = "XNAS"
 	else:
 		print line_number(), "Unknown Exchange Code for", stock.symbol
@@ -2263,13 +2209,13 @@ def ms_key_ratios_scrape(ticker):
 				data_list[i] = "-"
 			try:
 				# testing only commented out
-				setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), int(data_list[i]))
+				db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
 				#
 				print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])
 			except:
 				try:
 					# testing only commented out
-					setattr(stock, str(attribute + trailing_x_year_list[i] + "_ms"), str(data_list[i]))
+					db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
 					#
 					print line_number(), stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])
 				except Exception, exception:

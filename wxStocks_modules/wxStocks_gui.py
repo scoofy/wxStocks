@@ -21,7 +21,8 @@ import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
 import wxStocks_meta_functions as meta
 import wxStocks_functions_that_process_user_functions as process_user_function
-import wxStocks_modules.wxStocks_default_functions.wxStocks_aaii_xls_data_importer as aaii
+import AAII.wxStocks_aaii_xls_data_importer as aaii
+#from AAII_functions import aaii_formulas
 
 def line_number():
     """Returns the current line number in our program."""
@@ -86,23 +87,14 @@ class MainFrame(wx.Frame): # reorder tab postions here
         self.welcome_page = WelcomePage(notebook)
         notebook.AddPage(self.welcome_page, "Welcome")
 
-        self.ticker_list_page = TickerPage(notebook)
-        notebook.AddPage(self.ticker_list_page, "Tickers")
+        self.get_data_page = GetDataPage(notebook)
+        notebook.AddPage(self.get_data_page, "Import Data")
 
-        self.yql_scrape_page = YqlScrapePage(notebook)
-        notebook.AddPage(self.yql_scrape_page, "Scrape")
+        self.view_data_page = ViewDataPage(notebook)
+        notebook.AddPage(self.view_data_page, "View Data")
 
-        self.spreadsheet_import_page = SpreadsheetImportPage(notebook)
-        notebook.AddPage(self.spreadsheet_import_page, "Import Data")
-
-        self.all_stocks_page = AllStocksPage(notebook)
-        notebook.AddPage(self.all_stocks_page, "Stocks")
-
-        self.stock_screen_page = ScreenPage(notebook)
-        notebook.AddPage(self.stock_screen_page, "Screen")
-
-        self.saved_screen_page = SavedScreenPage(notebook)
-        notebook.AddPage(self.saved_screen_page, "Saved Screens")
+        self.meta_screen_page = MetaScreenPage(notebook)
+        notebook.AddPage(self.meta_screen_page, "Screen")
 
         self.rank_page = RankPage(notebook)
         notebook.AddPage(self.rank_page, "Rank")
@@ -112,12 +104,6 @@ class MainFrame(wx.Frame): # reorder tab postions here
 
         self.trade_page = TradePage(notebook)
         notebook.AddPage(self.trade_page, "Trade")
-
-        self.portfolio_page = PortfolioPage(notebook)
-        notebook.AddPage(self.portfolio_page, "Portfolios")
-
-        self.stock_data_page = StockDataPage(notebook)
-        notebook.AddPage(self.stock_data_page, "Ticker Data")
 
         self.user_functions_page = UserFunctionsPage(notebook)
         notebook.AddPage(self.user_functions_page, "Functions")
@@ -398,7 +384,90 @@ class WelcomePage(Tab):
     #   return yesNoAnswer == wx.ID_YES
     ######################### above is not used ###########################
 
+##
+class GetDataPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        ####
+        get_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        get_data_notebook = wx.Notebook(get_data_page_panel)
 
+        self.portfolio_page = PortfolioPage(get_data_notebook)
+        get_data_notebook.AddPage(self.portfolio_page, "Import Portfolios")     
+
+        self.ticker_page = TickerPage(get_data_notebook)
+        get_data_notebook.AddPage(self.ticker_page, "Download Ticker Data")     
+
+        self.yql_scrape_page = YqlScrapePage(get_data_notebook)
+        get_data_notebook.AddPage(self.yql_scrape_page, "Scrape YQL")        
+
+        self.spreadsheet_import_page = SpreadsheetImportPage(get_data_notebook)
+        get_data_notebook.AddPage(self.spreadsheet_import_page, "Import Data Spreadsheets")
+
+        sizer2 = wx.BoxSizer()
+        sizer2.Add(get_data_notebook, 1, wx.EXPAND)
+        self.SetSizer(sizer2)       
+        ####
+class PortfolioPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        ####
+        portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
+                
+        #print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
+        portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
+                
+        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
+        if not portfolios_that_already_exist:
+            config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
+            new_portfolio_name_list = []
+            for i in range(config.NUMBER_OF_PORTFOLIOS):
+                print line_number(), i
+                portfolio_name = None
+                if config.NUMBER_OF_PORTFOLIOS < 10:
+                    portfolio_name = "Portfolio %d" % (i+1)
+                else:
+                    portfolio_name = "%dth" % (i+1)
+                if i in range(len(default_portfolio_names)):
+                    portfolio_name = default_portfolio_names[i]
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+
+                new_portfolio_name_list.append(portfolio_name)
+
+                config.DATA_ABOUT_PORTFOLIOS[0] = config.NUMBER_OF_PORTFOLIOS
+                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
+                print line_number(), config.DATA_ABOUT_PORTFOLIOS
+            db.save_DATA_ABOUT_PORTFOLIOS()
+        else:
+            need_to_save = False
+            for i in range(config.NUMBER_OF_PORTFOLIOS):
+                #print line_number(), i
+                try:
+                    portfolio_name = portfolios_that_already_exist[i]
+                except Exception, exception:
+                    print line_number(), exception
+                    if i < 3:
+                        number_words = ["Primary", "Secondary", "Tertiary"]
+                        portfolio_name = number_words[i]
+                    else:
+                        portfolio_name = "Portfolio %d" % (i+1)
+                    portfolios_that_already_exist.append(portfolio_name)
+                    need_to_save = True
+
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+            if need_to_save == True:
+                config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
+                db.save_DATA_ABOUT_PORTFOLIOS()
+
+        sizer2 = wx.BoxSizer()
+        sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
+        self.SetSizer(sizer2)       
+        ####
+
+        print line_number(), "PortfolioPage loaded"
 class TickerPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -741,12 +810,11 @@ class SpreadsheetImportPage(Tab):
         spreadsheet_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         spreadsheet_notebook = wx.Notebook(spreadsheet_page_panel)
 
-        self.csv_import_page = CsvImportPage(spreadsheet_notebook)
-        spreadsheet_notebook.AddPage(self.csv_import_page, "Import .CSV Data")      
-
         self.xls_import_page = XlsImportPage(spreadsheet_notebook)
         spreadsheet_notebook.AddPage(self.xls_import_page, "Import .XLS Data")      
 
+        self.csv_import_page = CsvImportPage(spreadsheet_notebook)
+        spreadsheet_notebook.AddPage(self.csv_import_page, "Import .CSV Data")      
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(spreadsheet_notebook, 1, wx.EXPAND)
@@ -821,7 +889,6 @@ class CsvImportPage(Tab):
                                    style = message_style
                                    )
         confirm.ShowModal()
-
 class XlsImportPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -839,16 +906,8 @@ class XlsImportPage(Tab):
         import_button = wx.Button(self, label="import .xls", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
         import_button.Bind(wx.EVT_BUTTON, self.importXLS, import_button)
 
-
-        # if there are AAII files in the AAII stock investor pro import folder, create import button:
-        current_directory = os.path.dirname(os.path.realpath(__file__))
-        parent_directory = os.path.split(current_directory)[0]
-        data_directory = os.path.join(parent_directory, "AAII_data_import_folder")
-        aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename)) and filename != "!.gitignore"]
-
-        if aaii_filenames:
-            import_all_aaii_files_button = wx.Button(self, label="import aaii files from folder", pos=(default_button_horizontal_position, default_button_vertical_position + aaii_offset), size=(-1,-1))
-            import_all_aaii_files_button.Bind(wx.EVT_BUTTON, self.import_AAII_files, import_all_aaii_files_button)
+        import_all_aaii_files_button = wx.Button(self, label="import aaii files from folder", pos=(default_button_horizontal_position, default_button_vertical_position + aaii_offset), size=(-1,-1))
+        import_all_aaii_files_button.Bind(wx.EVT_BUTTON, self.import_AAII_files, import_all_aaii_files_button)
 
         self.xls_import_name_list = meta.return_xls_import_function_short_names()
         self.drop_down = wx.ComboBox(self, pos=(default_button_horizontal_position + default_dropdown_horizontal_offset, default_button_vertical_position + default_dropdown_vertical_offset), choices=self.xls_import_name_list)
@@ -914,7 +973,26 @@ class XlsImportPage(Tab):
         aaii_data_folder_dialogue.Destroy()
         if path:
             aaii.import_aaii_files_from_data_folder(path=path, time_until_data_needs_update = 100000000000)
+##
 
+###
+class ViewDataPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        ####
+        view_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        view_data_notebook = wx.Notebook(view_data_page_panel)
+
+        self.all_stocks_page = AllStocksPage(view_data_notebook)
+        view_data_notebook.AddPage(self.all_stocks_page, "View All Stocks")     
+
+        self.stock_data_page = StockDataPage(view_data_notebook)
+        view_data_notebook.AddPage(self.stock_data_page, "View One Stock")     
+
+        sizer2 = wx.BoxSizer()
+        sizer2.Add(view_data_notebook, 1, wx.EXPAND)
+        self.SetSizer(sizer2)       
+        ####
 class AllStocksPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -927,6 +1005,10 @@ class AllStocksPage(Tab):
 
         refresh_button = wx.Button(self, label="refresh", pos=(110,4), size=(-1,-1))
         refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFillAllStocks, refresh_button)
+
+        reset_attribute_button = wx.Button(self, label="reset attributes displayed", pos=(800,4), size=(-1,-1))
+        reset_attribute_button.Bind(wx.EVT_BUTTON, self.resetGlobalAttributeSet, reset_attribute_button)
+
 
         self.first_spread_sheet_load = True
 
@@ -941,67 +1023,133 @@ class AllStocksPage(Tab):
             except Exception, exception:
                 print line_number(), exception
 
-        # Create correctly sized grid
-        self.spreadsheet = GridAllStocks(self, -1, size=(1000,680), pos=(0,50))
-        self.spreadsheet.CreateGrid(self.spreadsheet.num_rows, self.spreadsheet.num_columns)
-        self.spreadsheet.EnableEditing(False)
-
         # Find all attribute names
         stock_list = utils.return_all_stocks()
+        self.spreadsheet = create_megagrid_from_stock_list(stock_list, self)
+        self.spreadsheet.Show()
 
-        print "remove code below", line_number()
-        stock_list = utils.return_stocks_with_data_errors()
-        stock_list = stock_list + utils.return_all_stocks()
-        print "and above", line_number()
+    def resetGlobalAttributeSet(self, event):
+        temp_global_stock_list = utils.return_all_stocks()
+        temp_global_attribute_set = set()
+        for stock in temp_global_stock_list:
+            for attribute in dir(stock):
+                if attribute not in temp_global_attribute_set:
+                    if not attribute.startswith("_"):
+                        if attribute not in config.CLASS_ATTRIBUTES:
+                            temp_global_attribute_set.add(attribute)
+        config.GLOBAL_ATTRIBUTE_SET = temp_global_attribute_set
+        db.save_GLOBAL_ATTRIBUTE_SET()
+class StockDataPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
 
-        attribute_list = []
-        all_attribute_list = []
-        for stock in stock_list:
-            all_attribute_list = all_attribute_list + list(dir(stock))
-            all_attribute_list = set(all_attribute_list) # remove duplicates
-            all_attribute_list = list(all_attribute_list)
-        # Eliminate non-finance related attributes
-        for attribute in all_attribute_list:
-            if not attribute.startswith('_'):
-                attribute_list.append(str(attribute))
-        # Sort for readability
-        pp.pprint(attribute_list)
-        attribute_list.sort(key=lambda x: x.lower())
-        pp.pprint(attribute_list)
+        rank_page_text = wx.StaticText(self, -1, 
+                             "Data for stock:", 
+                             (10,10)
+                             )
+        self.ticker_input = wx.TextCtrl(self, -1, 
+                                   "",
+                                   (110, 8),
+                                   style=wx.TE_PROCESS_ENTER
+                                   )
+        self.ticker_input.SetHint("ticker")
+        self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
 
-        # adjust list order for important terms
-        try:
-            attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-        except Exception, e:
-            print line_number(), e
-        try:
-            attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
-        except Exception, e:
-            print line_number(), e
-        #print line_number(), attribute_list
+        load_screen_button = wx.Button(self, 
+                                          label="look up", 
+                                          pos=(210,5), 
+                                          size=(-1,-1)
+                                          )
+        update_yql_basic_data_button = wx.Button(self, 
+                                         label="update basic data", 
+                                         pos=(300,5), 
+                                         size=(-1,-1)
+                                         )
+        #update_annual_data_button = wx.Button(self, 
+        #                                 label="update annual data", 
+        #                                 pos=(430,5), 
+        #                                 size=(-1,-1)
+        #                                 )
+        #update_analyst_estimates_button = wx.Button(self, 
+        #                                 label="update analyst estimates", 
+        #                                 pos=(570,5), 
+        #                                 size=(-1,-1)
+        #                                 )
 
-        row_count = 0
-        col_count = 0
-
-        # set first row attribute names
-        for attribute in attribute_list:
-            self.spreadsheet.SetColLabelValue(col_count, str(attribute))
-            col_count += 1
-        col_count = 0
-
-        # fill in the stocks' values
-        for stock in stock_list:
-            for attribute in attribute_list:
-                try:
-                    self.spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-                except:
-                    pass
-                col_count += 1
-            row_count += 1
-            col_count = 0
+        load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
         
-        # resize calumns
-        self.spreadsheet.AutoSizeColumns()
+        update_additional_data_button = wx.Button(self, 
+                                          label="update additional data", 
+                                          pos=(430,5), 
+                                          size=(-1,-1)
+                                          )
+        update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
+
+        update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
+        #update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
+        #update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
+
+        print line_number(), "StockDataPage loaded"
+
+    def updateAdditionalDataForOneStock(self, event):
+        ticker = self.ticker_input.GetValue()
+        if str(ticker) == "ticker" or not ticker:
+            return
+        scrape.scrape_all_additional_data_prep([ticker])
+        self.createOneStockSpreadSheet("event")
+    
+    def createOneStockSpreadSheet(self, event):
+        ticker = self.ticker_input.GetValue()
+        if str(ticker) == "ticker" or not ticker:
+            return
+        self.screen_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper())
+
+    def update_yql_basic_data(self, event):
+        ticker = self.ticker_input.GetValue()
+        if str(ticker) == "ticker":
+            return
+        print "basic yql scrape"
+        chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape = scrape.prepareYqlScrape([str(ticker).upper()])
+        chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
+        data = scrape.executeYqlScrapePartOne(chunk_list, 0)
+        scrape.executeYqlScrapePartTwo(chunk_list, 0, data)
+        self.createOneStockSpreadSheet(event = "")
+
+    def update_annual_data(self, event):
+        ticker = self.ticker_input.GetValue()
+        if str(ticker) == "ticker":
+            return
+        print "scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes."
+        scrape_balance_sheet_income_statement_and_cash_flow( [str(ticker).upper()] )
+        self.createOneStockSpreadSheet(event = "")
+
+    def update_analyst_estimates_data(self, event):
+        ticker = self.ticker_input.GetValue()
+        if str(ticker) == "ticker":
+            return
+        print "about to scrape"
+        scrape_analyst_estimates( [str(ticker).upper()] )
+        self.createOneStockSpreadSheet(event = "")
+###
+
+####
+class MetaScreenPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        ####
+        meta_screen_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        meta_screen_notebook = wx.Notebook(meta_screen_page_panel)
+
+        self.screen_page = ScreenPage(meta_screen_notebook)
+        meta_screen_notebook.AddPage(self.screen_page, "Screen")     
+
+        self.saved_screen_page = SavedScreenPage(meta_screen_notebook)
+        meta_screen_notebook.AddPage(self.saved_screen_page, "View Saved Screens")     
+
+        sizer2 = wx.BoxSizer()
+        sizer2.Add(meta_screen_notebook, 1, wx.EXPAND)
+        self.SetSizer(sizer2)       
+        ####
 class ScreenPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -1049,7 +1197,12 @@ class ScreenPage(Tab):
                 conforming_stocks.append(stock)
 
         config.CURRENT_SCREEN_LIST = conforming_stocks
-        
+ 
+        self.createSpreadsheet(conforming_stocks)
+
+
+
+    def createSpreadsheet(self, stock_list):
         if self.first_spread_sheet_load:
             self.first_spread_sheet_load = False
         else:
@@ -1057,18 +1210,9 @@ class ScreenPage(Tab):
                 self.screen_grid.Destroy()
             except Exception as e:
                 print line_number(), e
-        self.screen_grid = StockScreenGrid(self, -1, size=(1000,680), pos=(0,50))
-        self.screen_grid.CreateGrid(self.screen_grid.num_rows, self.screen_grid.num_columns)
-        self.spreadSheetFill(self.screen_grid, conforming_stocks)
 
-        self.save_screen_button.Show()
-
-        print line_number(), "screenStocks done!"
-
-    def spreadSheetFill(self, spreadsheet, stock_list):
-        create_spreadsheet_from_stock_list(spreadsheet, stock_list)
-
-
+        stock_list.sort(key = lambda x: (x is None, x.symbol))
+        self.screen_grid = create_megagrid_from_stock_list(stock_list, self)
 
     def saveScreen(self, event):
         current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
@@ -1144,7 +1288,7 @@ class SavedScreenPage(Tab):
                                      )
 
         self.currently_viewed_screen = None
-        self.delete_screen_button = wx.Button(self, label="delete", pos=(900,4), size=(-1,-1))
+        self.delete_screen_button = wx.Button(self, label="delete", pos=(880,4), size=(-1,-1))
         self.delete_screen_button.Bind(wx.EVT_BUTTON, self.deleteScreen, self.delete_screen_button)
         self.delete_screen_button.Hide()
 
@@ -1231,27 +1375,19 @@ class SavedScreenPage(Tab):
         self.spreadSheetFill()
 
     def spreadSheetFill(self):
-        self.screen_grid = SavedScreenGrid(self, -1, size=(980,637), pos=(0,50))
-        self.screen_grid.CreateGrid(self.screen_grid.num_rows, self.screen_grid.num_columns)
-        
-        create_spreadsheet_from_stock_list(self.screen_grid, config.CURRENT_SAVED_SCREEN_LIST)
+        self.spreadsheet = create_megagrid_from_stock_list(config.CURRENT_SAVED_SCREEN_LIST, self)
+        self.spreadsheet.Show()
         
         self.delete_screen_button.Show()
-
+####
 class RankPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
         self.full_ticker_list = [] # this should hold all tickers in any spreadsheet displayed
         self.held_ticker_list = [] # not sure if this is relevant anymore
-        # Changed to config.RANK_PAGE_ALL_RELEVANT_STOCKS
-        self.sorted_full_ticker_list = []
 
-
-        self.lists_in_ticker_list = [] # currently unused
-
-        self.full_attribute_list = []
-        self.relevant_attribute_list = []
+        self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
 
         rank_page_text = wx.StaticText(self, -1, 
                              "Rank", 
@@ -1310,10 +1446,16 @@ class RankPage(Tab):
 
         self.sort_button = wx.Button(self, label="Sort by:", pos=(420,30), size=(-1,-1))
         self.sort_button.Bind(wx.EVT_BUTTON, self.sortStocks, self.sort_button)
+
+        sort_drop_down_width = -1
+        if [attribute for attribute in config.GLOBAL_ATTRIBUTE_SET if (len(str(attribute)) > 50)]:
+            sort_drop_down_width = 480
+
         self.sort_drop_down = wx.ComboBox(self, 
                                      pos=(520, 31), 
                                      choices=self.full_attribute_list,
-                                     style = wx.TE_READONLY
+                                     style = wx.TE_READONLY,
+                                     size = (sort_drop_down_width, -1)
                                      )
         self.sort_button.Hide()
         self.sort_drop_down.Hide()
@@ -1332,6 +1474,7 @@ class RankPage(Tab):
 
         self.fade_opacity = 255
         self.screen_grid = None
+        self.spreadsheet = None
 
         self.rank_name = None
 
@@ -1355,18 +1498,38 @@ class RankPage(Tab):
 
         ranked_tuple_list = process_user_function.return_ranked_list_from_rank_function(config.RANK_PAGE_ALL_RELEVANT_STOCKS, rank_function)
 
+        self.createRankedSpreadsheet(ranked_tuple_list, self.rank_name)
+
+    def createUnrankedSpreadsheet(self, stock_list=None):
+        self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
+        self.sort_drop_down.Set(self.full_attribute_list)
+
+        if stock_list is None:
+            stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS
+        if self.spreadsheet:
+            try:
+                self.spreadsheet.Destroy()
+            except Exception, exception:
+                print line_number(), exception
+
+        stock_list.sort(key = lambda x: x.symbol)
+        self.spreadsheet = create_megagrid_from_stock_list(stock_list, self, size=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1])
+
+        self.clear_button.Show()
+        self.sort_button.Show()
+        self.sort_drop_down.Show()
+        self.rank_button.Show()
+        self.rank_drop_down.Show()
+
+        self.spreadsheet.Show()
+
+    def createRankedSpreadsheet(self, ranked_tuple_list, rank_name):
+        self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
+        self.sort_drop_down.Set(self.full_attribute_list)
+
         ######################################
-        self.screen_grid = self.createRankedSpreadSheet(ranked_tuple_list, self.rank_name)
-        try:
-            self.sort_drop_down.Destroy()
-            self.sort_drop_down = wx.ComboBox(self, 
-                                             pos=(520, 31), 
-                                             choices = self.relevant_attribute_list,
-                                             style = wx.TE_READONLY
-                                             )
-        except Exception, exception:
-            pass
-            #print line_number(), exception
+        self.spreadsheet = create_ranked_megagrid_from_tuple_list(ranked_tuple_list, self, rank_name)
+
         self.clear_button.Show()
         self.sort_button.Show()
         self.sort_drop_down.Show()
@@ -1375,117 +1538,7 @@ class RankPage(Tab):
 
 
         print line_number(), "rankStocks done!"
-
-    def createRankedSpreadSheet(
-        self
-        , stock_value_tuple_list 
-        , relevant_value_name
-        , height = 637
-        , width = 980
-        , position = (0,60)
-        , enable_editing = False
-        ):
-
-        irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
-
-
-        config.TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = [] # Clear update list
-
-
-        num_rows = len(stock_value_tuple_list)
-        num_columns = 0
-
-        stock_list = [x.stock for x in stock_value_tuple_list]
-
-        for my_tuple in stock_value_tuple_list:
-            print line_number(), my_tuple.stock.symbol, my_tuple.value
-
-        attribute_list = [relevant_value_name]
-        # Here we make columns for each attribute to be included
-        for stock in stock_list:
-            for attribute in dir(stock):
-                if not attribute.startswith('_'):
-                    if attribute not in config.IRRELEVANT_ATTRIBUTES:
-                        if attribute not in attribute_list:
-                            attribute_list.append(str(attribute))
-            if num_columns < len(attribute_list):
-                num_columns = len(attribute_list)       
-
-        if stock_list and not attribute_list:
-            print line_number(), 'Warning: attribute list empty'
-            return
-        # else: loading blank list
-
-        screen_grid = wx.grid.Grid(self, -1, size=(width, height), pos=position)
-        screen_grid.CreateGrid(num_rows, num_columns)
-        screen_grid.EnableEditing(enable_editing)
-
-        if attribute_list: # not empty screen loading:
-            attribute_list.sort(key = lambda x: x.lower())
-            # adjust list order for important terms
-            attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-            attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
-            attribute_list.insert(2, attribute_list.pop(attribute_list.index(relevant_value_name)))
-
-        self.full_attribute_list = attribute_list
-        self.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
-
-
-
-        # fill in grid
-        row_count = 0
-        for stock_value_tuple in stock_value_tuple_list:
-            col_count = 0
-            for attribute in attribute_list:
-                relevant_value_col = False # reset this at the begining of iteration
-                # set attributes to be labels if it's the first run through
-                if row_count == 0:
-                    screen_grid.SetColLabelValue(col_count, str(attribute))
-                if attribute == relevant_value_name:
-                    screen_grid.SetCellValue(row_count, col_count, str(stock_value_tuple.value))
-                    relevant_value_col = True
-                if not relevant_value_col:
-                    try:
-                        # Try to add basic data value
-                        screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_value_tuple.stock, attribute)))
-                        # Add color if relevant
-                        if str(stock_value_tuple.stock.ticker) in config.HELD_STOCK_TICKER_LIST:
-                            screen_grid.SetCellBackgroundColour(row_count, col_count, config.HELD_STOCK_COLOR_HEX)
-                        # Change text red if value is negative
-                        try:
-                            if utils.stock_value_is_negative(stock_value_tuple.stock, attribute):
-                                screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
-                        except Exception as exception:
-                            pass
-                            #print line_number(), exception
-                    except Exception as exception:
-                        pass
-                        #print line_number(), exception
-                col_count += 1
-            row_count += 1
-        screen_grid.AutoSizeColumns()
-
-        return screen_grid
-
-
-    def createSpreadSheet(self, stock_list):
-        self.screen_grid = create_spread_sheet(self, stock_list)
-        try:
-            self.sort_drop_down.Destroy()
-            self.sort_drop_down = wx.ComboBox(self, 
-                                             pos=(520, 31), 
-                                             choices = self.relevant_attribute_list,
-                                             style = wx.TE_READONLY
-                                             )
-        except Exception, exception:
-            pass
-            #print line_number(), exception
-        self.clear_button.Show()
-        self.sort_button.Show()
-        self.sort_drop_down.Show()
-        self.rank_button.Show()
-        self.rank_drop_down.Show()
-
+        self.spreadsheet.Show()
 
     def updateAdditionalData(self, event):
         ticker_list = []
@@ -1516,12 +1569,12 @@ class RankPage(Tab):
         self.full_ticker_list = []
         self.held_ticker_list = []
 
-        self.createSpreadSheet(stock_list= config.RANK_PAGE_ALL_RELEVANT_STOCKS)
-
+        self.createUnrankedSpreadsheet()
 
         self.clear_button.Hide()
         self.sort_button.Hide()
         self.sort_drop_down.Hide()
+
     def refreshScreens(self, event):
         self.drop_down.Hide()
         self.drop_down.Destroy()
@@ -1577,29 +1630,12 @@ class RankPage(Tab):
                 possibly_remove_dead_stocks.append(stock)
                 print line_number(), "One of the stocks in this screen does not appear to exist."
             elif stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
-                print line_number(), stock.symbol, "added to config.RANK_PAGE_ALL_RELEVANT_STOCKS"
+                #print line_number(), stock.symbol, "added to config.RANK_PAGE_ALL_RELEVANT_STOCKS"
                 config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
             else:
                 print line_number(), stock.symbol, "skipped"
-        if possibly_remove_dead_stocks:
-            for dead_stock in possibly_remove_dead_stocks:
-                try:
-                    saved_screen.remove(dead_stock)
-                except:
-                    pass
-                try:
-                    config.RANK_PAGE_ALL_RELEVANT_STOCKS.remove(dead_stock)
-                except:
-                    pass
-            db.save_named_screen(selected_screen_name, saved_screen)
-
-        if self.screen_grid:
-            try:
-                self.screen_grid.Destroy()
-            except Exception, exception:
-                print line_number(), exception
-
-        self.createSpreadSheet(stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS)
+        self.createUnrankedSpreadsheet()
+        
 
     def loadAccount(self, event):
         selected_account_name = self.accounts_drop_down.GetValue()
@@ -1640,153 +1676,12 @@ class RankPage(Tab):
             if str(stock.symbol) not in self.full_ticker_list:
                 self.full_ticker_list.append(str(stock.symbol))
 
-        try:
-            self.screen_grid.Destroy()
-        except Exception, exception:
-            print line_number(), exception
-
-        #self.spreadSheetFill(self.full_ticker_list)
-        self.createSpreadSheet(stock_list = config.RANK_PAGE_ALL_RELEVANT_STOCKS)
-
-    def spreadSheetFill(self, stock_list):
-        pass
-        # attribute_list = []
-        # num_rows = len(stock_list)
-        # num_columns = 0
-        # for stock in stock_list:
-        #   num_attributes = 0
-        #   for attribute in dir(stock):
-        #       if not attribute.startswith('_'):
-        #           if attribute not in self.irrelevant_attributes:
-        #               num_attributes += 1
-        #   for annual_data in annual_data_list:
-        #       if str(stock.symbol) == str(annual_data.symbol):
-        #           for attribute in dir(annual_data):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in self.irrelevant_attributes:
-        #                       if not attribute[-4:-2] in ["20", "30"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
-        #                           if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
-        #                               num_attributes += 1
-        #   for estimate_data in analyst_estimate_list:
-        #       if str(stock.symbol) == str(estimate_data.symbol):
-        #           for attribute in dir(estimate_data):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in self.irrelevant_attributes:
-        #                       num_attributes += 1
-        #   if num_columns < num_attributes:
-        #       num_columns = num_attributes
-        # self.screen_grid = StockScreenGrid(self, -1, size=(980,637), pos=(0,60))
-
-        # self.screen_grid.CreateGrid(num_rows, num_columns)
-        # self.screen_grid.EnableEditing(False)
+        self.createUnrankedSpreadsheet()
 
 
-        # for stock in stock_list:
-        #   for attribute in dir(stock):
-        #       if not attribute.startswith('_'):
-        #           if attribute not in self.irrelevant_attributes:
-        #               if attribute not in attribute_list:
-        #                   attribute_list.append(str(attribute))
-        #                   if str(attribute) not in self.full_attribute_list:
-        #                       self.full_attribute_list.append(str(attribute)) # Reset root attribute list
-        #   for annual_data in annual_data_list:
-        #       if str(stock.symbol) == str(annual_data.symbol):
-        #           for attribute in dir(annual_data):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in self.irrelevant_attributes:
-        #                       if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
-        #                           if attribute not in attribute_list:
-        #                               attribute_list.append(str(attribute))
-        #                               if str(attribute) not in self.full_attribute_list:
-        #                                   self.full_attribute_list.append(str(attribute)) # Reset root attribute list                 
-        #           break
-        #   for estimate_data in analyst_estimate_list:
-        #       if str(stock.symbol) == str(estimate_data.symbol):
-        #           for attribute in dir(estimate_data):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in self.irrelevant_attributes:
-        #                       if attribute not in attribute_list:
-        #                           attribute_list.append(str(attribute))
-        #                           if str(attribute) not in self.full_attribute_list:
-        #                               self.full_attribute_list.append(str(attribute)) # Reset root attribute list                 
-        #           break
-
-        # #for i in self.full_attribute_list:
-        # # print line_number(), i
-        # if not attribute_list:
-        #   logging.warning('attribute list empty')
-        #   return
-        # attribute_list.sort()
-        # # adjust list order for important terms
-        # attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-        # attribute_list.insert(1, attribute_list.pop(attribute_list.index('Name')))
-        # #print line_number(), attribute_list
-
-        # row_count = 0
-        # for stock in stock_list:
-        #   col_count = 0
-        #   stock_annual_data = return_existing_StockAnnualData(str(stock.symbol))
-        #   stock_analyst_estimate = return_existing_StockAnalystEstimates(str(stock.symbol))
-        #   for attribute in attribute_list:
-        #       #if not attribute.startswith('_'):
-        #       if row_count == 0:
-        #           self.screen_grid.SetColLabelValue(col_count, str(attribute))
-        #           #print str(attribute)
-        #       try:
-        #           self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-        #           if str(stock.symbol) in self.held_ticker_list:
-        #               self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-        #           if str(getattr(stock, attribute)).startswith("(") or str(getattr(stock, attribute)).startswith("-"):
-        #               self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-        #       except Exception, exception:
-        #           try:
-        #               self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_annual_data, attribute)))
-        #               if str(stock.symbol) in self.held_ticker_list:
-        #                   self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-        #               if str(getattr(stock_annual_data, attribute)).startswith("(") or (str(getattr(stock_annual_data, attribute)).startswith("-") and len(str(getattr(stock_annual_data, attribute))) > 1):
-        #                   self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-        #           except:
-        #               try:
-        #                   self.screen_grid.SetCellValue(row_count, col_count, str(getattr(stock_analyst_estimate, attribute)))
-        #                   if str(stock.symbol) in self.held_ticker_list:
-        #                       self.screen_grid.SetCellBackgroundColour(row_count, col_count, "#FAEFCF")
-        #                   if str(getattr(stock_analyst_estimate, attribute)).startswith("(") or (str(getattr(stock_analyst_estimate, attribute)).startswith("-") and len(str(getattr(stock_analyst_estimate, attribute))) > 0):
-        #                       self.screen_grid.SetCellTextColour(row_count, col_count, "#8A0002")
-        #               except Exception, exception:
-        #                   pass
-        #                   print exception
-        #                   print line_number()
-        #           #print line_number(), exception
-        #       # try:
-        #       #   if str(getattr(stock, attribute)) in ["N/A", "-", "None"]:
-        #       #       self.screen_grid.SetCellValue(row_count, col_count, "")
-        #       # except:
-        #       #   try:
-        #       #       if str(getattr(stock_annual_data, attribute)) in ["N/A", "-", "None"]:
-        #       #           self.screen_grid.SetCellValue(row_count, col_count, "")
-        #       #   except Exception, exception:
-        #       #       pass
-        #       col_count += 1
-        #   row_count += 1
-        # #print attribute_list
-        # self.screen_grid.AutoSizeColumns()
-
-        # try:
-        #   self.sort_drop_down.Destroy()
-        #   self.sort_drop_down = wx.ComboBox(self, 
-        #                                    pos=(520, 31), 
-        #                                    choices=self.full_attribute_list,
-        #                                    style = wx.TE_READONLY
-        #                                    )
-        # except Exception, exception:
-        #   pass
-        #   #print line_number(), exception
-        # self.clear_button.Show()
-        # self.sort_button.Show()
-        # self.sort_drop_down.Show()
     def sortStocks(self, event):
         sort_field = self.sort_drop_down.GetValue()
-        do_not_sort_reversed = ["symbol", "firm_name"]
+        do_not_sort_reversed = config.RANK_PAGE_ATTRIBUTES_THAT_DO_NOT_SORT_REVERSED
         if sort_field in do_not_sort_reversed:
             reverse_var = False
         else:
@@ -1799,35 +1694,43 @@ class RankPage(Tab):
             try:
                 val = getattr(stock, sort_field)
                 try:
-                    float(val.replace("%",""))
-                    num_stock_value_list.append(stock)
+                    float_val = float(val.replace("%",""))
+                    rank_tuple = Ranked_Tuple_Reference(float_val, stock)
+                    num_stock_value_list.append(rank_tuple)
                 except:
-                    str_stock_value_list.append(stock)
+                    rank_tuple = Ranked_Tuple_Reference(val, stock)
+                    str_stock_value_list.append(rank_tuple)
             except Exception, exception:
                 #print line_number(), exception
-                incompatible_stock_list.append(stock)
+                rank_tuple = Ranked_Tuple_Reference(None, stock)
+                incompatible_stock_list.append(rank_tuple)
 
-        num_stock_value_list.sort(key = lambda x: float(getattr(x, sort_field).replace("%","")), reverse=reverse_var)
+        num_stock_value_list.sort(key = lambda x: x.value, reverse=reverse_var)
         
-        str_stock_value_list.sort(key = lambda x: getattr(x, sort_field))
+        str_stock_value_list.sort(key = lambda x: x.value)
 
-        incompatible_stock_list.sort(key = lambda x: x.symbol)
+        incompatible_stock_list.sort(key = lambda x: x.stock.symbol)
 
-        self.sorted_full_ticker_list = []
-        for stock in num_stock_value_list:
-            self.sorted_full_ticker_list.append(stock)
-        for stock in str_stock_value_list:
-            self.sorted_full_ticker_list.append(stock)
-        for incompatible_stock in incompatible_stock_list:
-            self.sorted_full_ticker_list.append(incompatible_stock)
-        #self.spreadSheetFill(self.sorted_full_ticker_list)
-        self.createSpreadSheet(self.sorted_full_ticker_list)
+        sorted_tuple_list = num_stock_value_list + str_stock_value_list + incompatible_stock_list
+        
+        self.createRankedSpreadsheet(sorted_tuple_list, sort_field)
+        
         self.sort_drop_down.SetStringSelection(sort_field)
 
 class SalePrepPage(Tab):
     def __init__(self, parent):
-        self.default_last_trade_price_attribute_name = "LastTradePriceOnly_yf"
-        self.default_average_daily_volume_attribute_name = "AverageDailyVolume_yf"
+        self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
+        self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
+
+        self.secondary_last_trade_price_attribute_name = config.SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME
+        self.secondary_average_daily_volume_attribute_name = config.SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
+
+        self.tertiary_last_trade_price_attribute_name = config.TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME
+        self.tertiary_average_daily_volume_attribute_name = config.TERTIARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
+
+        self.quaternary_last_trade_price_attribute_name = config.QUATERNARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME
+        self.quaternary_average_daily_volume_attribute_name = config.QUATERNARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
+
 
         wx.Panel.__init__(self, parent)
         trade_page_text = wx.StaticText(self, -1, 
@@ -3174,67 +3077,6 @@ class TradePage(Tab):
         new_grid.SetFocus()
         self.grid = new_grid
 
-class PortfolioPage(Tab):
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-        ####
-        portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
-        portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
-                
-        #print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
-        portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
-                
-        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
-        if not portfolios_that_already_exist:
-            config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
-            new_portfolio_name_list = []
-            for i in range(config.NUMBER_OF_PORTFOLIOS):
-                print line_number(), i
-                portfolio_name = None
-                if config.NUMBER_OF_PORTFOLIOS < 10:
-                    portfolio_name = "Portfolio %d" % (i+1)
-                else:
-                    portfolio_name = "%dth" % (i+1)
-                if i in range(len(default_portfolio_names)):
-                    portfolio_name = default_portfolio_names[i]
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
-
-                new_portfolio_name_list.append(portfolio_name)
-
-                config.DATA_ABOUT_PORTFOLIOS[0] = config.NUMBER_OF_PORTFOLIOS
-                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
-            db.save_DATA_ABOUT_PORTFOLIOS()
-        else:
-            need_to_save = False
-            for i in range(config.NUMBER_OF_PORTFOLIOS):
-                #print line_number(), i
-                try:
-                    portfolio_name = portfolios_that_already_exist[i]
-                except Exception, exception:
-                    print line_number(), exception
-                    if i < 3:
-                        number_words = ["Primary", "Secondary", "Tertiary"]
-                        portfolio_name = number_words[i]
-                    else:
-                        portfolio_name = "Portfolio %d" % (i+1)
-                    portfolios_that_already_exist.append(portfolio_name)
-                    need_to_save = True
-
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
-            if need_to_save == True:
-                config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
-                db.save_DATA_ABOUT_PORTFOLIOS()
-
-        sizer2 = wx.BoxSizer()
-        sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)       
-        ####
-
-        print line_number(), "PortfolioPage loaded"
-
 class PortfolioAccountTab(Tab):
     def __init__(self, parent, tab_number):
         tab_panel = wx.Panel.__init__(self, parent, tab_number)
@@ -3496,95 +3338,6 @@ class PortfolioAccountTab(Tab):
             self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
         self.account_obj = None
         return
-
-class StockDataPage(Tab):
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-
-        rank_page_text = wx.StaticText(self, -1, 
-                             "Data for stock:", 
-                             (10,10)
-                             )
-        self.ticker_input = wx.TextCtrl(self, -1, 
-                                   "",
-                                   (110, 8),
-                                   style=wx.TE_PROCESS_ENTER
-                                   )
-        self.ticker_input.SetHint("ticker")
-        self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
-
-        load_screen_button = wx.Button(self, 
-                                          label="look up", 
-                                          pos=(210,5), 
-                                          size=(-1,-1)
-                                          )
-        #update_yql_basic_data_button = wx.Button(self, 
-        #                                 label="update basic data", 
-        #                                 pos=(300,5), 
-        #                                 size=(-1,-1)
-        #                                 )
-        #update_annual_data_button = wx.Button(self, 
-        #                                 label="update annual data", 
-        #                                 pos=(430,5), 
-        #                                 size=(-1,-1)
-        #                                 )
-        #update_analyst_estimates_button = wx.Button(self, 
-        #                                 label="update analyst estimates", 
-        #                                 pos=(570,5), 
-        #                                 size=(-1,-1)
-        #                                 )
-
-        load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
-        
-        update_additional_data_button = wx.Button(self, 
-                                          label="update additional data", 
-                                          pos=(300,5), 
-                                          size=(-1,-1)
-                                          )
-        update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
-
-        #update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
-        #update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
-        #update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
-
-        print line_number(), "StockDataPage loaded"
-
-    def updateAdditionalDataForOneStock(self, event):
-        ticker = self.ticker_input.GetValue()
-        if str(ticker) == "ticker" or not ticker:
-            return
-        scrape.scrape_all_additional_data([ticker])
-        self.createOneStockSpreadSheet("event")
-    
-    def createOneStockSpreadSheet(self, event):
-        ticker = self.ticker_input.GetValue()
-        if str(ticker) == "ticker" or not ticker:
-            return
-        self.screen_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper())
-
-    def update_yql_basic_data(self, event):
-        ticker = self.ticker_input.GetValue()
-        if str(ticker) == "ticker":
-            return
-        print "basic yql scrape"
-        basicYQLScrapePartOne( [ [str(ticker).upper()] ] )
-        self.createOneStockSpreadSheet(event = "")
-
-    def update_annual_data(self, event):
-        ticker = self.ticker_input.GetValue()
-        if str(ticker) == "ticker":
-            return
-        print "scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes."
-        scrape_balance_sheet_income_statement_and_cash_flow( [str(ticker).upper()] )
-        self.createOneStockSpreadSheet(event = "")
-
-    def update_analyst_estimates_data(self, event):
-        ticker = self.ticker_input.GetValue()
-        if str(ticker) == "ticker":
-            return
-        print "about to scrape"
-        scrape_analyst_estimates( [str(ticker).upper()] )
-        self.createOneStockSpreadSheet(event = "")
 
 class UserFunctionsPage(Tab):
     def __init__(self, parent):
@@ -4071,198 +3824,335 @@ class TradeGrid(wx.grid.Grid):
 class AccountDataGrid(wx.grid.Grid):
     def __init__(self, *args, **kwargs):
         wx.grid.Grid.__init__(self, *args, **kwargs)
+
+class MegaTable(wx.grid.PyGridTableBase): 
+    """ 
+    A custom wxGrid Table using user supplied data 
+    """ 
+    def __init__(self, data, colnames, plugins = {}): 
+        """data is a list of the form 
+        [(rowname, dictionary), 
+        dictionary.get(colname, None) returns the data for column 
+        colname 
+        """
+        # The base class must be initialized *first* 
+        wx.grid.PyGridTableBase.__init__(self) 
+        self.data = data 
+        self.colnames = colnames 
+        self.plugins = plugins or {} 
+        # XXX 
+        # we need to store the row length and collength to 
+        # see if the table has changed size 
+        self._rows = self.GetNumberRows() 
+        self._cols = self.GetNumberCols() 
+
+    def GetNumberCols(self): 
+        return len(self.colnames) 
+
+    def GetNumberRows(self): 
+        return len(self.data) 
+
+    def GetColLabelValue(self, col): 
+        return self.colnames[col] 
+
+    def GetRowLabelValues(self, row): 
+        return self.data[row][0] 
+
+    def GetValue(self, row, col): 
+        return str(self.data[row][1].get(self.GetColLabelValue(col), "")) 
+
+    def GetRawValue(self, row, col): 
+        return self.data[row][1].get(self.GetColLabelValue(col), "") 
+
+    def SetValue(self, row, col, value): 
+        self.data[row][1][self.GetColLabelValue(col)] = value 
+
+    def ResetView(self, grid): 
+        """ 
+        (wxGrid) -> Reset the grid view.   Call this to 
+        update the grid if rows and columns have been added or deleted 
+        """ 
+        grid.BeginBatch() 
+        for current, new, delmsg, addmsg in [ 
+            (self._rows, self.GetNumberRows(), wxGRIDTABLE_NOTIFY_ROWS_DELETED, wxGRIDTABLE_NOTIFY_ROWS_APPENDED), 
+            (self._cols, self.GetNumberCols(), wxGRIDTABLE_NOTIFY_COLS_DELETED, wxGRIDTABLE_NOTIFY_COLS_APPENDED), 
+        ]: 
+            if new < current: 
+                msg = wxGridTableMessage(self,delmsg,new,current-new) 
+                grid.ProcessTableMessage(msg) 
+            elif new > current: 
+                msg = wxGridTableMessage(self,addmsg,new-current) 
+                grid.ProcessTableMessage(msg) 
+                self.UpdateValues(grid) 
+        grid.EndBatch() 
+            
+        self._rows = self.GetNumberRows() 
+        self._cols = self.GetNumberCols() 
+        # update the column rendering plugins 
+        self._updateColAttrs(grid) 
+        
+        # XXX 
+        # Okay, this is really stupid, we need to "jiggle" the size 
+        # to get the scrollbars to recalibrate when the underlying 
+        # grid changes. 
+        h,w = grid.GetSize() 
+        grid.SetSize((h+1, w)) 
+        grid.SetSize((h, w)) 
+        grid.ForceRefresh() 
+
+    def UpdateValues(self, grid): 
+        """Update all displayed values""" 
+        # This sends an event to the grid table to update all of the values 
+        msg = wxGridTableMessage(self, wxGRIDTABLE_REQUEST_VIEW_GET_VALUES) 
+        grid.ProcessTableMessage(msg) 
+
+    def _updateColAttrs(self, grid): 
+        """ 
+        wxGrid -> update the column attributes to add the 
+        appropriate renderer given the column name.  (renderers 
+        are stored in the self.plugins dictionary) 
+
+        Otherwise default to the default renderer. 
+        """ 
+        col = 0 
+        for colname in self.colnames: 
+            attr = wxGridCellAttr() 
+            if colname in self.plugins: 
+                renderer = self.plugins[colname](self) 
+                if renderer.colSize: 
+                    grid.SetColSize(col, renderer.colSize) 
+                if renderer.rowSize: 
+                    grid.SetDefaultRowSize(renderer.rowSize) 
+                attr.SetReadOnly(true) 
+                attr.SetRenderer(renderer) 
+            grid.SetColAttr(col, attr) 
+            col += 1 
+                
+    # ------------------------------------------------------ 
+    # begin the added code to manipulate the table (non wx related) 
+    def AppendRow(self, row): 
+        entry = {} 
+        for name in self.colnames: 
+            entry[name] = "Appended_%i"%row 
+        # XXX Hack 
+        # entry["A"] can only be between 1..4 
+        entry["A"] = random.choice(range(4)) 
+        self.data.insert(row, ["Append_%i"%row, entry]) 
+
+    def DeleteCols(self, cols): 
+        """ 
+        cols -> delete the columns from the dataset 
+        cols hold the column indices 
+        """ 
+        # we'll cheat here and just remove the name from the 
+        # list of column names.  The data will remain but 
+        # it won't be shown 
+        deleteCount = 0 
+        cols = cols[:] 
+        cols.sort() 
+        for i in cols: 
+            self.colnames.pop(i-deleteCount) 
+            # we need to advance the delete count 
+            # to make sure we delete the right columns 
+            deleteCount += 1 
+        if not len(self.colnames): 
+            self.data = [] 
+            
+    def DeleteRows(self, rows): 
+        """ 
+        rows -> delete the rows from the dataset 
+        rows hold the row indices 
+        """ 
+        deleteCount = 0 
+        rows = rows[:] 
+        rows.sort() 
+        for i in rows: 
+            self.data.pop(i-deleteCount) 
+            # we need to advance the delete count 
+            # to make sure we delete the right rows 
+            deleteCount += 1 
+
+    def SortColumn(self, col): 
+        """ 
+        col -> sort the data based on the column indexed by col 
+        """ 
+        name = self.colnames[col] 
+        _data = [] 
+        for row in self.data: 
+            rowname, entry = row 
+            _data.append((entry.get(name, None), row)) 
+
+        _data.sort() 
+        self.data = [] 
+        for sortvalue, row in _data: 
+            self.data.append(row) 
+
+    # end table manipulation code 
+    # ---------------------------------------------------------- 
+class MegaGrid(wx.grid.Grid): 
+    def __init__(self, parent, data, colnames, plugins=None, size=(1000,680), pos=(0,50), enable_editing = False
+        ): 
+        """parent, data, colnames, plugins=None 
+        Initialize a grid using the data defined in data and colnames 
+        (see MegaTable for a description of the data format) 
+        plugins is a dictionary of columnName -> column renderers. 
+        """ 
+        
+        # The base class must be initialized *first* 
+        wx.grid.Grid.__init__(self, parent, -1, size = size, pos = pos) 
+        self._table = MegaTable(data, colnames, plugins) 
+        self.SetTable(self._table) 
+        self._plugins = plugins 
+
+        wx.grid.EVT_GRID_LABEL_RIGHT_CLICK(self, self.OnLabelRightClicked)
+        self.EnableEditing(enable_editing)
+
+    def Reset(self): 
+        """reset the view based on the data in the table.  Call 
+        this when rows are added or destroyed""" 
+        self._table.ResetView(self) 
+
+    def OnLabelRightClicked(self, evt): 
+        # Did we click on a row or a column? 
+        row, col = evt.GetRow(), evt.GetCol() 
+        if row == -1: self.colPopup(col, evt) 
+        elif col == -1: self.rowPopup(row, evt) 
+
+    def rowPopup(self, row, evt): 
+        """(row, evt) -> display a popup menu when a row label is right clicked""" 
+        appendID = wxNewId() 
+        deleteID = wxNewId() 
+        x = self.GetRowSize(row)/2 
+        if not self.GetSelectedRows(): 
+            self.SelectRow(row) 
+        menu = wxMenu() 
+        xo, yo = evt.GetPosition() 
+        menu.Append(appendID, "Append Row") 
+        menu.Append(deleteID, "Delete Row(s)") 
+
+        def append(event, self=self, row=row): 
+            self._table.AppendRow(row) 
+            self.Reset() 
+
+        def delete(event, self=self, row=row): 
+            rows = self.GetSelectedRows() 
+            self._table.DeleteRows(rows) 
+            self.Reset() 
+
+        EVT_MENU(self, appendID, append) 
+        EVT_MENU(self, deleteID, delete) 
+        self.PopupMenu(menu, wxPoint(x, yo)) 
+        menu.Destroy() 
+    
+    def colPopup(self, col, evt): 
+        """(col, evt) -> display a popup menu when a column label is 
+        right clicked""" 
+        x = self.GetColSize(col)/2 
+        menu = wxMenu() 
+        id1 = wxNewId() 
+        sortID = wxNewId() 
+        
+        xo, yo = evt.GetPosition() 
+        self.SelectCol(col) 
+        cols = self.GetSelectedCols() 
+        self.Refresh() 
+        menu.Append(id1, "Delete Col(s)") 
+        menu.Append(sortID, "Sort Column") 
+
+        def delete(event, self=self, col=col): 
+            cols = self.GetSelectedCols() 
+            self._table.DeleteCols(cols) 
+            self.Reset() 
+            
+        def sort(event, self=self, col=col): 
+            self._table.SortColumn(col) 
+            self.Reset() 
+            
+        EVT_MENU(self, id1, delete) 
+        if len(cols) == 1: 
+            EVT_MENU(self, sortID, sort) 
+        self.PopupMenu(menu, wxPoint(xo, 0)) 
+        menu.Destroy() 
+
+# -------------------------------------------------------------------- 
+# Sample wxGrid renderers 
+
 # ###########################################################################################
 
 # ############ Spreadsheet Functions ########################################################
-def create_spreadsheet_from_stock_list(spreadsheet, stock_list):
-    spreadsheet.EnableEditing(False)
-
-
+# # Had to switch to mega grids because data got too large!
+def create_megagrid_from_stock_list(stock_list, parent, size=config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1]):
     # Find all attribute names
-    attribute_list = []
-    all_attribute_list = []
-    for stock in stock_list:
-        all_attribute_list = all_attribute_list + list(dir(stock))
-        all_attribute_list = set(all_attribute_list) # remove duplicates
-        all_attribute_list = list(all_attribute_list)
-    # Eliminate non-finance related attributes
-    for attribute in all_attribute_list:
-        if not attribute.startswith('_'):
-            attribute_list.append(str(attribute))
-    # Sort for readability
+    attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
     attribute_list.sort(key=lambda x: x.lower())
 
     # adjust list order for important terms
     try:
-        attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+        attribute_list.insert(0, 'symbol')
     except Exception, e:
         print line_number(), e
     try:
-        attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+        attribute_list.insert(1, 'firm_name')
     except Exception, e:
         print line_number(), e
-    #print line_number(), attribute_list
 
-    row_count = 0
-    col_count = 0
 
-    # set first row attribute names
-    for attribute in attribute_list:
-        spreadsheet.SetColLabelValue(col_count, str(attribute))
-        col_count += 1
-    col_count = 0
-
-    # fill in the stocks' values
-    for stock in stock_list:
-        for attribute in attribute_list:
-            try:
-                spreadsheet.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-            except:
-                pass
-            col_count += 1
-        row_count += 1
-        col_count = 0
-    
-    # resize calumns
-    spreadsheet.AutoSizeColumns()
+    # Create correctly sized grid
+    """data is a list of the form 
+    [(rowname, dictionary), 
+    dictionary.get(colname, None) returns the data for column 
+    colname 
+    """
+    data = [("",{})]
+    # remove stocks that failed to load
+    stock_list = [stock for stock in stock_list if stock is not None]
+    if stock_list:
+        try:
+            data = [(stock_list.index(stock), stock.__dict__) for stock in stock_list]
+        except Exception, e:
+            print line_number(), e
+            pp.pprint(stock_list)
+    spreadsheet = MegaGrid(parent = parent, data = data, colnames = attribute_list, size=size, pos=pos)
+    #spreadsheet.SetColSize(1, renderer.colSize)
+    spreadsheet.AutoSizeColumn(1)
     return spreadsheet
 
-def create_spread_sheet(
-    wxWindow, 
-    stock_list, 
-    held_ticker_list = [] # not used currentlly
-    , height = 637
-    , width = 980
-    , position = (0,60)
-    , enable_editing = False
-    ):
+Ranked_Tuple_Reference = namedtuple("Ranked_Tuple_Reference", ["value", "stock"])
+def create_ranked_megagrid_from_tuple_list(ranked_tuple_list, parent, rank_name, size=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1]):
+    'ranked named_tuple reference: ["value", "stock"], rank_name should be obtained from a dropdown'
 
-    irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
+    # Find all attribute names
+    attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
 
-
-    config.TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = [] # Clear update list
-    for stock in stock_list:
-        #print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'     
-        for update_attribute in config.STOCK_SCRAPE_UPDATE_ATTRIBUTES:
-
-            if not getattr(stock, update_attribute):
-                config.TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST.append([stock.symbol, update_attribute])
-                #print "Stock %s's %s attribute is not up to date, you should consider updating" % (stock.symbol, update_attribute)
-
-    print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
+    # adjust list order for important terms
+    try:
+        attribute_list.insert(0, 'symbol')
+    except Exception, e:
+        print line_number(), e
+    try:
+        attribute_list.insert(1, 'firm_name')
+    except Exception, e:
+        print line_number(), e
+    attribute_list.insert(2, rank_name)
 
 
-    # if include_analyst_estimates:
-    #   analyst_estimate_data_absent = True
-    #   for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
-    #       if str(ticker) == str(analyst_estimate_data.symbol):
-    #           analyst_estimate_list.append(analyst_estimate_data)
-    #           analyst_estimate_data_absent = False
-    #   if analyst_estimate_data_absent:
-    #       logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
+    # Create correctly sized grid
+    """data is a list of the form 
+    [(rowname, dictionary), 
+    dictionary.get(colname, None) returns the data for column 
+    colname 
+    """
+    data = []
+    for this_tuple in ranked_tuple_list:
+        index = ranked_tuple_list.index(this_tuple)
+        stock_dict = this_tuple.stock.__dict__
+        stock_dict[rank_name] = this_tuple.value
+        data.append((index, stock_dict))
 
-
-
-    num_rows = len(stock_list)
-    num_columns = 0
-
-
-    attribute_list = []
-    # Here we make columns for each attribute to be included
-    for stock in stock_list:
-        for attribute in dir(stock):
-            if not attribute.startswith('_'):
-                if attribute not in config.IRRELEVANT_ATTRIBUTES:
-                    if attribute not in attribute_list:
-                        attribute_list.append(str(attribute))
-        if num_columns < len(attribute_list):
-            num_columns = len(attribute_list)       
-                                    
-        ##### Below is sort of out of date but i don't want to get rid of the code incase i encounter problems with annual data later it can serve as a template
-        # if include_annual_data:
-        #   for annual_data in annual_data_list:
-        #       if str(stock.symbol) == str(annual_data.symbol):
-        #           for attribute in dir(annual_data):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in irrelevant_attributes:
-        #                       if not attribute[-3:] in ["t1y", "t2y"]: # this checks to see that only most recent annual data is shown. this hack is good for 200 years!!!
-        #                           if str(attribute) != 'symbol': # here symbol will appear twice, once for stock, and another time for annual data, in the attribute list below it will be redundant and not added, but if will here if it's not skipped
-        #                               num_attributes += 1
-        #                               if attribute not in attribute_list:
-        #                                   attribute_list.append(str(attribute))
-        
-        # if include_analyst_estimates:
-        #   for estimate_data in analyst_estimate_list:
-        #       if str(stock.symbol) == str(estimate_data.symbol):
-        #           for attribute in dir(estimate_data):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in irrelevant_attributes:
-        #                       num_attributes += 1
-        #                       if attribute not in attribute_list:
-        #                           attribute_list.append(str(attribute))
-
-        ##### Model if adding new data type #####
-        #
-        # if include_data_type:
-        #   for data in data_type:
-        #       if str(stock.symbol) == str(data_type.symbol):
-        #           for attribute in dir(data_type):
-        #               if not attribute.startswith('_'):
-        #                   if attribute not in irrelevant_attributes:
-        #                       num_attributes += 1
-        #                       if attribute not in attribute_list:
-        #                           attribute_list.append(str(attribute))
-
-    if stock_list and not attribute_list:
-        print line_number(), 'Warning: attribute list empty'
-        return
-    # else: loading blank list
-
-    screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
-    screen_grid.CreateGrid(num_rows, num_columns)
-    screen_grid.EnableEditing(enable_editing)
-
-    if attribute_list: # not empty screen loading:
-        attribute_list.sort(key = lambda x: x.lower())
-        # adjust list order for important terms
-        attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-        attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
-
-    wxWindow.full_attribute_list = attribute_list
-    wxWindow.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
-
-
-
-    # fill in grid
-    row_count = 0
-    for stock in stock_list:
-        col_count = 0
-        for attribute in attribute_list:
-            # set attributes to be labels if it's the first run through
-            if row_count == 0:
-                screen_grid.SetColLabelValue(col_count, str(attribute))
-
-            try:
-                # Try to add basic data value
-                screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-                # Add color if relevant
-                if str(stock.ticker) in config.HELD_STOCK_TICKER_LIST:
-                    screen_grid.SetCellBackgroundColour(row_count, col_count, config.HELD_STOCK_COLOR_HEX)
-                # Change text red if value is negative
-                try:
-                    if utils.stock_value_is_negative(stock, attribute):
-                        screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
-                except Exception as exception:
-                    pass
-                    #print line_number(), exception
-            except Exception as exception:
-                pass
-                #print line_number(), exception
-            col_count += 1
-        row_count += 1
-    screen_grid.AutoSizeColumns()
-
-    return screen_grid
+    spreadsheet = MegaGrid(parent = parent, data = data, colnames = attribute_list, size=size, pos=pos)
+    #spreadsheet.SetColSize(1, renderer.colSize)
+    spreadsheet.AutoSizeColumn(1)
+    return spreadsheet
 
 def create_account_spread_sheet(
     wxWindow, 
@@ -4412,11 +4302,12 @@ def create_spread_sheet_for_one_stock(
     if stock:
         for attribute in dir(stock):
             if not attribute.startswith('_'):
-                if attribute not in attribute_list:
-                    num_attributes += 1
-                    attribute_list.append(str(attribute))
-                else:
-                    print "%s.%s" % (ticker, attribute), "is a duplicate"
+                if attribute not in config.CLASS_ATTRIBUTES:
+                    if attribute not in attribute_list:
+                        num_attributes += 1
+                        attribute_list.append(str(attribute))
+                    else:
+                        print "%s.%s" % (ticker, attribute), "is a duplicate"
 
     
     if num_rows < num_attributes:

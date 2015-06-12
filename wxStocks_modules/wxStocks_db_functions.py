@@ -9,11 +9,12 @@ import wxStocks_utilities as utils
 
 import traceback, sys
 
-ticker_path = 'wxStocks_modules/wxStocks_data/ticker.pk'
-all_stocks_path = 'wxStocks_modules/wxStocks_data/all_stocks_dict.pk'
-screen_dict_path = 'wxStocks_modules/wxStocks_data/screen_dict.pk'
-named_screen_path = 'wxStocks_modules/wxStocks_data/screen-%s.pk'
-screen_name_and_time_created_tuple_list_path = 'wxStocks_modules/wxStocks_data/screen_names_and_times_tuple_list.pk'
+ticker_path = 'wxStocks_data/ticker.pk'
+all_stocks_path = 'wxStocks_data/all_stocks_dict.pk'
+all_attributes_path = 'wxStocks_data/all_attributes_set.pk'
+screen_dict_path = 'wxStocks_data/screen_dict.pk'
+named_screen_path = 'wxStocks_data/screen-%s.pk'
+screen_name_and_time_created_tuple_list_path = 'wxStocks_data/screen_names_and_times_tuple_list.pk'
 secure_file_folder = 'DO_NOT_COPY'
 portfolios_path = 'DO_NOT_COPY/portfolios.%s'
 portfolio_account_obj_file_path = 'DO_NOT_COPY/portfolio_%d_data.%s'
@@ -30,7 +31,7 @@ default_xls_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_
 portfolio_import_path = 'wxStocks_portfolio_import_functions.py'
 default_portfolo_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_portfolio_import_functions.py'
 do_not_copy_path = 'DO_NOT_COPY'
-encryption_strength_path = 'wxStocks_modules/wxStocks_data/encryption_strength.txt'
+encryption_strength_path = 'wxStocks_data/encryption_strength.txt'
 
 
 ####################### Data Loading ###############################################
@@ -74,6 +75,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 	if symbol.isalpha():
 		pass
 	else:
+		print symbol
 		if "." in symbol:
 			pass
 		if "^" in symbol:
@@ -111,6 +113,22 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 			symbol = symbol.replace(" PR", ".P")
 		# Finally:
 		# if morningstar preferred notation "XXXPRX", i don't know how to fix that since "PRE" is a valid ticker
+	
+	if not symbol.isalpha():
+		index_to_replace_list = []
+		for char in symbol:
+			if not char.isalpha():
+				if char != ".": #something is very broken
+					print line_number()
+					print "illegal ticker symbol:", symbol
+					print "will replace with underscores"
+					index_to_replace_list.append(symbol.index(char))
+		if index_to_replace_list:
+			symbol = list(symbol)
+			for index_instance in index_to_replace_list:
+				symbol[index_instance] = "_"
+			symbol = "".join(symbol)
+
 
 	stock = config.GLOBAL_STOCK_DICT.get(symbol)
 	if stock:
@@ -120,6 +138,14 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 		stock = wxStocks_classes.Stock(symbol)
 		config.GLOBAL_STOCK_DICT[symbol] = stock
 		return stock
+def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
+	full_attribute_name = attribute_name + data_source_suffix
+	if value is not None:
+		setattr(Stock, full_attribute_name, str(value))
+	else:
+		setattr(Stock, full_attribute_name, None)
+	if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
+		config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
 def load_GLOBAL_STOCK_DICT():
 	print line_number(), "Loading GLOBAL_STOCK_DICT: this may take a couple of minutes..."
 	try:
@@ -132,13 +158,34 @@ def load_GLOBAL_STOCK_DICT():
 		print line_number(), e
 		stock_dict = config.GLOBAL_STOCK_DICT
 		with open(all_stocks_path, 'wb') as output:
-			pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)		
-	return
+			pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)	
+	load_GLOBAL_ATTRIBUTE_SET()
 def save_GLOBAL_STOCK_DICT():
 	print line_number(), "Saving GLOBAL_STOCK_DICT"
 	stock_dict = config.GLOBAL_STOCK_DICT
 	with open(all_stocks_path, 'wb') as output:
 		pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
+
+	# save the attribute set when doing this
+	save_GLOBAL_ATTRIBUTE_SET()
+def load_GLOBAL_ATTRIBUTE_SET():
+	print line_number(), "Loading GLOBAL_ATTRIBUTE_SET: this may take a couple of minutes..."
+	try:
+		pickled_file = open(all_attributes_path, 'rb')
+		attribute_set = pickle.load(pickled_file)
+		config.GLOBAL_ATTRIBUTE_SET = attribute_set
+
+	except Exception, e:
+		print "If this is your first time opening wxStocks, please ignore the following exception, otherwise, your previously saved data may have been deleted."
+		print line_number(), e
+		attribute_set = config.GLOBAL_ATTRIBUTE_SET
+		with open(all_attributes_path, 'wb') as output:
+			pickle.dump(attribute_set, output, pickle.HIGHEST_PROTOCOL)
+def save_GLOBAL_ATTRIBUTE_SET():
+	print line_number(), "Saving GLOBAL_ATTRIBUTE_SET"
+	attribute_set = config.GLOBAL_ATTRIBUTE_SET
+	with open(all_attributes_path, 'wb') as output:
+		pickle.dump(attribute_set, output, pickle.HIGHEST_PROTOCOL)
 
 ### Stock screen loading information
 def load_GLOBAL_STOCK_SCREEN_DICT():

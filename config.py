@@ -1,7 +1,9 @@
 ### Editable globals that may improve your performance ###
 
 STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
-DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
+
+DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "Exchange_na"
+SECONDARY_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
 
 DEFAULT_COMMISSION = 10.00
 
@@ -33,6 +35,20 @@ TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = float(24*60*6
 DEFAULT_ROWS_ON_SALE_PREP_PAGE = 9
 DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
 # adjust these to your own preference
+
+# these will depend on your preferred data sources
+DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastTradePriceOnly_yf"
+DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = "AverageDailyVolume_yf"
+#--
+SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
+SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
+#---
+TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
+TERTIARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
+#----
+QUATERNARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
+QUATERNARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
+#-------------------------------------------------
 
 
 IRRELEVANT_ATTRIBUTES = ["updated",
@@ -100,10 +116,32 @@ IRRELEVANT_ATTRIBUTES = ["updated",
 	"p_200_DayMovingAverage_yf"
 	]
 # these attributes will not show up on most spreadsheets
+CLASS_ATTRIBUTES = ["testing_reset_fields",
+	"nasdaq_symbol",
+	"aaii_symbol",
+	"yahoo_symbol",
+	"morningstar_symbol",
+	"yql_ticker",
+	"epoch",
+	"created_epoch",
+	"updated",
+	"ticker_relevant",
+	"last_yql_basic_scrape_update",
+	"last_balance_sheet_update_yf",
+	"last_balance_sheet_update_ms",
+	"last_cash_flow_update_yf",
+	"last_cash_flow_update_ms",
+	"last_income_statement_update_yf",
+	"last_income_statement_update_ms",
+	"last_key_ratios_update_ms",
+	"last_aaii_update_aa",
+	"held_list"
+	]
 
 NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR = 100
 # when downloading tickers, if more than this number of tickers appear to have fallen off the exchange
 # it is probably the case that something went wrong, rather than it being a legitimate number.
+
 
 STOCK_SCRAPE_UPDATE_ATTRIBUTES = ["last_yql_basic_scrape_update",
 	
@@ -125,12 +163,18 @@ NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX = "#8A0002"
 
 NUMBER_OF_DEFAULT_PORTFOLIOS = 3
 
+FULL_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,637),(0,50)) # size=(width, height), pos=(x-axis, y-axis)
+RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,637),(0,60))
+RANK_PAGE_ATTRIBUTES_THAT_DO_NOT_SORT_REVERSED = ["symbol", "firm_name"]
+
 ###################################################################################################
 ################# Do not edit below, all are reset to saved values on startup #####################
 ###################################################################################################
 GLOBAL_STOCK_DICT = {}
 
 GLOBAL_TICKER_LIST = []
+
+GLOBAL_ATTRIBUTE_SET = set([])
 
 ENCRYPTION_POSSIBLE = None
 ENCRYPTION_HARDNESS_LEVEL = None
@@ -173,7 +217,7 @@ TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = []
 
 HELD_STOCK_TICKER_LIST = []
 
-
+CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
 
 
 

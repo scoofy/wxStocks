@@ -1,4 +1,4 @@
-import time, datetime, inspect, config
+import time, datetime, inspect, config, sys
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 def line_number():
@@ -39,7 +39,7 @@ class Stock(object):
 			self.morningstar_symbol = symbol
 
 			self.yql_ticker = symbol
-		else:
+		elif ("." in symbol) or ("^" in symbol) or ("/" in symbol) or ("-" in symbol) or (" PR" in symbol):
 			if "." in symbol:
 				if ".P" in symbol:
 					# preferred
@@ -140,8 +140,27 @@ class Stock(object):
 				
 				self.yql_ticker = symbol.replace(" PR", "-P")
 
+
 			# Finally:
 			# if morningstar preferred notation "XXXPRX", i don't know how to fix that since "PRE" is a valid ticker
+
+
+		elif "_" in symbol:
+			self.symbol = symbol
+			self.ticker = symbol
+
+			self.nasdaq_symbol = None
+			self.aaii_symbol = symbol
+			self.yahoo_symbol = None
+			self.morningstar_symbol = None
+			self.yql_ticker = None
+
+		else: #something is very broken, and must be fixed immediately
+			print line_number()
+			print "illegal ticker symbol:", symbol
+			print "the program will now close without saving, you need to add this to the wxStocks_classes exceptions list immediately."
+			sys.exit()
+
 
 		self.firm_name = ""
 

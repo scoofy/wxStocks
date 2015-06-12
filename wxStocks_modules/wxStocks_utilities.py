@@ -30,6 +30,7 @@ def return_stock_by_symbol(ticker_symbol):
 		return None
 
 def return_all_stocks():
+	import re
 	stock_list = list(config.GLOBAL_STOCK_DICT.values())
 	stock_list.sort(key = lambda x: x.symbol)
 	return stock_list
@@ -350,21 +351,6 @@ def contains_digits(some_string):
     return False
 def first_character_is_digit(some_string):
 	return some_string[0].isdigit()
-
-def return_list_of_all_stocks_from_active_memory():
-	stock_list = []
-	for obj in gc.get_objects():
-		if type(obj) is Stock:
-			stock_list.append(obj)
-	stock_list.sort(key = lambda x: x.symbol)
-	return stock_list
-def return_stock_from_active_memory(ticker):
-	ticker = ticker.upper()
-	for obj in gc.get_objects():
-		if type(obj) is Stock:
-			if obj.symbol == ticker:
-				return obj
-
 
 def return_dictionary_of_object_attributes_and_values(obj):
 	attribute_list = []
