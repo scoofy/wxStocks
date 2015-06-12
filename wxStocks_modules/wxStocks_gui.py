@@ -93,11 +93,8 @@ class MainFrame(wx.Frame): # reorder tab postions here
         self.view_data_page = ViewDataPage(notebook)
         notebook.AddPage(self.view_data_page, "View Data")
 
-        self.meta_screen_page = MetaScreenPage(notebook)
-        notebook.AddPage(self.meta_screen_page, "Screen")
-
-        self.rank_page = RankPage(notebook)
-        notebook.AddPage(self.rank_page, "Rank")
+        self.analyse_page = AnalysePage(notebook)
+        notebook.AddPage(self.analyse_page, "Analyse Data")
 
         self.sale_prep_page = SalePrepPage(notebook)
         notebook.AddPage(self.sale_prep_page, "Sale Prep")
@@ -1353,23 +1350,28 @@ class StockDataPage(Tab):
 ###
 
 ####
-class MetaScreenPage(Tab):
+
+#####
+class AnalysePage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         ####
-        meta_screen_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
-        meta_screen_notebook = wx.Notebook(meta_screen_page_panel)
+        analyse_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        analyse_notebook = wx.Notebook(analyse_panel)
 
-        self.screen_page = ScreenPage(meta_screen_notebook)
-        meta_screen_notebook.AddPage(self.screen_page, "Screen")
+        self.screen_page = ScreenPage(analyse_notebook)
+        analyse_notebook.AddPage(self.screen_page, "Screen")
 
-        self.saved_screen_page = SavedScreenPage(meta_screen_notebook)
-        meta_screen_notebook.AddPage(self.saved_screen_page, "View Saved Screens")
+        self.saved_screen_page = SavedScreenPage(analyse_notebook)
+        analyse_notebook.AddPage(self.saved_screen_page, "View Saved Screens")
+
+        self.rank_page = RankPage(analyse_notebook)
+        analyse_notebook.AddPage(self.rank_page, "Rank")
 
         sizer2 = wx.BoxSizer()
-        sizer2.Add(meta_screen_notebook, 1, wx.EXPAND)
+        sizer2.Add(analyse_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
-        ####
+
 class ScreenPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -1599,7 +1601,6 @@ class SavedScreenPage(Tab):
         self.spreadsheet.Show()
 
         self.delete_screen_button.Show()
-####
 class RankPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -1660,7 +1661,7 @@ class RankPage(Tab):
 
 
         self.currently_viewed_screen = None
-        self.clear_button = wx.Button(self, label="clear", pos=(900,4), size=(-1,-1))
+        self.clear_button = wx.Button(self, label="clear", pos=(890,4), size=(-1,-1))
         self.clear_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_button)
         self.clear_button.Hide()
 
@@ -1936,6 +1937,7 @@ class RankPage(Tab):
         self.createRankedSpreadsheet(sorted_tuple_list, sort_field)
 
         self.sort_drop_down.SetStringSelection(sort_field)
+####
 
 class SalePrepPage(Tab):
     def __init__(self, parent):
