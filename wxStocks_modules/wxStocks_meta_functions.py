@@ -22,6 +22,8 @@ def return_function_triple(type_of_functions): # "screen", "rank", "csv_import",
 		import wxStocks_xls_import_functions as function_file
 	elif type_of_functions == "portfolio":
 		import wxStocks_portfolio_import_functions as function_file
+	elif type_of_functions == "analysis":
+		import wxStocks_custom_analysis_functions as function_file
 	else:
 		print line_number(), "Error: No function type defined."
 		return
@@ -33,20 +35,21 @@ def return_function_triple(type_of_functions): # "screen", "rank", "csv_import",
 	function_triple_list = []
 	for module in module_list:
 		for function_tuple in module:
-			if inspect.isfunction(function_tuple[1]) and function_tuple[0] not in functions_to_ignore_list: 
+			if inspect.isfunction(function_tuple[1]) and function_tuple[0] not in functions_to_ignore_list:
 				triple = Function_Reference(function_tuple[0], function_tuple[1], function_tuple[1].__doc__)
-				if len(function_tuple[1].__doc__) > 30:
-					print "\n" * 5
-					print line_number(), "Error: user function doc strings should be less than 30 characters in length"
-					print "\n" * 5
+				if function_tuple[1].__doc__:
+					if len(function_tuple[1].__doc__) > 30:
+						print "\n" * 5
+						print line_number(), "Error: user function doc strings should be less than 30 characters in length"
+						print "\n" * 5
 				function_triple_list.append(triple)
-	
+
 	return function_triple_list
 
 
 def return_screen_function_triple():
 	"""returns screen function 3-tuple of the form (name, function, doc)."""
-	function_triple_list = return_function_triple(type_of_functions = "screen")	
+	function_triple_list = return_function_triple(type_of_functions = "screen")
 	return function_triple_list
 def return_screen_function_full_names():
 	'''returns screen functions full names'''
@@ -68,7 +71,7 @@ def return_screen_functions():
 
 def return_rank_function_triple():
 	"""returns rank function 3-tuple of the form (name, function, doc)."""
-	function_triple_list = return_function_triple(type_of_functions = "rank")		
+	function_triple_list = return_function_triple(type_of_functions = "rank")
 	return function_triple_list
 def return_rank_function_full_names():
 	'''returns rank functions full names'''
@@ -90,7 +93,7 @@ def return_rank_functions():
 
 def return_csv_import_function_triple():
 	"""returns import function 3-tuple of the form (name, function, doc string)."""
-	function_triple_list = return_function_triple(type_of_functions = "csv_import")	
+	function_triple_list = return_function_triple(type_of_functions = "csv_import")
 	return function_triple_list
 def return_csv_import_function_full_names():
 	'''returns csv import functions full names'''
@@ -113,7 +116,7 @@ def return_csv_import_functions():
 
 def return_xls_import_function_triple():
 	"""returns import function 3-tuple of the form (name, function, doc string)."""
-	function_triple_list = return_function_triple(type_of_functions = "xls_import")	
+	function_triple_list = return_function_triple(type_of_functions = "xls_import")
 	return function_triple_list
 def return_xls_import_function_full_names():
 	'''returns csv import functions full names'''
@@ -137,7 +140,7 @@ def return_xls_import_functions():
 # unfinished (? -- not sure if this is still the case)
 def return_portfolio_import_function_triple():
 	"""returns import function 3-tuple of the form (name, function, doc string)."""
-	function_triple_list = return_function_triple(type_of_functions = "portfolio")	
+	function_triple_list = return_function_triple(type_of_functions = "portfolio")
 	return function_triple_list
 def return_portfolio_import_function_full_names():
 	'''returns portfolio import functions full names'''
@@ -157,6 +160,29 @@ def return_portfolio_import_functions():
 	function_list = [x.function for x in triple_list]
 	return function_list
 
+
+
+def return_custom_analysis_function_triple():
+	"""returns custom_analysis function 3-tuple of the form (name, function, doc)."""
+	function_triple_list = return_function_triple(type_of_functions = "analysis")
+	return function_triple_list
+def return_custom_analysis_function_full_names():
+	'''returns custom_analysis functions full names'''
+	triple_list = return_rank_function_triple()
+	full_name_list = [x.name for x in triple_list]
+	return full_name_list
+def return_custom_analysis_function_short_names():
+	'''returns custom_analysis functions doc strings'''
+	triple_list = return_rank_function_triple()
+	short_name_list = []
+	for triple in triple_list:
+		short_name_list.append(triple.doc)
+	return short_name_list
+def return_custom_analysis_functions():
+	'''returns list of custom_analysis functions'''
+	triple_list = return_rank_function_triple()
+	function_list = [x.function for x in triple_list]
+	return function_list
 
 
 

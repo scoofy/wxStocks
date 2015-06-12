@@ -93,7 +93,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         self.view_data_page = ViewDataPage(notebook)
         notebook.AddPage(self.view_data_page, "View Data")
 
-        self.analyse_page = AnalysePage(notebook)
+        self.analyse_page = AnalysisPage(notebook)
         notebook.AddPage(self.analyse_page, "Analyse Data")
 
         self.sale_prep_page = SalePrepPage(notebook)
@@ -1352,7 +1352,7 @@ class StockDataPage(Tab):
 ####
 
 #####
-class AnalysePage(Tab):
+class AnalysisPage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         ####
@@ -1367,6 +1367,9 @@ class AnalysePage(Tab):
 
         self.rank_page = RankPage(analyse_notebook)
         analyse_notebook.AddPage(self.rank_page, "Rank")
+
+        self.personal_analyse_meta_page = CustomAnalysisMetaPage(analyse_notebook)
+        analyse_notebook.AddPage(self.personal_analyse_meta_page, "Custom Analysis")
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(analyse_notebook, 1, wx.EXPAND)
@@ -1937,6 +1940,194 @@ class RankPage(Tab):
         self.createRankedSpreadsheet(sorted_tuple_list, sort_field)
 
         self.sort_drop_down.SetStringSelection(sort_field)
+
+class CustomAnalysisMetaPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        ####
+        personal_analyse_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        meta_analyse_notebook = wx.Notebook(personal_analyse_panel)
+
+        self.user_created_function_page_triples = meta.return_custom_analysis_function_triple()
+        self.user_created_function_page_triples.sort(key = lambda x: x.doc)
+        pp.pprint(self.user_created_function_page_triples)
+        for triple in self.user_created_function_page_triples:
+            self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
+            doc_string = triple.doc
+            function_name = triple.name
+            if doc_string:
+                meta_analyse_notebook.AddPage(self.this_page, doc_string)
+            elif len(function_name) < 30:
+                meta_analyse_notebook.AddPage(self.this_page, function_name)
+            else:
+                meta_analyse_notebook.AddPage(self.this_page, "Custom Analysis " + str(self.user_created_function_page_triples.index(triple) + 1))
+
+
+
+        sizer2 = wx.BoxSizer()
+        sizer2.Add(meta_analyse_notebook, 1, wx.EXPAND)
+        self.SetSizer(sizer2)
+
+class CustomAnalysisPage(Tab):
+    def __init__(self, parent, function_triple, page_index):
+        wx.Panel.__init__(self, parent)
+        self.doc_string = function_triple.doc
+        self.function_name = function_triple.name
+        self.page_index = page_index
+        if self.doc_string:
+            self.panel_name = self.doc_string
+        elif len(self.function_name) < 30:
+            self.panel_name = self.function_name
+        else:
+            self.panel_name = "Custom Analysis " + str(self.page_index)
+        welcome_page_text = wx.StaticText(self, -1,
+                             self.panel_name,
+                             (10,10)
+                             )
+
+        refresh_screen_button = wx.Button(self, label="refresh", pos=(110,5), size=(-1,-1))
+        refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, refresh_screen_button)
+
+        load_screen_button = wx.Button(self, label="add screen", pos=(200,5), size=(-1,-1))
+        load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
+
+        load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
+        load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
+
+        update_additional_data_button = wx.Button(self, label="update additional data", pos=(5,30), size=(-1,-1))
+        update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalData, update_additional_data_button)
+
+
+        self.existing_screen_name_list = []
+        if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
+            self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
+        self.drop_down = wx.ComboBox(self,
+                                     pos=(305, 6),
+                                     choices=self.existing_screen_name_list,
+                                     style = wx.TE_READONLY
+                                     )
+
+
+        self.portfolio_name_tuple_list = []
+        for i in range(len(config.PORTFOLIO_NAMES)):
+            tuple_to_append = [config.PORTFOLIO_NAMES[i], (i+1)]
+            self.portfolio_name_tuple_list.append(tuple_to_append)
+            #print line_number(), self.portfolio_name_tuple_list
+
+        self.accounts_drop_down = wx.ComboBox(self,
+                                     pos=(305, 31),
+                                     choices=config.PORTFOLIO_NAMES,
+                                     style = wx.TE_READONLY
+                                     )
+
+
+        self.currently_viewed_screen = None
+        self.clear_button = wx.Button(self, label="clear", pos=(890,4), size=(-1,-1))
+        self.clear_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_button)
+        self.clear_button.Hide()
+
+        self.sort_button = wx.Button(self, label="Sort by:", pos=(420,30), size=(-1,-1))
+        self.sort_button.Bind(wx.EVT_BUTTON, self.sortStocks, self.sort_button)
+
+        self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
+        sort_drop_down_width = -1
+        if [attribute for attribute in config.GLOBAL_ATTRIBUTE_SET if (len(str(attribute)) > 50)]:
+            sort_drop_down_width = 480
+
+        self.sort_drop_down = wx.ComboBox(self,
+                                     pos=(520, 31),
+                                     choices=self.full_attribute_list,
+                                     style = wx.TE_READONLY,
+                                     size = (sort_drop_down_width, -1)
+                                     )
+        self.sort_button.Hide()
+        self.sort_drop_down.Hide()
+
+        self.rank_triple_list = meta.return_rank_function_triple()
+        self.rank_name_list = meta.return_rank_function_short_names()
+        self.rank_button =  wx.Button(self, label="Rank by:", pos=(420, 5), size=(-1,-1))
+        self.rank_button.Bind(wx.EVT_BUTTON, self.rankStocks, self.rank_button)
+        self.rank_drop_down = wx.ComboBox(self,
+                                     pos=(520, 6),
+                                     choices=self.rank_name_list,
+                                     style = wx.TE_READONLY
+                                     )
+        self.rank_button.Hide()
+        self.rank_drop_down.Hide()
+
+        self.fade_opacity = 255
+        self.screen_grid = None
+        self.spreadsheet = None
+
+        self.rank_name = None
+
+
+        self.ticker_input = wx.TextCtrl(self, -1,
+                                   "",
+                                   (805, 8),
+                                   style=wx.TE_PROCESS_ENTER
+                                   )
+        self.ticker_input.SetHint("ticker")
+        self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
+
+
+        self.load_screen_button = wx.Button(self,
+                                          label="Add stock:",
+                                          pos=(710,5),
+                                          size=(-1,-1)
+                                          )
+
+
+        self.load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, self.load_screen_button)
+
+        self.add_all_stocks_button = wx.Button(self,
+                                          label="Add all stocks",
+                                          pos=(710,31),
+                                          size=(-1,-1)
+                                          )
+        self.add_all_stocks_button.Bind(wx.EVT_BUTTON, self.loadAllStocks, self.add_all_stocks_button)
+        self.all_stocks_currently_used = []
+
+        print line_number(), self.panel_name + " loaded"
+
+    def loadAllStocks(self, event):
+        self.all_stocks_currently_used = utils.return_all_stocks()
+        self.showStocksCurrentlyUsed(self.all_stocks_currently_used)
+
+    def showStocksCurrentlyUsed(self, stock_list):
+        stock_list.sort(key = lambda x: x.symbol)
+        ticker_list_massive_str = ""
+        for stock in stock_list:
+            ticker_list_massive_str += stock.symbol
+            ticker_list_massive_str += "\n"
+        height_var = 60
+        #print line_number()
+        #pp.pprint(config.GLOBAL_STOCK_DICT)
+        file_display = wx.TextCtrl(self, -1,
+                                    ticker_list_massive_str,
+                                    (3, height_var),
+                                    size = (100, 580),
+                                    style = wx.TE_READONLY | wx.TE_MULTILINE ,
+                                    )
+
+    def refreshScreens():
+        pass
+    def loadScreen():
+        pass
+    def loadAccount():
+        pass
+    def updateAdditionalData():
+        pass
+    def clearGrid():
+        pass
+    def sortStocks():
+        pass
+    def rankStocks():
+        pass
+    def createOneStockSpreadSheet():
+        pass
+
+
 ####
 
 class SalePrepPage(Tab):
