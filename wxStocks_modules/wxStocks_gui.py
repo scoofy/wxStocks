@@ -103,7 +103,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         notebook.AddPage(self.trade_page, "Trade")
 
         self.user_functions_page = UserFunctionsPage(notebook)
-        notebook.AddPage(self.user_functions_page, "Functions")
+        notebook.AddPage(self.user_functions_page, "Edit Functions")
 
         # finally, put the notebook in a sizer for the panel to manage
         # the layout
@@ -1950,7 +1950,12 @@ class CustomAnalysisMetaPage(Tab):
 
         self.user_created_function_page_triples = meta.return_custom_analysis_function_triple()
         self.user_created_function_page_triples.sort(key = lambda x: x.doc)
-        pp.pprint(self.user_created_function_page_triples)
+        # print line_number()
+        # for triple in self.user_created_function_page_triples:
+        #    for attribute in dir(triple):
+        #        if not attribute.startswith("_"):
+        #            print getattr(triple, attribute)
+        #    print ""
         for triple in self.user_created_function_page_triples:
             self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
             doc_string = triple.doc
@@ -1973,7 +1978,17 @@ class CustomAnalysisPage(Tab):
         wx.Panel.__init__(self, parent)
         self.doc_string = function_triple.doc
         self.function_name = function_triple.name
+        self.custom_spreadsheet_builder = function_triple.function
+
+        print line_number
+        print self.doc_string
+        print self.function_name
+        print self.custom_spreadsheet_builder
+        print ""
+
         self.page_index = page_index
+        self.panel_name = None
+
         if self.doc_string:
             self.panel_name = self.doc_string
         elif len(self.function_name) < 30:
@@ -1993,10 +2008,6 @@ class CustomAnalysisPage(Tab):
 
         load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
         load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
-
-        update_additional_data_button = wx.Button(self, label="update additional data", pos=(5,30), size=(-1,-1))
-        update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalData, update_additional_data_button)
-
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
@@ -2021,46 +2032,13 @@ class CustomAnalysisPage(Tab):
                                      )
 
 
-        self.currently_viewed_screen = None
         self.clear_button = wx.Button(self, label="clear", pos=(890,4), size=(-1,-1))
         self.clear_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_button)
         self.clear_button.Hide()
 
-        self.sort_button = wx.Button(self, label="Sort by:", pos=(420,30), size=(-1,-1))
-        self.sort_button.Bind(wx.EVT_BUTTON, self.sortStocks, self.sort_button)
-
-        self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
-        sort_drop_down_width = -1
-        if [attribute for attribute in config.GLOBAL_ATTRIBUTE_SET if (len(str(attribute)) > 50)]:
-            sort_drop_down_width = 480
-
-        self.sort_drop_down = wx.ComboBox(self,
-                                     pos=(520, 31),
-                                     choices=self.full_attribute_list,
-                                     style = wx.TE_READONLY,
-                                     size = (sort_drop_down_width, -1)
-                                     )
-        self.sort_button.Hide()
-        self.sort_drop_down.Hide()
-
-        self.rank_triple_list = meta.return_rank_function_triple()
-        self.rank_name_list = meta.return_rank_function_short_names()
-        self.rank_button =  wx.Button(self, label="Rank by:", pos=(420, 5), size=(-1,-1))
-        self.rank_button.Bind(wx.EVT_BUTTON, self.rankStocks, self.rank_button)
-        self.rank_drop_down = wx.ComboBox(self,
-                                     pos=(520, 6),
-                                     choices=self.rank_name_list,
-                                     style = wx.TE_READONLY
-                                     )
-        self.rank_button.Hide()
-        self.rank_drop_down.Hide()
 
         self.fade_opacity = 255
-        self.screen_grid = None
-        self.spreadsheet = None
-
-        self.rank_name = None
-
+        self.custom_spreadsheet = None
 
         self.ticker_input = wx.TextCtrl(self, -1,
                                    "",
@@ -2068,17 +2046,14 @@ class CustomAnalysisPage(Tab):
                                    style=wx.TE_PROCESS_ENTER
                                    )
         self.ticker_input.SetHint("ticker")
-        self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
-
+        self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.addOneStock)
 
         self.load_screen_button = wx.Button(self,
                                           label="Add stock:",
                                           pos=(710,5),
                                           size=(-1,-1)
                                           )
-
-
-        self.load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, self.load_screen_button)
+        self.load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, self.load_screen_button)
 
         self.add_all_stocks_button = wx.Button(self,
                                           label="Add all stocks",
@@ -2086,13 +2061,35 @@ class CustomAnalysisPage(Tab):
                                           size=(-1,-1)
                                           )
         self.add_all_stocks_button.Bind(wx.EVT_BUTTON, self.loadAllStocks, self.add_all_stocks_button)
-        self.all_stocks_currently_used = []
+
+        self.analyse = wx.Button(self,
+                                          label="Analyse",
+                                          pos=(500,31),
+                                          size=(-1,-1)
+                                          )
+        self.analyse.Bind(wx.EVT_BUTTON, self.loadCustomSpreadsheet, self.analyse)
+
+
+        self.all_stocks_currently_included = []
 
         print line_number(), self.panel_name + " loaded"
+    def addOneStock(self, event):
+        ticker = self.ticker_input.GetValue()
+        if str(ticker) == "ticker" or not ticker:
+            return
+        stock = utils.return_stock_by_symbol(ticker)
+        if stock is None:
+            print line_number(), "Error: Stock %s doesn't appear to exist" % ticker
+        if stock in self.all_stocks_currently_included:
+            # it's already included
+            return
+        self.all_stocks_currently_included.append(stock)
+        self.showStocksCurrentlyUsed(self.all_stocks_currently_included)
+
 
     def loadAllStocks(self, event):
-        self.all_stocks_currently_used = utils.return_all_stocks()
-        self.showStocksCurrentlyUsed(self.all_stocks_currently_used)
+        self.all_stocks_currently_included = utils.return_all_stocks()
+        self.showStocksCurrentlyUsed(self.all_stocks_currently_included)
 
     def showStocksCurrentlyUsed(self, stock_list):
         stock_list.sort(key = lambda x: x.symbol)
@@ -2114,6 +2111,56 @@ class CustomAnalysisPage(Tab):
         pass
     def loadScreen():
         pass
+    def loadCustomSpreadsheet(self, event):
+        # notes: so here, we have a 2d grid, so it seems reasonable, that a tuple would
+        # function quite well for position. Perhaps a sort of limiting row, where everything
+        # below it dumps data. Now, the x dimention is fixed, so that's easy to deal with,
+        # the y dimention is not fixed, so dealing with that may be tricky. Maybe use
+        # data types, like fixed-attribute, or custome attibute, and have custom come first
+        # allow iterating at the attribute terminus
+        list_of_spreadsheet_cells = process_user_function.process_custom_analysis_spreadsheet_data(self.all_stocks_currently_included, self.custom_spreadsheet_builder)
+        #print line_number(), list_of_spreadsheet_cells
+        self.custom_spreadsheet = self.create_custom_analysis_spread_sheet(list_of_spreadsheet_cells)
+        self.custom_spreadsheet.Show()
+
+    def create_custom_analysis_spread_sheet(self,
+        cell_list,
+        held_ticker_list = [] # not used currently
+        , height = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0][1]
+        , width = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0][0]
+        , position = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1]
+        , enable_editing = False
+        ):
+
+        num_rows = 0
+        num_columns = 0
+        for cell in cell_list:
+            if cell.row > num_rows:
+                num_rows = cell.row
+            if cell.col > num_columns:
+                num_columns = cell.col
+
+        num_columns += 1 # check and see if it's ordinal or cardinal
+        num_rows += 1   # ditto
+
+        screen_grid = wx.grid.Grid(self, -1, size=(width, height), pos=position)
+        screen_grid.CreateGrid(num_rows, num_columns)
+        screen_grid.EnableEditing(enable_editing)
+
+
+        # fill in grid
+        for cell in cell_list:
+            if cell.text:
+                screen_grid.SetCellValue(cell.row, cell.col, cell.text)
+            # Add color if relevant
+            if cell.background_color:
+                screen_grid.SetCellBackgroundColour(cell.row, cell.col, cell.background_color)
+            if cell.text_color:
+                screen_grid.SetCellTextColour(cell.row, cell.col, cell.text_color)
+        screen_grid.AutoSizeColumns()
+        # deal with colors and shit later, also held stocklist
+        return screen_grid
+
     def loadAccount():
         pass
     def updateAdditionalData():
@@ -2124,8 +2171,7 @@ class CustomAnalysisPage(Tab):
         pass
     def rankStocks():
         pass
-    def createOneStockSpreadSheet():
-        pass
+
 
 
 ####

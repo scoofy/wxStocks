@@ -167,6 +167,7 @@ FULL_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,637),(0,50)) # size=(width, height)
 RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,625),(0,60))
 RANK_PAGE_ATTRIBUTES_THAT_DO_NOT_SORT_REVERSED = ["symbol", "firm_name"]
 PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((960,580),(0,50))
+CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE = ((855,578),(105,58))
 
 ###################################################################################################
 ################# Do not edit below, all are reset to saved values on startup #####################

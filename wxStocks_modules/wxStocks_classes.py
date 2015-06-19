@@ -87,7 +87,7 @@ class Stock(object):
 				# 		self.nasdaq_symbol = symbol
 				# 		self.yahoo_symbol = symbol.replace("/WS","-WT")
 				# 	self.aaii_symbol = None
-				
+
 				# If bloomberg is integrated, this will need to be changed for preferred stock
 				# if "/P" in symbol:
 				# 	pass
@@ -128,7 +128,7 @@ class Stock(object):
 
 					self.yql_ticker = symbol
 			if " PR" in symbol:
-				# AAII preferred 
+				# AAII preferred
 				self.symbol = symbol.replace(" PR", ".P")
 				self.ticker = symbol.replace(" PR", ".P")
 
@@ -137,7 +137,7 @@ class Stock(object):
 				self.yahoo_symbol = symbol.replace(" PR", "-P")
 				self.nasdaq_symbol = symbol.replace(" PR", "^")
 				self.morningstar_symbol = symbol.replace(" PR", "PR")
-				
+
 				self.yql_ticker = symbol.replace(" PR", "-P")
 
 
@@ -172,7 +172,7 @@ class Stock(object):
 		# this will be false if stock falls off major exchanges
 
 		self.last_yql_basic_scrape_update = 0.0
-		
+
 		self.last_balance_sheet_update_yf = 0.0
 		self.last_balance_sheet_update_ms = 0.0
 
@@ -181,7 +181,7 @@ class Stock(object):
 
 		self.last_income_statement_update_yf = 0.0
 		self.last_income_statement_update_ms = 0.0
-		
+
 		self.last_key_ratios_update_ms = 0.0
 
 		self.last_aaii_update_aa = 0.0
@@ -194,7 +194,7 @@ class Stock(object):
 
 	def testing_reset_fields(self):
 		self.last_yql_basic_scrape_update = 0.0
-		
+
 		self.last_balance_sheet_update_yf = 0.0
 		self.last_balance_sheet_update_ms = 0.0
 
@@ -203,7 +203,7 @@ class Stock(object):
 
 		self.last_income_statement_update_yf = 0.0
 		self.last_income_statement_update_ms = 0.0
-		
+
 		self.last_key_ratios_update_ms = 0.0
 
 class Account(object): #portfolio
@@ -238,7 +238,7 @@ class Account(object): #portfolio
 				self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 			else: # Redundent, but i'm leaving it in here in case i need to edit this later.
 				self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
-		
+
 		if updated_ticker_cost_basis_dict:
 			self.update_cost_basises(updated_ticker_cost_basis_dict)
 
@@ -252,7 +252,24 @@ class Account(object): #portfolio
 		else: # Redundent, but i'm leaving it in here in case i need to edit this later.
 			self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 
-
+class CustomAnalysisSpreadsheetCell(object):
+    def __init__(self,
+        row = None, col = None,
+        text = None,
+        background_color = None,
+        text_color = None,
+        font_size = None,
+        bold = False,
+        function = None
+        ):
+        self.row = row
+        self.col = col
+        self.text = text
+        self.background_color = background_color
+        self.text_color = text_color
+        self.font_size = font_size
+        self.bold = bold
+        self.function = function
 
 
 

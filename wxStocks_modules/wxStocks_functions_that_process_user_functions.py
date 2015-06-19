@@ -34,7 +34,7 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 		print line_number(), four_tuple
 
 		my_tuple = Tuple_Reference(four_tuple[0], four_tuple[1])
-		
+
 		print line_number(), my_tuple.stock.symbol, my_tuple.value
 		print ""
 
@@ -81,7 +81,7 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 				if median_adjusted_tuple.stock == reference_tuple.stock:
 					rank_list_adjustment_list.append(reference_tuple)
 
-		rank_list = rank_list_adjustment_list		
+		rank_list = rank_list_adjustment_list
 	else:
 		# throw 'None' values on the end
 		list_of_relevant_values = []
@@ -99,7 +99,7 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 			rank_list.append(relevant_tuple)
 
 	# return sorted stock tuple list
-	
+
 	return rank_list
 
 def import_xls_via_user_created_function(wxWindow, user_created_function):
@@ -109,23 +109,23 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 	except:
 		print line_number(), "Error: cannot import xls file because xlrd module failed to load"
 		return
-	
+
 	dirname = ''
 	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.xls", wx.OPEN)
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
-		
+
 		#csv_file = open(os.path.join(dirname, filename), 'rb')
-		
+
 		xls_workbook = xlrd.open_workbook(dirname + "/" + filename)
 		dict_list_and_attribute_suffix_tuple = user_created_function(xls_workbook)
-		
+
 	else:
 		dialog.Destroy()
 		return
 	dialog.Destroy()
-	
+
 	# process returned tuple
 	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]
 	success = None
@@ -174,7 +174,7 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
-		
+
 		csv_file = open(os.path.join(dirname, filename), 'rb')
 		dict_list_and_attribute_suffix_tuple = user_created_function(csv_file)
 		csv_file.close()
@@ -227,7 +227,7 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
-		
+
 		csv_file = open(os.path.join(dirname, filename), 'rb')
 
 		account_dict = user_created_function(csv_file)
@@ -268,6 +268,10 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 
 	return account_obj
 
-	
+def process_custom_analysis_spreadsheet_data(stock_list, user_created_function):
+	list_of_spreadsheet_cells = user_created_function(stock_list)
+	return list_of_spreadsheet_cells
+
+
 
 # end of line

@@ -23,7 +23,7 @@ def return_function_triple(type_of_functions): # "screen", "rank", "csv_import",
 	elif type_of_functions == "portfolio":
 		import wxStocks_portfolio_import_functions as function_file
 	elif type_of_functions == "analysis":
-		import wxStocks_custom_analysis_functions as function_file
+		import wxStocks_custom_analysis_spreadsheet_builder as function_file
 	else:
 		print line_number(), "Error: No function type defined."
 		return
@@ -165,6 +165,7 @@ def return_portfolio_import_functions():
 def return_custom_analysis_function_triple():
 	"""returns custom_analysis function 3-tuple of the form (name, function, doc)."""
 	function_triple_list = return_function_triple(type_of_functions = "analysis")
+	function_triple_list = [function_triple for function_triple in function_triple_list if function_triple.name != "namedtuple"]
 	return function_triple_list
 def return_custom_analysis_function_full_names():
 	'''returns custom_analysis functions full names'''
