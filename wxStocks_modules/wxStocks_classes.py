@@ -254,22 +254,29 @@ class Account(object): #portfolio
 
 class CustomAnalysisSpreadsheetCell(object):
     def __init__(self,
-        row = None, col = None,
+        row = None,
+        col = None,
         text = None,
+        col_title = None,
+        row_title = None,
         background_color = None,
         text_color = None,
         font_size = None,
         bold = False,
-        function = None
+        function = None,
+        stock = None # stock being referred to by data
         ):
         self.row = row
         self.col = col
         self.text = text
+        self.col_title = col_title
+        self.row_title = row_title
         self.background_color = background_color
         self.text_color = text_color
         self.font_size = font_size
         self.bold = bold
         self.function = function
+        self.stock = stock
 
 
 

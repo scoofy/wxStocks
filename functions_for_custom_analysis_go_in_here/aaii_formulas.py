@@ -51,14 +51,14 @@ def neff_ratio_5y(Stock): # requires only primary scrape
 
 def neff_5_Year_future_estimate(Stock): # done!
 	'''
-	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
+	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm
 	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
 	'''
 	return neff_ratio_5y(Stock)
 def neff_TTM_historical(Stock, diluted=False):
 	'''
-	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
-	In this formula you can see that I gave triple weight to dividends.  
+	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm
+	In this formula you can see that I gave triple weight to dividends.
 	I thought that over the short run (TTM) dividends represent stability and "Dividends don't lie".
 	-- Robert Schoolfield
 	'''
@@ -73,7 +73,7 @@ def neff_TTM_historical(Stock, diluted=False):
 		pe = float(Stock.PE_aa)
 	except Exception, exception:
 		print exception
-		print line_number(), "%s is missing required data" % (Stock.symbol)
+		print line_number(), "%s is missing required data: .Yield_aa, .EPS_Cont_Growth_12m_aa, or .EPS_Dil_Cont_Growth_12m_aa" % (Stock.symbol)
 		return None
 	if pe:
 		neff_TTM_historical = ((dividend_multiplier * dividend_yield) + eps_continuing_growth)/pe
@@ -115,12 +115,12 @@ def roePercentRank(Stock):
 
 def roePercentDev(Stock):
 	'''
-	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
+	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3))
 
-	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]  
-	This determines how "smooth" the graph is of ROE for the three different years.  
+	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]
+	This determines how "smooth" the graph is of ROE for the three different years.
 	Less than one is "smooth" while greater than one is "not smooth".
-	It also determines if the average ROE over the three years is significantly greater than zero. 
+	It also determines if the average ROE over the three years is significantly greater than zero.
 	'''
 	# ROE = Net Income / Shareholder's Equity
 	try:
@@ -136,15 +136,15 @@ def roePercentDev(Stock):
 		print exception
 		print "the equation will return None"
 		return None
-	
+
 def price_to_book_growth(Stock):
 	'''
 	= Price Growth(over last 3 fiscal years)/Book Value Growth(over last 3 fiscal years)
 	= (Price(Y1)/Price(Y3)) / (Book Value(Y1)/Book Value(Y3))
 	= (Price(Y1)/Price(Y3)) x (Book Value(Y3)/Book Value(Y1))
-	
-	This is a ratio that Warren Buffet likes, so I thought I would throw it in.  
-	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.  
+
+	This is a ratio that Warren Buffet likes, so I thought I would throw it in.
+	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.
 	He likes it around 1.
 	'''
 	price_year_1 = None # this is the present
@@ -157,9 +157,9 @@ def price_to_book_growth(Stock):
 		price_year_3 = float(Stock.Price_Y3_aa)
 		bvps_year_1 = float(Stock.Book_value_to_share_Y1_aa)
 		bvps_year_3 = float(Stock.Book_value_to_share_Y3_aa)
-		
+
 		price_growth_to_book_growth = (price_year_1/price_year_3)/(bvps_year_1/bvps_year_3)
-		return price_growth_to_book_growth		
+		return price_growth_to_book_growth
 	except Exception, exception:
 		print "price_to_book_growth has failed due to the following exception:"
 		print exception
@@ -168,12 +168,12 @@ def price_to_book_growth(Stock):
 		return None
 def price_to_range(Stock):
 	'''
-	= Price to (52 Week Price Range) 
+	= Price to (52 Week Price Range)
 	= ([Current Price] - [52 wk Low Price]) / ([52 wk High Price] - [52 wk Low Price])
 
 	If the current price is close to its 52 wk Low Price, then Prc2Rng is close to zero.
 	If the current price is close to its 52 wk High Price, then Prc2Rng is close to one.
-	If the current price is half way between its 52 wk High Price and its 52 wk Low Price, 
+	If the current price is half way between its 52 wk High Price and its 52 wk Low Price,
 	then Prc2Rng is close to 0.5.
 
 	I like to have it greater than 0.2.
@@ -223,20 +223,20 @@ def longTermDebtToEquity(Stock):
 
 def neffEvEBIT(Stock): #done!
 	'''
-	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
-	With a double weight on Dividends.  
+	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT].
+	With a double weight on Dividends.
 	(Data reported by database for Enterprise Value and EBIT are not per share, but it doesn't matter because:
 	[Enterprise Value/EBIT] = [Enterprise Value per share]/[EBIT per share]
-	i.e. # of shares cancels in the ratio.  
+	i.e. # of shares cancels in the ratio.
 	Also:
-	[EBIT growth %] = [EBIT per share growth %] 
+	[EBIT growth %] = [EBIT per share growth %]
 	are dimensionless ratios (written as percents).
-	
-	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years) 
-	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1) 
-	to the first fiscal year (Y2) before the most recent fiscal year(Y1).  
-	Why I didn't use Y1 I can't remember. The exact name of 
-	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100  
+
+	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years)
+	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1)
+	to the first fiscal year (Y2) before the most recent fiscal year(Y1).
+	Why I didn't use Y1 I can't remember. The exact name of
+	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100
 	(The 100 makes it a percentage value.)
 
 	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])

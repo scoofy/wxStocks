@@ -2080,11 +2080,13 @@ class CustomAnalysisPage(Tab):
         stock = utils.return_stock_by_symbol(ticker)
         if stock is None:
             print line_number(), "Error: Stock %s doesn't appear to exist" % ticker
+            return
         if stock in self.all_stocks_currently_included:
             # it's already included
             return
         self.all_stocks_currently_included.append(stock)
         self.showStocksCurrentlyUsed(self.all_stocks_currently_included)
+        self.ticker_input.SetValue("")
 
 
     def loadAllStocks(self, event):
@@ -2132,6 +2134,9 @@ class CustomAnalysisPage(Tab):
         , enable_editing = False
         ):
 
+        #print line_number()
+        #pp.pprint(cell_list)
+
         num_rows = 0
         num_columns = 0
         for cell in cell_list:
@@ -2150,13 +2155,16 @@ class CustomAnalysisPage(Tab):
 
         # fill in grid
         for cell in cell_list:
-            if cell.text:
-                screen_grid.SetCellValue(cell.row, cell.col, cell.text)
+            screen_grid.SetCellValue(cell.row, cell.col, str(cell.text))
             # Add color if relevant
-            if cell.background_color:
+            if cell.background_color is not None:
                 screen_grid.SetCellBackgroundColour(cell.row, cell.col, cell.background_color)
-            if cell.text_color:
+            if cell.text_color is not None:
                 screen_grid.SetCellTextColour(cell.row, cell.col, cell.text_color)
+            if cell.col_title is not None:
+                screen_grid.SetColLabelValue(cell.col, cell.col_title)
+            if cell.row_title is not None:
+                screen_grid.SetRowLabelValue(cell.row, cell.row_title)
         screen_grid.AutoSizeColumns()
         # deal with colors and shit later, also held stocklist
         return screen_grid
