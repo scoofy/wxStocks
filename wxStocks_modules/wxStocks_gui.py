@@ -1980,12 +1980,6 @@ class CustomAnalysisPage(Tab):
         self.function_name = function_triple.name
         self.custom_spreadsheet_builder = function_triple.function
 
-        print line_number
-        print self.doc_string
-        print self.function_name
-        print self.custom_spreadsheet_builder
-        print ""
-
         self.page_index = page_index
         self.panel_name = None
 
@@ -2000,19 +1994,19 @@ class CustomAnalysisPage(Tab):
                              (10,10)
                              )
 
-        refresh_screen_button = wx.Button(self, label="refresh", pos=(110,5), size=(-1,-1))
-        refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, refresh_screen_button)
+        self.refresh_screen_button = wx.Button(self, label="refresh", pos=(110,5), size=(-1,-1))
+        self.refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, self.refresh_screen_button)
 
-        load_screen_button = wx.Button(self, label="add screen", pos=(200,5), size=(-1,-1))
-        load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
+        self.load_screen_button = wx.Button(self, label="add screen", pos=(200,5), size=(-1,-1))
+        self.load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, self.load_screen_button)
 
-        load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
-        load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
+        self.load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
+        self.load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, self.load_portfolio_button)
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
             self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
-        self.drop_down = wx.ComboBox(self,
+        self.screen_drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
@@ -2032,8 +2026,8 @@ class CustomAnalysisPage(Tab):
                                      )
 
 
-        self.clear_button = wx.Button(self, label="clear", pos=(890,4), size=(-1,-1))
-        self.clear_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_button)
+        self.clear_button = wx.Button(self, label="clear", pos=(840,31), size=(-1,-1))
+        self.clear_button.Bind(wx.EVT_BUTTON, self.clearSpreadsheet, self.clear_button)
         self.clear_button.Hide()
 
 
@@ -2048,12 +2042,12 @@ class CustomAnalysisPage(Tab):
         self.ticker_input.SetHint("ticker")
         self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.addOneStock)
 
-        self.load_screen_button = wx.Button(self,
+        self.add_one_stock_button = wx.Button(self,
                                           label="Add stock:",
                                           pos=(710,5),
                                           size=(-1,-1)
                                           )
-        self.load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, self.load_screen_button)
+        self.add_one_stock_button.Bind(wx.EVT_BUTTON, self.addOneStock, self.add_one_stock_button)
 
         self.add_all_stocks_button = wx.Button(self,
                                           label="Add all stocks",
@@ -2072,7 +2066,12 @@ class CustomAnalysisPage(Tab):
 
         self.all_stocks_currently_included = []
 
+        self.ticker_display = None
+        self.screen_grid = None
+
         print line_number(), self.panel_name + " loaded"
+
+
     def addOneStock(self, event):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker" or not ticker:
@@ -2085,15 +2084,37 @@ class CustomAnalysisPage(Tab):
             # it's already included
             return
         self.all_stocks_currently_included.append(stock)
-        self.showStocksCurrentlyUsed(self.all_stocks_currently_included)
+        self.showStocksCurrentlyUsed()
         self.ticker_input.SetValue("")
 
+    def clearSpreadsheet(self, event):
+        self.all_stocks_currently_included = []
+        self.ticker_input.SetValue("")
+        try:
+            self.ticker_display.Destroy()
+        except Exception, e:
+            print e
+        try:
+            self.screen_grid.Destroy()
+        except Exception, e:
+            print e
+        self.clear_button.Hide()
 
     def loadAllStocks(self, event):
         self.all_stocks_currently_included = utils.return_all_stocks()
         self.showStocksCurrentlyUsed(self.all_stocks_currently_included)
 
-    def showStocksCurrentlyUsed(self, stock_list):
+    def showStocksCurrentlyUsed(self, stock_list = None):
+        if not stock_list and not self.all_stocks_currently_included:
+            return
+
+        try:
+            self.ticker_display.Destroy()
+        except Exception, e:
+            print e
+
+        if not stock_list:
+            stock_list = self.all_stocks_currently_included
         stock_list.sort(key = lambda x: x.symbol)
         ticker_list_massive_str = ""
         for stock in stock_list:
@@ -2102,17 +2123,51 @@ class CustomAnalysisPage(Tab):
         height_var = 60
         #print line_number()
         #pp.pprint(config.GLOBAL_STOCK_DICT)
-        file_display = wx.TextCtrl(self, -1,
+        self.ticker_display = wx.TextCtrl(self, -1,
                                     ticker_list_massive_str,
                                     (3, height_var),
                                     size = (100, 580),
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
+        self.ticker_display.Show()
+        self.clear_button.Show()
 
-    def refreshScreens():
-        pass
-    def loadScreen():
-        pass
+
+    def refreshScreens(self, event):
+        self.screen_drop_down.Hide()
+        self.screen_drop_down.Destroy()
+
+        # Why did i put this here? Leave a note next time moron...
+        time.sleep(2)
+
+        self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+
+
+        self.screen_drop_down = wx.ComboBox(self,
+                                     pos=(305, 6),
+                                     choices=self.existing_screen_name_list,
+                                     style = wx.TE_READONLY
+                                     )
+
+    def loadScreen(self, event):
+        selected_screen_name = self.screen_drop_down.GetValue()
+        try:
+            screen_stock_list = db.load_named_screen(selected_screen_name)
+        except Exception, exception:
+            print line_number(), exception
+            error = wx.MessageDialog(self,
+                                     "Something went wrong. This file doesn't seem to exist.",
+                                     'Error: File Does Not Exist',
+                                     style = wx.ICON_ERROR
+                                     )
+            error.ShowModal()
+            error.Destroy()
+            return
+        for stock in screen_stock_list:
+            if stock not in self.all_stocks_currently_included:
+                self.all_stocks_currently_included.append(stock)
+        self.showStocksCurrentlyUsed()
+
     def loadCustomSpreadsheet(self, event):
         # notes: so here, we have a 2d grid, so it seems reasonable, that a tuple would
         # function quite well for position. Perhaps a sort of limiting row, where everything
@@ -2120,6 +2175,15 @@ class CustomAnalysisPage(Tab):
         # the y dimention is not fixed, so dealing with that may be tricky. Maybe use
         # data types, like fixed-attribute, or custome attibute, and have custom come first
         # allow iterating at the attribute terminus
+
+        if not self.all_stocks_currently_included:
+            return
+
+        try:
+            self.screen_grid.Destroy()
+        except Exception, e:
+            print e
+
         list_of_spreadsheet_cells = process_user_function.process_custom_analysis_spreadsheet_data(self.all_stocks_currently_included, self.custom_spreadsheet_builder)
         #print line_number(), list_of_spreadsheet_cells
         self.custom_spreadsheet = self.create_custom_analysis_spread_sheet(list_of_spreadsheet_cells)
@@ -2148,39 +2212,38 @@ class CustomAnalysisPage(Tab):
         num_columns += 1 # check and see if it's ordinal or cardinal
         num_rows += 1   # ditto
 
-        screen_grid = wx.grid.Grid(self, -1, size=(width, height), pos=position)
-        screen_grid.CreateGrid(num_rows, num_columns)
-        screen_grid.EnableEditing(enable_editing)
+        self.screen_grid = wx.grid.Grid(self, -1, size=(width, height), pos=position)
+        self.screen_grid.CreateGrid(num_rows, num_columns)
+        self.screen_grid.EnableEditing(enable_editing)
 
 
         # fill in grid
         for cell in cell_list:
-            screen_grid.SetCellValue(cell.row, cell.col, str(cell.text))
+            self.screen_grid.SetCellValue(cell.row, cell.col, str(cell.text))
             # Add color if relevant
             if cell.background_color is not None:
-                screen_grid.SetCellBackgroundColour(cell.row, cell.col, cell.background_color)
+                self.screen_grid.SetCellBackgroundColour(cell.row, cell.col, cell.background_color)
             if cell.text_color is not None:
-                screen_grid.SetCellTextColour(cell.row, cell.col, cell.text_color)
+                self.screen_grid.SetCellTextColour(cell.row, cell.col, cell.text_color)
             if cell.col_title is not None:
-                screen_grid.SetColLabelValue(cell.col, cell.col_title)
+                self.screen_grid.SetColLabelValue(cell.col, cell.col_title)
             if cell.row_title is not None:
-                screen_grid.SetRowLabelValue(cell.row, cell.row_title)
-        screen_grid.AutoSizeColumns()
+                self.screen_grid.SetRowLabelValue(cell.row, cell.row_title)
+        self.screen_grid.AutoSizeColumns()
         # deal with colors and shit later, also held stocklist
-        return screen_grid
+        return self.screen_grid
 
-    def loadAccount():
-        pass
-    def updateAdditionalData():
-        pass
-    def clearGrid():
-        pass
-    def sortStocks():
-        pass
-    def rankStocks():
-        pass
-
-
+    def loadAccount(self, event):
+        account_name = self.accounts_drop_down.GetValue()
+        account_index = config.DATA_ABOUT_PORTFOLIOS[1].index(account_name)# this needs to be fixed,
+        # adding one to the index for no reason is dumb
+        account_index = str(account_index + 1)
+        portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(account_index)
+        for ticker in portfolio_obj.stock_shares_dict:
+            stock = utils.return_stock_by_symbol(ticker)
+            if stock not in self.all_stocks_currently_included:
+                self.all_stocks_currently_included.append(stock)
+        self.showStocksCurrentlyUsed()
 
 ####
 

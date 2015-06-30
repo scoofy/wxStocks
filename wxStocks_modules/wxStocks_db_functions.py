@@ -30,6 +30,8 @@ xls_import_path = 'wxStocks_xls_import_functions.py'
 default_xls_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_xls_import_functions.py'
 portfolio_import_path = 'wxStocks_portfolio_import_functions.py'
 default_portfolo_import_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_portfolio_import_functions.py'
+custom_analysis_path = 'wxStocks_custom_analysis_spreadsheet_builder.py'
+default_custom_analysis_path = 'wxStocks_modules/wxStocks_default_functions/wxStocks_default_custom_analysis_spreadsheet_builder.py'
 do_not_copy_path = 'DO_NOT_COPY'
 encryption_strength_path = 'wxStocks_data/encryption_strength.txt'
 
@@ -94,7 +96,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 			# 		self.nasdaq_symbol = symbol
 			# 		self.yahoo_symbol = symbol.replace("/WS","-WT")
 			# 	self.aaii_symbol = None
-			
+
 			# If bloomberg is integrated, this will need to be changed for preferred stock
 			# if "/P" in symbol:
 			# 	pass
@@ -109,11 +111,11 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 				# Yahoo Class
 				symbol = symbol.replace("-", ".")
 		if " PR" in symbol:
-			# AAII preferred 
+			# AAII preferred
 			symbol = symbol.replace(" PR", ".P")
 		# Finally:
 		# if morningstar preferred notation "XXXPRX", i don't know how to fix that since "PRE" is a valid ticker
-	
+
 	if not symbol.isalpha():
 		index_to_replace_list = []
 		for char in symbol:
@@ -158,7 +160,7 @@ def load_GLOBAL_STOCK_DICT():
 		print line_number(), e
 		stock_dict = config.GLOBAL_STOCK_DICT
 		with open(all_stocks_path, 'wb') as output:
-			pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)	
+			pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
 	load_GLOBAL_ATTRIBUTE_SET()
 def save_GLOBAL_STOCK_DICT():
 	print line_number(), "Saving GLOBAL_STOCK_DICT"
@@ -346,6 +348,23 @@ def save_user_portfolio_import_functions(text):
 	with open(portfolio_import_path, "w") as output:
 		output.write(text)
 
+def load_default_custom_analysis_functions():
+	test_file = open(default_custom_analysis_path, 'r')
+	text = test_file.read()
+	test_file.close()
+	return text
+def load_user_custom_analysis_functions():
+	try:
+		function_file = open(custom_analysis_path, 'r')
+		text = function_file.read()
+		function_file.close()
+	except:
+		text = load_default_custom_analysis_functions()
+	return text
+def save_user_custom_analysis_functions(text):
+	with open(custom_analysis_path, "w") as output:
+		output.write(text)
+
 
 ###
 
@@ -450,7 +469,7 @@ def load_DATA_ABOUT_PORTFOLIOS():
 	config.NUMBER_OF_PORTFOLIOS = config.DATA_ABOUT_PORTFOLIOS[0]
 	#print line_number(), config.NUMBER_OF_PORTFOLIOS
 	config.PORTFOLIO_NAMES = []
-	
+
 	# Set config.PORTFOLIO_NAMES
 	for i in range(config.NUMBER_OF_PORTFOLIOS):
 		try:
@@ -551,7 +570,7 @@ def set_password():
 		check_password = getpass.getpass("\nPlease confirm your password by entering it again: ")
 	else:
 		check_password =  raw_input('\nFailing to enter a password will make your data insecure.\nPlease confirm no password by leaving the following entry blank.\nIf you want to use a password, type "retry" and press enter to reset your password: ')
-		
+
 	if password != check_password:
 		print "\nThe passwords you entered did not match.\nPlease try again\n"
 		set_password()
