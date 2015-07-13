@@ -1,4 +1,7 @@
 ### Editable globals that may improve your performance ###
+import locale
+locale.setlocale(locale.LC_ALL, "") # this can be changed to show currency formats differently.
+currency_symbol = "$"
 
 STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
 
@@ -27,20 +30,23 @@ ADDITIONAL_DATA_SCRAPE_SLEEP_TIME = 2
 
 ABORT_YQL_SCRAPE = False
 
-TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = float(60*60* 48) # 48 hours
-# This is how long the program will reject rescraping stocks when looking for stocks that were not saved successfully.
-TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = float(24*60*60* 15) # 15 days
+ONE_DAY = 86400.
 
+TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = ONE_DAY * 2 # 48 hours
+# This is how long the program will reject rescraping stocks when looking for stocks that were not saved successfully.
+TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = ONE_DAY * 15 # 15 days
+
+PORTFOLIO_PRICE_REFRESH_TIME = ONE_DAY * 3 # 3 days
 
 DEFAULT_ROWS_ON_SALE_PREP_PAGE = 9
 DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
 # adjust these to your own preference
 
 # these will depend on your preferred data sources
-DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastTradePriceOnly_yf"
+DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastSale_na"
 DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = "AverageDailyVolume_yf"
 #--
-SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
+SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastTradePriceOnly_yf"
 SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
 #---
 TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
@@ -172,6 +178,10 @@ CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE = ((855,578),(105,58))
 ###################################################################################################
 ################# Do not edit below, all are reset to saved values on startup #####################
 ###################################################################################################
+PAGES_DICT = {}
+
+GLOBAL_TABS_DICT = {}
+
 GLOBAL_STOCK_DICT = {}
 
 GLOBAL_TICKER_LIST = []

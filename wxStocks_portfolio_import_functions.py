@@ -1,10 +1,10 @@
 # Add portfolio import functions below:
-# You can also edit this file (wxStocks_csv_import_functions.py) in your own text editor. 
+# You can also edit this file (wxStocks_csv_import_functions.py) in your own text editor.
 import csv
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
-#	def your_full_csv_import_function_name(csv_file, attribute_suffix = "underscore and two letters"): 
+#	def your_full_csv_import_function_name(csv_file, attribute_suffix = "underscore and two letters"):
 #		"""short name""" # <--- this will appear in import dropdowns
 #
 #		# add some csv processing:
@@ -19,7 +19,30 @@ import csv
 #		# "your_dictionary['cost_basis_dict']" must refer to the relevant dictionary of stocks, indexing their cost basis.
 #		return (dict_list, attribute_suffix)
 
+# okay, new structure:
+
+# cash -> cash
+# change
+
+# stock -> one stock
+# add, subtract, update attribute
+
+# stock dict -> stock dict
+# add, subtract, update attribute
+# but what to do with the unmentioned
+
+# stock dict cost basis -> stock dict cost basis
+# best example of above... what to do if not all are mentioned
+
+
 ################################################################################################################
+def line_number():
+    import inspect
+    """Returns the current line number in our program."""
+    #print 'remove this temporary line number function'
+    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
+
 def schwab_csv(csv_file):
 	"""Schwab Account CSV"""
 	# file is schwab format:
@@ -38,7 +61,7 @@ def schwab_csv(csv_file):
 				washed_row.append(washed_cell)
 			washed_row_list.append(washed_row)
 	new_account_file_data = washed_row_list
-	
+
 	portfolio_data = new_account_file_data
 
 	#print line_number(), self.portfolio_data
@@ -86,11 +109,14 @@ def schwab_csv(csv_file):
 
 def schwab_gain_loss_csv(csv_file):
 	"""Schwab Gain/Loss CSV"""
+	import pprint as pp
 	# file is schwab format:
 	reader = csv.reader(csv_file)
 	row_list = []
 	for row in reader:
 		row_list.append(row)
+	print line_number()
+	pp.pprint(row_list)
 	washed_row_list = []
 	for row in row_list:
 		if row:
@@ -102,7 +128,7 @@ def schwab_gain_loss_csv(csv_file):
 				washed_row.append(washed_cell)
 			washed_row_list.append(washed_row)
 	new_account_file_data = washed_row_list
-	
+
 	portfolio_data = new_account_file_data
 
 	#print line_number(), self.portfolio_data
@@ -114,7 +140,7 @@ def schwab_gain_loss_csv(csv_file):
 		if count <= 1:
 			count += 1
 			continue
-		elif str(row[0]) == "Total":	
+		elif str(row[0]) == "Total":
 			count += 1
 			continue
 		try:
@@ -130,10 +156,10 @@ def schwab_gain_loss_csv(csv_file):
 			pass
 		count += 1
 
-	if not account_dict:
+	if not new_account_cost_basis_dict:
 		#print line_number(), "Error: empty account dictionary to return."
-		return
+		return {}
 
-	return account_dict
+	return new_account_cost_basis_dict
 
 # end of line

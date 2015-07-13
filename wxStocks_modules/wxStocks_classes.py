@@ -171,6 +171,10 @@ class Stock(object):
 		self.ticker_relevant = True
 		# this will be false if stock falls off major exchanges
 
+		# updates
+
+		self.last_nasdaq_scrape_update = 0.0
+
 		self.last_yql_basic_scrape_update = 0.0
 
 		self.last_balance_sheet_update_yf = 0.0
@@ -207,9 +211,10 @@ class Stock(object):
 		self.last_key_ratios_update_ms = 0.0
 
 class Account(object): #portfolio
-	def __init__(self, id_number, cash = 0, initial_ticker_shares_tuple_list = [], initial_ticker_cost_basis_dict = {}):
+	def __init__(self, id_number, name = None, cash = 0, initial_ticker_shares_tuple_list = [], initial_ticker_cost_basis_dict = {}):
 		self.id_number = id_number
-		self.availble_cash = cash # there is a ticker "CASH" that already exists, ugh
+		self.name = name
+		self.available_cash = cash # there is a ticker "CASH" that already exists, ugh
 		self.stock_shares_dict = {}
 		if initial_ticker_shares_tuple_list:
 			for a_tuple in initial_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
@@ -217,11 +222,11 @@ class Account(object): #portfolio
 					# ticker not already in stock share dict
 					self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 				else:
-					# redundant, probably inproperly formatted data
-					pass
+					print line_number(), "Error:", a_tuple[0], "is redundant, probably inproperly formatted data"
 		self.cost_basis_dict = initial_ticker_cost_basis_dict
 
-	def reset_account(cash = 0, new_stock_shares_tuple_list = [], new_ticker_cost_basis_dict = {}):
+	def reset_account(name = None, cash = 0, new_stock_shares_tuple_list = [], new_ticker_cost_basis_dict = {}):
+		self.name = name
 		self.availble_cash = cash
 		self.stock_shares_dict = {}
 		for a_tuple in new_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
@@ -246,17 +251,22 @@ class Account(object): #portfolio
 		for ticker in new_ticker_cost_basis_dict:
 			self.cost_basis_dict[ticker.upper()] = new_ticker_cost_basis_dict.get(ticker.upper())
 
+	def return_ticker_list(self):
+		ticker_list = self.stock_shares_dict.keys()
+		return ticker_list
+
 	def add_stock(stock_shares_tuple):
 		if stock_shares_tuple[0].upper() not in self.stock_shares_dict.keys():
 			self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 		else: # Redundent, but i'm leaving it in here in case i need to edit this later.
 			self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
 
-class CustomAnalysisSpreadsheetCell(object):
+class SpreadsheetCell(object):
     def __init__(self,
         row = None,
         col = None,
         text = None,
+        value = None,
         col_title = None,
         row_title = None,
         background_color = None,
@@ -265,10 +275,12 @@ class CustomAnalysisSpreadsheetCell(object):
         bold = False,
         function = None,
         stock = None # stock being referred to by data
+        , align_right = False
         ):
         self.row = row
         self.col = col
         self.text = text
+        self.value = value
         self.col_title = col_title
         self.row_title = row_title
         self.background_color = background_color
@@ -277,6 +289,16 @@ class CustomAnalysisSpreadsheetCell(object):
         self.bold = bold
         self.function = function
         self.stock = stock
+        self.align_right = align_right
 
-
-
+class SpreadsheetRow(object):
+    def __init__(self,
+        row,
+        row_title = None,
+    	name = None,
+        cell_dict = {} # key is col
+        ):
+        self.row = row
+        self.row_title = row_title
+        self.name = name
+        self.cell_dict = cell_dict

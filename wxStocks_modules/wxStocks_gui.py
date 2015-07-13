@@ -14,7 +14,7 @@ import pprint as pp
 from collections import namedtuple
 from wx.lib import sheet
 
-from wxStocks_classes import Stock, Account
+from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
@@ -84,26 +84,45 @@ class MainFrame(wx.Frame): # reorder tab postions here
 
         # create the page windows as children of the notebook
         # add the pages to the notebook with the label to show on the tab
+        welcome_page_title = "Welcome"
         self.welcome_page = WelcomePage(notebook)
-        notebook.AddPage(self.welcome_page, "Welcome")
+        notebook.AddPage(self.welcome_page, welcome_page_title)
+        config.PAGES_DICT[welcome_page_title] = self.welcome_page
 
+        get_data_title = "Import Data"
         self.get_data_page = GetDataPage(notebook)
-        notebook.AddPage(self.get_data_page, "Import Data")
+        notebook.AddPage(self.get_data_page, get_data_title)
+        config.PAGES_DICT[get_data_title] = self.get_data_page
 
+        portfolio_page_title = "Portfolios"
+        self.portfolio_page = PortfolioPage(notebook)
+        notebook.AddPage(self.portfolio_page, portfolio_page_title)
+        config.PAGES_DICT[portfolio_page_title] = self.portfolio_page
+
+        view_data_page_title = "View Data"
         self.view_data_page = ViewDataPage(notebook)
-        notebook.AddPage(self.view_data_page, "View Data")
+        notebook.AddPage(self.view_data_page, view_data_page_title)
+        config.PAGES_DICT[view_data_page_title] = self.view_data_page
 
+        analyse_page_title = "Analyse Data"
         self.analyse_page = AnalysisPage(notebook)
-        notebook.AddPage(self.analyse_page, "Analyse Data")
+        notebook.AddPage(self.analyse_page, analyse_page_title)
+        config.PAGES_DICT[analyse_page_title] = self.analyse_page
 
+        sale_prep_page_title = "Sale Prep"
         self.sale_prep_page = SalePrepPage(notebook)
-        notebook.AddPage(self.sale_prep_page, "Sale Prep")
+        notebook.AddPage(self.sale_prep_page, sale_prep_page_title)
+        config.PAGES_DICT[sale_prep_page_title] = self.sale_prep_page
 
+        trade_page_title = "Trade"
         self.trade_page = TradePage(notebook)
-        notebook.AddPage(self.trade_page, "Trade")
+        notebook.AddPage(self.trade_page, trade_page_title)
+        config.PAGES_DICT[trade_page_title] = self.trade_page
 
+        user_functions_page_title = "Edit Functions"
         self.user_functions_page = UserFunctionsPage(notebook)
-        notebook.AddPage(self.user_functions_page, "Edit Functions")
+        notebook.AddPage(self.user_functions_page, user_functions_page_title)
+        config.PAGES_DICT[user_functions_page_title] = self.user_functions_page
 
         # finally, put the notebook in a sizer for the panel to manage
         # the layout
@@ -114,6 +133,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         main_frame.SetSizer(sizer)
 
         print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
+        print config.PAGES_DICT
 class Tab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -398,9 +418,6 @@ class GetDataPage(Tab):
         self.spreadsheet_import_page = SpreadsheetImportPage(get_data_notebook)
         get_data_notebook.AddPage(self.spreadsheet_import_page, "Import Data Spreadsheets")
 
-        self.portfolio_page = PortfolioPage(get_data_notebook)
-        get_data_notebook.AddPage(self.portfolio_page, "Import Portfolios")
-
         sizer2 = wx.BoxSizer()
         sizer2.Add(get_data_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
@@ -485,10 +502,7 @@ class PortfolioAccountTab(Tab):
                     print line_number(), e
                     self.portfolio_obj = None
 
-        if self.portfolio_obj:
-            self.add_button = wx.Button(self, label="Update with .csv", pos=(5,0), size=(-1,-1))
-        else:
-            self.add_button = wx.Button(self, label="Add account .csv", pos=(5,0), size=(-1,-1))
+        self.add_button = wx.Button(self, label="Update from file", pos=(5,0), size=(-1,-1))
         self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button)
 
         self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
@@ -499,38 +513,116 @@ class PortfolioAccountTab(Tab):
         self.portfolio_import_name = None
 
 
-        delete_button = wx.Button(self, label="Delete this portfolio", pos=(800,0), size=(-1,-1))
-        delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, delete_button)
+        self.delete_button = wx.Button(self, label="Delete this portfolio", pos=(800,0), size=(-1,-1))
+        self.delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, self.delete_button)
 
-        rename_button = wx.Button(self, label="Rename this portfolio", pos=(355,0), size=(-1,-1))
-        rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, rename_button)
+        self.rename_button = wx.Button(self, label="Rename this portfolio", pos=(568,22), size=(-1,-1))
+        self.rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, self.rename_button)
 
-        change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(518,0), size=(-1,-1))
-        change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, change_number_of_portfolios_button)
+        self.change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(568,0), size=(-1,-1))
+        self.change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, self.change_number_of_portfolios_button)
 
         #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
         #print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button)
 
-        self.current_account_spreadsheet = AccountDataGrid(self, -1, size=config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1])
+        self.current_account_spreadsheet = None
         if self.portfolio_obj:
-            self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_obj)
+            self.spreadSheetFill(self.portfolio_obj)
         self.screen_grid = None
+
+        self.ticker_input = wx.TextCtrl(self, -1, "", (250, 3))
+        self.ticker_input.SetHint("ticker")
+
+        self.share_input = wx.TextCtrl(self, -1, "", (250, 25))
+        self.share_input.SetHint("# shares")
+
+        self.cost_basis_input = wx.TextCtrl(self, -1, "", (350, 3))
+        self.cost_basis_input.SetHint("Cash/Cost")
+
+        self.update_button = wx.Button(self, label="Update Data", pos=(346,22), size=(-1,-1))
+        self.update_button.Bind(wx.EVT_BUTTON, self.updateManually, self.update_button)
+
+        self.update_prices_button = wx.Button(self, label="Update Prices", pos=(446,22), size=(-1,-1))
+        self.update_prices_button.Bind(wx.EVT_BUTTON, self.confirmUpdatePrices, self.update_prices_button)
+
+        self.remove_data_button = wx.Button(self, label="Remove Data", pos = (446, 0), size = (-1,-1))
+        self.remove_data_button.Bind(wx.EVT_BUTTON, self.confirmRemoveData, self.remove_data_button)
 
         print line_number(), "PortfolioAccountTab loaded"
 
+    def confirmRemoveData(self, event):
+        ticker = self.ticker_input.GetValue()
+        cost_basis = self.cost_basis_input.GetValue()
+        shares = self.share_input.GetValue()
+        if not ticker:
+            return
+        if shares:
+            try:
+                shares = float(shares)
+            except:
+                print line_number(), "Shares must be a number."
+                return
 
-    def printData(self, event):
-        if self.account_obj:
-            print line_number(),"cash:", self.account_obj.availble_cash
-            for account_attribute in dir(self.account_obj):
-                if not account_attribute.startswith("_"):
-                    print line_number(),account_attribute, ":"
-                    try:
-                        for stock_attribute in dir(getattr(self.account_obj, account_attribute)):
-                            if not stock_attribute.startswith("_"):
-                                print line_number(),stock_attribute, getattr(getattr(self.account_obj, account_attribute), stock_attribute)
-                    except Exception, exception:
-                        print line_number(),exception
+
+        stock = utils.return_stock_by_symbol(ticker)
+        if not stock:
+            print line_number(), "Stock %s does not appear to exist. If you want to delete cash, you must set it to zero. It cannot be None" % ticker
+            return
+
+        if ticker and not (cost_basis or shares):
+            confirm_message = "You are about to remove %s from your portfolio." % stock.symbol
+        elif ticker and shares and cost_basis:
+            confirm_message = "You are about to remove %s's share and cost basis data from your portfolio." % stock.symbol
+        elif ticker and shares:
+            if shares <= self.portfolio_obj.stock_shares_dict.get(stock.symbol):
+                confirm_message = "You are about to remove " + str(shares) + " of %s's shares from your portfolio." % stock.symbol
+            else:
+                print line_number(), "Error: invalid number of shares."
+                print "You currently have", str(self.portfolio_obj.stock_shares_dict.get(stock.symbol)), "shares."
+                print "You tried to remove", str(shares) + "."
+                return
+        elif ticker and cost_basis:
+            confirm_message = "You are about to remove %s's cost basis data from your portfolio." % stock.symbol
+        else:
+            print line_number(), "Invalid input"
+            return
+
+        confirm = wx.MessageDialog(None,
+                                   confirm_message,
+                                   'Delete Data',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.removeData(self.portfolio_obj, stock, shares, cost_basis)
+
+
+    def removeData(self, Account_object, stock, shares_to_remove = None, cost_basis = None):
+        if cost_basis or shares_to_remove:
+            if cost_basis:
+                Account_object.cost_basis_dict.pop(stock.symbol, None)
+            if shares_to_remove:
+                current_shares = Account_object.stock_shares_dict.get(stock.symbol)
+                new_shares = current_shares - shares_to_remove
+                Account_object.stock_shares_dict[stock.symbol] = new_shares
+        else: # remove stock
+            Account_object.cost_basis_dict.pop(stock.symbol, None)
+            Account_object.stock_shares_dict.pop(stock.symbol, None)
+        db.save_portfolio_object(Account_object)
+        self.spreadSheetFill(Account_object)
+
+        self.ticker_input.SetValue("")
+        self.cost_basis_input.SetValue("")
+        self.share_input.SetValue("")
+
+
     def changeNumberOfPortfolios(self, event):
         num_of_portfolios_popup = wx.NumberEntryDialog(None,
                                       "What would you like to call this portfolio?",
@@ -559,13 +651,51 @@ class PortfolioAccountTab(Tab):
                                  )
         confirm.ShowModal()
         confirm.Destroy()
-    def spreadSheetFill(self, spreadsheet, portfolio_obj):
+    def spreadSheetFill(self, portfolio_obj):
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
-        self.screen_grid = create_account_spread_sheet(self, portfolio_obj)
-        if self.screen_grid:
-            self.screen_grid.Show()
+        self.current_account_spreadsheet = create_account_spread_sheet(self, portfolio_obj)
+        self.current_account_spreadsheet.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, self.loadStockDataFromGridIntoUpdateSection, self.current_account_spreadsheet)
+
+        if self.current_account_spreadsheet:
+            self.current_account_spreadsheet.Show()
         return
+
+    def loadStockDataFromGridIntoUpdateSection(self, event):
+        row = event.GetRow()
+        total_rows = self.current_account_spreadsheet.GetNumberRows()
+        column = event.GetCol()
+        total_cols = self.current_account_spreadsheet.GetNumberCols()
+        value = self.current_account_spreadsheet.GetCellValue(row, column)
+
+        ticker = None
+        shares = None
+        cost_basis = None
+        cash = None
+
+        if row <= (total_rows - 6): # 5 extra nonequity rows below, editble
+            ticker = self.current_account_spreadsheet.GetCellValue(row, 0)
+            shares = self.current_account_spreadsheet.GetCellValue(row, 2)
+            cost_basis = self.current_account_spreadsheet.GetCellValue(row, 5)
+        elif row == (total_rows - 3): # cash row
+            cash = self.current_account_spreadsheet.GetCellValue(row, 4)
+        else: # Nothing relevant selected
+            self.ticker_input.SetValue("")
+            self.share_input.SetValue("")
+            self.cost_basis_input.SetValue("")
+
+
+        if ticker:
+            self.ticker_input.SetValue(ticker)
+        if shares:
+            self.share_input.SetValue(shares)
+        if cost_basis:
+            self.cost_basis_input.SetValue(cost_basis)
+        if cash:
+            self.ticker_input.SetValue("")
+            self.share_input.SetValue("")
+            self.cost_basis_input.SetValue(cash)
+
 
     def addAccountCSV(self, event):
         '''append a csv to current ticker list'''
@@ -584,12 +714,123 @@ class PortfolioAccountTab(Tab):
 
         self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
 
+        print line_number(), type(self.account_obj)
+
         self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
 
         # this is used in sale prep page:
         config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
 
         print line_number(), "Portfolio CSV import complete."
+
+    def updateAccountViaCSV(self, event):
+        self.portfolio_update_name = self.drop_down.GetValue()
+        # Identify the function mapped to screen name
+        for triple in self.triple_list:
+            if self.portfolio_import_name == triple.doc:
+                portfolio_import_function = triple.function
+            # in case doc string is too many characters...
+            elif self.portfolio_import_name == triple.name:
+                portfolio_import_function = triple.function
+
+    def updateManually(self, event):
+        ticker = self.ticker_input.GetValue()
+        cost_basis_or_cash = self.cost_basis_input.GetValue()
+        shares = self.share_input.GetValue()
+
+        if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
+            # basically if the entered data cannot be parsed
+            print line_number(), "invalid entry"
+            return
+        if cost_basis_or_cash and not (ticker or shares):
+            # User is updating cash in account
+            cash = cost_basis_or_cash
+            try:
+                cash = float(cash)
+            except Exception, e:
+                if "$" or "," in cash:
+                    cash = cash.replace("$", "")
+                    cash = cash.replace(",", "")
+                    try:
+                        cash = float(cash)
+                    except Exception, e:
+                        print line_number(), e, "invalid entry"
+                        return
+                else:
+                    print line_number, e
+                    return
+            if not self.portfolio_obj:
+                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
+            self.portfolio_obj.available_cash = cash
+        else:
+            # updating an individual stock
+            if not self.portfolio_obj:
+                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
+
+            cost_basis = cost_basis_or_cash
+
+            try:
+                ticker = ticker.upper()
+            except Exception, e:
+                print line_number(), e, "invalid ticker: %s" % ticker
+
+            stock = utils.return_stock_by_symbol(ticker)
+            if not stock:
+                print line_number(), "stock %s does not appear to exist" % ticker
+
+            if shares:
+                try:
+                    shares = float(shares)
+                    self.portfolio_obj.stock_shares_dict[ticker] = shares
+                except Exception, e:
+                    print line_number(), e, "Error: shares data is improperly formatted"
+
+            if cost_basis:
+                if "$" in str(cost_basis):
+                    cost_basis = cost_basis.replace("$", "")
+                try:
+                    cost_basis = float(cost_basis)
+                    self.portfolio_obj.cost_basis_dict[ticker] = cost_basis
+                except:
+                    pass
+
+
+        db.save_portfolio_object(self.portfolio_obj)
+        self.spreadSheetFill(self.portfolio_obj)
+        self.ticker_input.SetValue("")
+        self.cost_basis_input.SetValue("")
+        self.share_input.SetValue("")
+
+    def confirmUpdatePrices(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.",
+                                   'Confirm Download',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.updatePrices()
+
+    def updatePrices(self):
+        print line_number(), "Begin ticker download..."
+        ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
+
+        self.spreadSheetFill()
+
+        db.save_GLOBAL_STOCK_DICT()
+
+        #self.saveTickerDataAsStocks(ticker_data) # no longer used
+        # Update scrape page?
+        # Don't want to take the time to figure this out just now.
+        print line_number(), "Add function here to update scrape time."
+
 
     def changeTabName(self, event):
         old_name = self.GetLabel()
@@ -651,6 +892,7 @@ class PortfolioAccountTab(Tab):
 
         if yesNoAnswer == wx.ID_YES:
             self.deleteAccountList()
+
     def deleteAccountList(self):
         '''delete account'''
         # password = ""
@@ -673,15 +915,12 @@ class PortfolioAccountTab(Tab):
         #   password = self.get_password()
         db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
 
-        self.delete_button.Hide()
-
-        self.portfolio_data = Account(self.portfolio_id)
+        self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
 
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
             self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-            self.spreadSheetFill(self.current_account_spreadsheet, self.portfolio_data)
-        self.account_obj = None
+            self.spreadSheetFill(self.portfolio_obj)
         return
 
 
@@ -1390,7 +1629,7 @@ class ScreenPage(Tab):
 
         self.triple_list = meta.return_screen_function_triple()
 
-        self.save_screen_button = wx.Button(self, label="save", pos=(900,4), size=(-1,-1))
+        self.save_screen_button = wx.Button(self, label="save", pos=(800,4), size=(-1,-1))
         self.save_screen_button.Bind(wx.EVT_BUTTON, self.saveScreen, self.save_screen_button)
         self.save_screen_button.Hide()
 
@@ -1424,6 +1663,7 @@ class ScreenPage(Tab):
         config.CURRENT_SCREEN_LIST = conforming_stocks
 
         self.createSpreadsheet(conforming_stocks)
+        self.save_screen_button.Show()
 
 
 
@@ -2093,11 +2333,11 @@ class CustomAnalysisPage(Tab):
         try:
             self.ticker_display.Destroy()
         except Exception, e:
-            print e
+            print line_number(), e
         try:
             self.screen_grid.Destroy()
         except Exception, e:
-            print e
+            print line_number(), e
         self.clear_button.Hide()
 
     def loadAllStocks(self, event):
@@ -2249,19 +2489,6 @@ class CustomAnalysisPage(Tab):
 
 class SalePrepPage(Tab):
     def __init__(self, parent):
-        self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
-        self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
-
-        self.secondary_last_trade_price_attribute_name = config.SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME
-        self.secondary_average_daily_volume_attribute_name = config.SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
-
-        self.tertiary_last_trade_price_attribute_name = config.TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME
-        self.tertiary_average_daily_volume_attribute_name = config.TERTIARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
-
-        self.quaternary_last_trade_price_attribute_name = config.QUATERNARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME
-        self.quaternary_average_daily_volume_attribute_name = config.QUATERNARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
-
-
         wx.Panel.__init__(self, parent)
         trade_page_text = wx.StaticText(self, -1,
                              "Sale Prep",
@@ -2269,6 +2496,10 @@ class SalePrepPage(Tab):
                              )
         self.ticker_list = []
         self.checkbox_list = []
+        self.rows_dict = {}
+
+
+
         for i in range(config.NUMBER_OF_PORTFOLIOS):
             portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
             if not portfolio_exists:
@@ -2316,6 +2547,8 @@ class SalePrepPage(Tab):
                     self.spreadSheetFill('event')
                     break
 
+
+
         print line_number(), "SalePrepPage loaded"
 
     def cell_is_writable(self, row_num, col_num):
@@ -2323,7 +2556,7 @@ class SalePrepPage(Tab):
 
         if ((row_num >= default_rows) and col_num in [self.num_of_shares_cell.col, self.percent_of_shares_cell.col]):
             return True
-        elif (row_num, col_num) == (3, 14):
+        elif (row_num, col_num) == (3, self.carryover_input_cell.col):
             return True
         else:
             return False
@@ -2337,33 +2570,29 @@ class SalePrepPage(Tab):
 
 
 
-        Cell_Reference = namedtuple("Cell_Reference", ["row", "col", "text"])
-
-        # row 2
-        self.carryover_text_cell = Cell_Reference(2, 14, "Input carryover loss (if any)")
-
-        # row 3
-        self.carryover_input_cell = Cell_Reference(3, 14, str(0.00))
 
         # row 5
-        self.num_of_shares_cell             = Cell_Reference(5, 1, "# of shares to sell")
-        self.percent_of_shares_cell         = Cell_Reference(5, 2, "% of shares to sell")
-        self.ticker_cell                    = Cell_Reference(5, 3, "Ticker")
-        self.syntax_check_cell              = Cell_Reference(5, 4, "")#Syntax Check")
-        self.name_cell                      = Cell_Reference(5, 5, "Name")
-        self.sale_check_cell                = Cell_Reference(5, 6, "Sale Check")
-        self.number_of_shares_copy_cell     = Cell_Reference(5, 7, "# of shares to sell")
-        self.percent_of_shares_copy_cell    = Cell_Reference(5, 8, "% of shares to sell")
-        self.total_shares_cell              = Cell_Reference(5, 9, "Total # of shares")
-        self.price_cell                     = Cell_Reference(5, 10, "Price")
-        self.sale_value_cell                = Cell_Reference(5, 11, "Sale Value")
-        self.commission_cell                = Cell_Reference(5, 12, "Commission loss ($%s/trade)" % str(self.commission))
-        self.fifo_cell                      = Cell_Reference(5, 13, "FIFO Capital Gains")
-        self.adjusted_cap_gains_cell        = Cell_Reference(5, 14, "Adjusted Capital Gains (including carryovers)")
-        self.market_value_cell              = Cell_Reference(5, 15, "Market Value")
-        self.unrealized_cell                = Cell_Reference(5, 16, "Unrealized Capital +/-")
+        self.first_cell                     = SpreadsheetCell(row = 5, col = 0, text = "")
+        self.num_of_shares_cell             = SpreadsheetCell(row = 5, col = 1, text = "# of shares to sell")
+        self.percent_of_shares_cell         = SpreadsheetCell(row = 5, col = 2, text = "%" + " of shares to sell")
+        self.ticker_cell                    = SpreadsheetCell(row = 5, col = 3, text = "Ticker")
+        self.syntax_check_cell              = SpreadsheetCell(row = 5, col = 4, text = "")#Syntax Check")
+        self.name_cell                      = SpreadsheetCell(row = 5, col = 5, text = "Name")
+        self.sale_check_cell                = SpreadsheetCell(row = 5, col = 6, text = "Sale Check")
+        self.number_of_shares_copy_cell     = SpreadsheetCell(row = 5, col = 7, text = "# of shares to sell")
+        self.percent_of_shares_copy_cell    = SpreadsheetCell(row = 5, col = 8, text = "%" + " of shares to sell")
+        self.total_shares_cell              = SpreadsheetCell(row = 5, col = 9, text = "Total # of shares")
+        self.price_cell                     = SpreadsheetCell(row = 5, col = 10, text = "Price")
+        self.sale_value_cell                = SpreadsheetCell(row = 5, col = 11, text = "Sale Value")
+        self.commission_cell                = SpreadsheetCell(row = 5, col = 12, text = "Commission loss ($%.2f/trade)" % float(self.commission))
+        self.cost_basis_cell                = SpreadsheetCell(row = 5, col = 13, text = "Cost basis per share")
+        self.fifo_cell                      = SpreadsheetCell(row = 5, col = 14, text = "FIFO Capital Gains")
+        self.adjusted_cap_gains_cell        = SpreadsheetCell(row = 5, col = 15, text = "Adjusted Capital Gains (including carryovers)")
+        self.market_value_cell              = SpreadsheetCell(row = 5, col = 16, text = "Market Value")
+        self.unrealized_cell                = SpreadsheetCell(row = 5, col = 17, text = "Unrealized Capital +/-")
 
         self.row_five_cell_list = [
+            self.first_cell,
             self.num_of_shares_cell,
             self.percent_of_shares_cell,
             self.ticker_cell,
@@ -2376,16 +2605,25 @@ class SalePrepPage(Tab):
             self.price_cell,
             self.sale_value_cell,
             self.commission_cell,
+            self.cost_basis_cell,
             self.fifo_cell,
             self.adjusted_cap_gains_cell,
             self.market_value_cell,
             self.unrealized_cell,
             ]
 
-        self.total_number_of_columns = len(self.row_five_cell_list) + 1 # for the first empty one
+        self.total_number_of_columns = len(self.row_five_cell_list)
+
+
+        # row 2
+        self.carryover_text_cell = SpreadsheetCell(row = 2, col = self.adjusted_cap_gains_cell.col, text = "Input carryover loss (if any)")
+
+        # row 3
+        self.carryover_input_cell = SpreadsheetCell(row = 3, col = self.carryover_text_cell.col, text = str(0.00), align_right = True)
 
         # row 7
-        self.totals_cell = Cell_Reference(7, 0, "Totals:")
+        self.totals_cell = SpreadsheetCell(row = 7, col = 0, text = "Totals:")
+
 
     def exportSaleCandidates(self, event):
         self.save_button.Hide()
@@ -2481,7 +2719,7 @@ class SalePrepPage(Tab):
         except Exception, exception:
             pass
             #print line_number(), exception
-
+        self.rows_dict = {}
         relevant_portfolios_list = []
         for i in range(len(self.checkbox_list)):
             box = self.checkbox_list[i]
@@ -2507,11 +2745,6 @@ class SalePrepPage(Tab):
         self.grid.CreateGrid(num_rows, num_columns)
         self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, self.grid)
 
-        # for editing purposes only
-        print line_number(), "remove iteration below"
-        for i in range(num_columns):
-            self.grid.SetCellValue(0, i, str(i))
-
         # I deactivated this binding because it caused too much confusion if you don't click on a white square after entering data
         # self.grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK ,self.hideSaveButtonWhileEnteringData, self.grid)
 
@@ -2530,10 +2763,11 @@ class SalePrepPage(Tab):
                         self.grid.SetCellBackgroundColour(row_num, column_num, self.percentage_of_shares_input_color_hex)
 
         # set row 2
-        self.grid.SetCellValue(2, 0, str(time.time())) # no longer sure why i have this
         self.grid.SetCellValue(self.carryover_text_cell.row, self.carryover_text_cell.col, self.carryover_text_cell.text)
         # set row 3
         self.grid.SetCellValue(self.carryover_input_cell.row, self.carryover_input_cell.col, self.carryover_input_cell.text)
+        if self.carryover_input_cell.align_right:
+            self.grid.SetCellAlignment(self.carryover_input_cell.row, self.carryover_input_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
 
         # set row 7
         self.grid.SetCellValue(self.totals_cell.row, self.totals_cell.col, self.totals_cell.text)
@@ -2552,45 +2786,110 @@ class SalePrepPage(Tab):
         portfolio_num = 0
         row_count = default_rows
         col_count = 0
+
         for account in relevant_portfolios_list:
             try:
                 throw_error = account.stock_shares_dict
                 # intentionally throws an error if account hasn't been imported
-                try:
-                    self.grid.SetCellValue(row_count, 0, config.PORTFOLIO_NAMES[portfolio_num])
-                    self.grid.SetCellBackgroundColour(row_count, self.num_of_shares_cell.col, "white")
-                    self.grid.SetReadOnly(row_count, self.num_of_shares_cell.col, True)
-                    self.grid.SetCellBackgroundColour(row_count, self.percent_of_shares_cell.col, "white")
-                    self.grid.SetReadOnly(row_count, self.percent_of_shares_cell.col, True)
-                    portfolio_num += 1
-                    row_count += 1
-
-                    for ticker, quantity in account.stock_shares_dict.iteritems():
-
-                        # set all cell values for stock
-
-                        #if row_count == 0:
-                        #   self.screen_grid.SetColLabelValue(col_count, str(attribute))
-                        stock = utils.return_stock_by_symbol(ticker)
-
-                        cost_basis = utils.return_cost_basis_per_share(account, ticker)
-
-                        self.grid.SetCellValue(row_count, self.ticker_cell.col, stock.symbol)
-                        try:
-                            self.grid.SetCellValue(row_count, self.name_cell.col, stock.firm_name)
-                        except Exception, exception:
-                            print line_number(), exception
-                        self.grid.SetCellValue(row_count, self.total_shares_cell.col, str(quantity))
-                        try:
-                            self.grid.SetCellValue(row_count, self.price_cell.col, getattr(stock, self.default_last_trade_price_attribute_name))
-                        except Exception, exception:
-                            print line_number(), exception
-                        self.grid.SetCellValue(row_count, self.market_value_cell.col, str(float(str(quantity).replace(",","")) * float(getattr(stock, self.default_last_trade_price_attribute_name))))
-                        row_count += 1
-                except Exception as e:
-                    print line_number(), e
             except Exception as e:
                 print line_number(), e, ": An account appears to not be loaded, but this isn't a problem."
+                continue
+
+            # set portfolio name
+            portfolio_name = config.PORTFOLIO_NAMES[portfolio_num]
+            self.grid.SetCellValue(row_count, self.first_cell.col, portfolio_name)
+            self.grid.SetCellBackgroundColour(row_count, self.num_of_shares_cell.col, "white")
+            self.grid.SetReadOnly(row_count, self.num_of_shares_cell.col, True)
+            self.grid.SetCellBackgroundColour(row_count, self.percent_of_shares_cell.col, "white")
+            self.grid.SetReadOnly(row_count, self.percent_of_shares_cell.col, True)
+            portfolio_num += 1
+            row_count += 1
+
+            for ticker, quantity in account.stock_shares_dict.iteritems():
+                cost_basis_per_share = None
+                stocks_last_price = None
+
+                # set all cell values for stock
+                stock = utils.return_stock_by_symbol(ticker)
+                if not stock:
+                    print line_number(), "Stock %s does not appear to exist" % ticker
+                    continue
+                # set ticker cell
+                stocks_ticker_cell = SpreadsheetCell(row = row_count, col = self.ticker_cell.col, text = stock.symbol, stock = stock)
+                # return cost basis per share
+                cost_basis_per_share = utils.return_cost_basis_per_share(account, stock.symbol)
+                # set cost basis cell
+                if cost_basis_per_share:
+                    stocks_cost_basis_cell = SpreadsheetCell(row = row_count, col = self.cost_basis_cell.col, text = config.locale.currency(cost_basis_per_share, grouping = True), value = (cost_basis_per_share), align_right = True)
+                # set firm name cell
+                stocks_firm_name_cell = SpreadsheetCell(row = row_count, col = self.name_cell.col, text = stock.firm_name, value = stock.firm_name)
+
+                # set quantity cell
+                quantity_text = str(quantity)
+                if quantity.is_integer():
+                    quantity_text = str(int(quantity))
+                stocks_quantity_cell = SpreadsheetCell(row = row_count, col = self.total_shares_cell.col, text = quantity_text, value = quantity, align_right = True)
+
+                # set last price
+                try:
+                    stocks_last_price = float(getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME))
+                    stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
+                except Exception, exception:
+                    print line_number(), exception
+
+                # set market value cell
+                try:
+                    stocks_market_value = float(quantity) * float(stocks_last_price)
+                    stocks_market_value_cell = SpreadsheetCell(row = row_count, col = self.market_value_cell.col, text = config.locale.currency(stocks_market_value, grouping = True), value = stocks_market_value, align_right = True)
+                except Exception, exception:
+                    print line_number(), exception
+
+                # set row
+                # this is an odd way of doing things, but i've encountered what appears to be a major bug
+                # if you change, beware...
+                if cost_basis_per_share and stocks_last_price:
+                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
+                        str(stocks_ticker_cell.col): stocks_ticker_cell,
+                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
+                        str(stocks_quantity_cell.col): stocks_quantity_cell,
+                        str(stocks_cost_basis_cell.col): stocks_cost_basis_cell,
+                        str(stocks_last_price_cell.col): stocks_last_price_cell,
+                        str(stocks_market_value_cell): stocks_market_value_cell,
+                        })
+                elif cost_basis_per_share:
+                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
+                        str(stocks_ticker_cell.col): stocks_ticker_cell,
+                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
+                        str(stocks_quantity_cell.col): stocks_quantity_cell,
+                        str(stocks_cost_basis_cell.col): stocks_cost_basis_cell,
+                        })
+                elif stocks_last_price:
+                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
+                        str(stocks_ticker_cell.col): stocks_ticker_cell,
+                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
+                        str(stocks_quantity_cell.col): stocks_quantity_cell,
+                        str(stocks_last_price_cell.col): stocks_last_price_cell,
+                        str(stocks_market_value_cell): stocks_market_value_cell,
+                        })
+                else:
+                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
+                        str(stocks_ticker_cell.col): stocks_ticker_cell,
+                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
+                        str(stocks_quantity_cell.col): stocks_quantity_cell,
+                        })
+
+
+                self.rows_dict[str(row_count)] = this_row
+                this_row = None
+                stock = None
+                row_count += 1
+        # iterate over cells to fill in grid
+        for row, row_obj in self.rows_dict.iteritems():
+            for col_num, cell_obj in row_obj.cell_dict.iteritems():
+                self.grid.SetCellValue(cell_obj.row, cell_obj.col, cell_obj.text)
+                if cell_obj.align_right:
+                    self.grid.SetCellAlignment(cell_obj.row, cell_obj.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
         self.grid.AutoSizeColumns()
 
     def updateGrid(self, event):
@@ -2600,7 +2899,25 @@ class SalePrepPage(Tab):
         num_shares = str(self.grid.GetCellValue(row, self.total_shares_cell.col))
         num_shares = num_shares.replace(",","")
         value = utils.strip_string_whitespace(value)
-        price = self.grid.GetCellValue(row, self.price_cell.col)
+
+        sale_value = None
+        percent_to_commission = None
+
+        stocks_ticker_cell = row_obj.cell_dict.get(str(self.ticker_cell.col))
+        if stocks_ticker_cell:
+            ticker = stocks_ticker_cell.text
+        else:
+            ticker = None
+        stocks_price_cell = row_obj.cell_dict.get(str(self.price_cell.col))
+        if stocks_price_cell:
+            price = stocks_price_cell.value
+        else:
+            price = None
+
+        stock = utils.return_stock_by_symbol(ticker)
+        if not stock:
+            print line_number(), "Error, stock %s doesn't appear to exist" % ticker
+            return
 
         if column == self.num_of_shares_cell.col: # sell by number
             try:
@@ -2616,18 +2933,13 @@ class SalePrepPage(Tab):
                 # No input errors
                 self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
                 percent_of_total_holdings = round(100 * float(number_of_shares_to_sell)/float(num_shares))
-                self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "%d%%" % percent_of_total_holdings)
-                if int(num_shares) == int(number_of_shares_to_sell):
+                self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, ("%d" % percent_of_total_holdings) + "%")
+                if float(num_shares) == float(number_of_shares_to_sell):
                     self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
                     self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
                 else:
                     self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
                     self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
-                sale_value = float(number_of_shares_to_sell) * float(price)
-                self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
-
-                percent_to_commission = 100 * self.commission/sale_value
-                self.grid.SetCellValue(row, self.commission_cell.col, "%.2f%%" % percent_to_commission)
 
             elif value == "" or number_of_shares_to_sell == 0:
                 # if zero
@@ -2652,7 +2964,8 @@ class SalePrepPage(Tab):
             else:
                 try:
                     value = float(value)
-                    value = value / 100
+                    if value > 1:
+                        value = value / 100
                 except Exception, exception:
                     print line_number(), exception
                     if value != "":
@@ -2680,16 +2993,30 @@ class SalePrepPage(Tab):
                 else:
                     self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
                     self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
-                sale_value = float(number_of_shares_to_sell) * float(price)
-                self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
-
-                percent_to_commission = 100 * self.commission/sale_value
-                self.grid.SetCellValue(row, self.commission_cell.col, "%.2f%%" % percent_to_commission)
-
-
-
             else:
                 self.setGridError(row)
+        if price:
+            sale_value = float(number_of_shares_to_sell) * float(price)
+            percent_to_commission = 100 * self.commission/sale_value
+
+        if sale_value:
+            self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
+        if percent_to_commission:
+            self.grid.SetCellValue(row, self.commission_cell.col, ("%.2f" % percent_to_commission) + "%")
+
+        cost_basis_per_share_cell = row_obj.cell_dict.get(self.cost_basis_cell.col)
+        if cost_basis_per_share_cell:
+            cost_basis_per_share = cost_basis_per_share_cell.value
+        else:
+            cost_basis_per_share = None
+
+        if cost_basis_per_share:
+            capital_gain_per_share = max(price - cost_basis_per_share, 0.)
+            capital_gains = capital_gain_per_share * number_of_shares_to_sell
+            self.grid.SetCellValue(row, self.fifo_cell.col, "$%.2f" % capital_gains)
+            self.grid.SetCellAlignment(row, self.fifo_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+
         self.saved_text.Hide()
         self.save_button.Show()
         #print "Show Me!"
@@ -2709,8 +3036,8 @@ class SalePrepPage(Tab):
 
 class TradePage(Tab):
     def __init__(self, parent):
-        self.default_last_trade_price_attribute_name = "LastTradePriceOnly_yf"
-        self.default_average_daily_volume_attribute_name = "AverageDailyVolume_yf"
+        self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
+        self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
 
 
         wx.Panel.__init__(self, parent)
@@ -3630,6 +3957,10 @@ class UserFunctionsPage(Tab):
         self.user_portfolio_import_functions = UserCreatedPortfolioImportFunctionPage(user_function_notebook)
         user_function_notebook.AddPage(self.user_portfolio_import_functions, "Portfolio Import Functions")
 
+        self.user_custom_analysis_functions = UserCreatedCustomAnaylsisPage(user_function_notebook)
+        user_function_notebook.AddPage(self.user_custom_analysis_functions, "Custom Analysis Functions")
+
+
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(user_function_notebook, 1, wx.EXPAND)
@@ -4016,6 +4347,83 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
                                     style = wx.TE_MULTILINE ,
                                     )
         self.file_display.Show()
+class UserCreatedCustomAnaylsisPage(Tab):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        text = wx.StaticText(self, -1,
+                             "Welcome to the custom analysis editor.",
+                             (10,10)
+                             )
+        save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
+        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
+
+        reset_button = wx.Button(self, label="Reset Functions to Default", pos=(5, 60), size=(-1,-1))
+        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
+
+        more_text = wx.StaticText(self, -1,
+                             "Create analysis functions to be imported into the custom anyalsis page.",
+                             (145,36)
+                             )
+
+
+
+        self.file_text = db.load_user_custom_analysis_functions()
+
+
+        self.height_var = 100
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
+                                    (10, self.height_var),
+                                    size = (955, 580),
+                                    style = wx.TE_MULTILINE ,
+                                    )
+        self.file_display.Show()
+
+        print line_number(), "UserCreatedTestsPage loaded"
+
+
+    def confirmSave(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you want to save your work? This action cannot be undone.",
+                                   'Confirm Save',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.saveFunctions()
+    def saveFunctions(self):
+        text = self.file_display.GetValue()
+        db.save_user_custom_analysis_functions(text)
+
+    def confirmResetToDefault(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "Are you sure you reset to file default? This action cannot be undone.",
+                                   'Confirm Reset',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.resetToDefault()
+    def resetToDefault(self):
+        self.file_display.Destroy()
+
+        self.file_text = db.load_default_custom_analysis_functions()
+        db.save_user_custom_analysis_functions(self.file_text)
+
+        self.file_display = wx.TextCtrl(self, -1,
+                                    self.file_text,
+                                    (10, self.height_var),
+                                    size = (765, 625),
+                                    style = wx.TE_MULTILINE ,
+                                    )
+        self.file_display.Show()
+
 
 # ###########################################################################################
 
@@ -4434,14 +4842,9 @@ def create_account_spread_sheet(
     , position = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1]
     , enable_editing = False
     ):
-    stock_shares_dict = account_obj.stock_shares_dict
-    #print line_number(), "Stock shares dict:", stock_shares_dict
-
-    cash = account_obj.availble_cash
-    #print line_number(), "Available cash:", cash
 
     stock_list = []
-    for ticker in stock_shares_dict:
+    for ticker in account_obj.stock_shares_dict:
         #print line_number(), ticker
         stock = config.GLOBAL_STOCK_DICT.get(ticker)
         if stock:
@@ -4450,101 +4853,149 @@ def create_account_spread_sheet(
                 stock_list.append(stock)
         else:
             print line_number(), "Ticker:", ticker, "not found..."
-    #print line_number(), "Stock list:", stock_list
 
-    irrelevant_attributes = config.IRRELEVANT_ATTRIBUTES
+    attribute_list = ['symbol', 'firm_name', "Shares Held", "Last Close", "Value", "Cost Basis", "Change"]
 
-    #print line_number(), 'Here, "if not stock.last_yql_basic_scrape_update" type conditionals should be changed to be time based for better functionality'
-
-
-    # if include_analyst_estimates:
-    #   analyst_estimate_data_absent = True
-    #   for analyst_estimate_data in GLOBAL_ANALYST_ESTIMATES_STOCK_LIST:
-    #       if str(ticker) == str(analyst_estimate_data.symbol):
-    #           analyst_estimate_list.append(analyst_estimate_data)
-    #           analyst_estimate_data_absent = False
-    #   if analyst_estimate_data_absent:
-    #       logging.error('There does not appear to be analyst estimates for "%s," you should update analyst estimates' % ticker)
-
-
-
+    num_columns = len(attribute_list)
     num_rows = len(stock_list)
-    num_columns = 0
+    num_rows += 5   # one for cash, two for totals, two for portfolio totals
 
-
-    attribute_list = []
-    # Here we make columns for each attribute to be included
-    for stock in stock_list:
-        for attribute in dir(stock):
-            if not attribute.startswith('_'):
-                if attribute not in config.IRRELEVANT_ATTRIBUTES:
-                    if attribute not in attribute_list:
-                        attribute_list.append(str(attribute))
-        if num_columns < len(attribute_list):
-            num_columns = len(attribute_list)
-
-    num_columns += 1 # for number of shares held
-    num_rows += 1   # for cash
-
-
-    if not attribute_list:
-        print line_number(), 'attribute list empty'
-        return
-
+    if num_columns < 2:
+        # if there are no stocks in the portfolio
+        num_columns = 2
 
     screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
     screen_grid.CreateGrid(num_rows, num_columns)
     screen_grid.EnableEditing(enable_editing)
 
-
-    attribute_list.sort(key = lambda x: x.lower())
-    # adjust list order for important terms
-    stock_list.insert(0, "cash")
-    attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
-    attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
-    attribute_list.insert(2, "Shares Held")
-
-    wxWindow.full_attribute_list = attribute_list
-    wxWindow.relevant_attribute_list = [attribute for attribute in attribute_list if attribute not in config.IRRELEVANT_ATTRIBUTES]
-
-
-
     # fill in grid
+    for attribute in attribute_list:
+        screen_grid.SetColLabelValue(attribute_list.index(attribute), str(attribute))
+
     row_count = 0
+    total_equity_value = 0.
+    total_cost_basis = 0.
+    total_equity_value_change = 0.
+    total_equity_value_fail = False
+    cost_basis_fail = False
+    current_time = time.time()
     for stock in stock_list:
         col_count = 0
-        for attribute in attribute_list:
-            # set attributes to be labels if it's the first run through
-            if row_count == 0:
-                screen_grid.SetColLabelValue(col_count, str(attribute))
-                if col_count == 0:
-                    screen_grid.SetCellValue(row_count, col_count, "Cash:")
-                elif col_count == 1:
-                    screen_grid.SetCellValue(row_count, col_count, str(cash))
+
+        ticker = stock.symbol
+        if ticker:
+            screen_grid.SetCellValue(row_count, 0, ticker)
+
+        firm_name = stock.firm_name
+        if firm_name:
+            screen_grid.SetCellValue(row_count, 1, firm_name)
+
+        shares_held = account_obj.stock_shares_dict.get(stock.symbol)
+        if shares_held:
+            if shares_held.is_integer():
+                shares_held = int(shares_held)
+            screen_grid.SetCellValue(row_count, 2, str(shares_held))
+            screen_grid.SetCellAlignment(row_count, 2, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
 
 
+        try:
+            last_close = float(getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME))
+            last_update_for_last_close = stock.last_nasdaq_scrape_update
+        except:
+            last_close = None
+        if last_close:
+            if (current_time - last_update_for_last_close) < config.PORTFOLIO_PRICE_REFRESH_TIME:
+                screen_grid.SetCellValue(row_count, 3, config.locale.currency(last_close, grouping = True))
+                screen_grid.SetCellAlignment(row_count, 3, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
             else:
-                if col_count == 2:
-                    screen_grid.SetCellValue(row_count, col_count, str(stock_shares_dict.get(stock.symbol)))
-                else:
-                    try:
-                        # Try to add basic data value
-                        screen_grid.SetCellValue(row_count, col_count, str(getattr(stock, attribute)))
-                        # Add color if relevant
-                        if str(stock.ticker) in config.HELD_STOCK_TICKER_LIST:
-                            screen_grid.SetCellBackgroundColour(row_count, col_count, config.HELD_STOCK_COLOR_HEX)
-                        # Change text red if value is negative
-                        try:
-                            if utils.stock_value_is_negative(stock, attribute):
-                                screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
-                        except Exception as exception:
-                            pass
-                            #print line_number(), exception
-                    except Exception as exception:
-                        pass
-                        #print line_number(), exception
-            col_count += 1
+                screen_grid.SetCellValue(row_count, 3, "update prices")
+                screen_grid.SetCellAlignment(row_count, 3, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+                screen_grid.SetCellTextColour(row_count, 3, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+                last_close = None
+
+
+        calc_equity_value = False
+        try:
+            shares_held = float(shares_held)
+            last_close = float(last_close)
+            calc_equity_value = True
+        except:
+            pass
+        equity_value = None
+        if calc_equity_value:
+            equity_value = shares_held * last_close
+        if equity_value:
+            screen_grid.SetCellValue(row_count, 4, config.locale.currency(equity_value, grouping = True))
+            screen_grid.SetCellAlignment(row_count, 4, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+            total_equity_value += equity_value
+        else:
+            total_equity_value_fail = True
+
+        cost_basis = account_obj.cost_basis_dict.get(stock.symbol)
+        if cost_basis:
+            screen_grid.SetCellValue(row_count, 5, config.locale.currency(cost_basis, grouping = True))
+            screen_grid.SetCellAlignment(row_count, 5, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+            total_cost_basis += cost_basis
+        else:
+            cost_basis_fail = True
+
+        calc_equity_profit = False
+        try:
+            cost_basis = float(cost_basis)
+            equity_value = float(equity_value)
+            calc_equity_profit = True
+        except:
+            pass
+        equity_value_change = None
+        if calc_equity_profit:
+            equity_value_change = ((equity_value/cost_basis) - 1) * 100
+        if equity_value_change:
+            screen_grid.SetCellValue(row_count, 6, "%.2f" % (equity_value_change) + "%")
+            if equity_value_change < 0:
+                screen_grid.SetCellTextColour(row_count, 6, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+            screen_grid.SetCellAlignment(row_count, 6, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
         row_count += 1
+
+    row_count += 1 # empty row
+
+    if total_equity_value or total_cost_basis:
+        screen_grid.SetCellValue(row_count, 1, "Equity Totals:")
+    if (not total_equity_value_fail) and total_equity_value:
+        screen_grid.SetCellValue(row_count, 4, config.locale.currency(total_equity_value, grouping = True))
+        screen_grid.SetCellAlignment(row_count, 4, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+    if (not cost_basis_fail) and total_cost_basis:
+        screen_grid.SetCellValue(row_count, 5, config.locale.currency(total_cost_basis, grouping = True))
+        screen_grid.SetCellAlignment(row_count, 5, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+    if (not (total_equity_value_fail or cost_basis_fail)) and total_cost_basis:
+        total_equity_value_change = ((total_equity_value/total_cost_basis) - 1) * 100
+        screen_grid.SetCellValue(row_count, 6, "%.2f" % (total_equity_value_change) + "%")
+        if total_equity_value_change < 0:
+            screen_grid.SetCellTextColour(row_count, 6, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+        screen_grid.SetCellAlignment(row_count, 6, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+    total_portfolio_value = None
+    if not total_equity_value_fail:
+        total_portfolio_value = total_equity_value + account_obj.available_cash
+
+    row_count += 1
+    screen_grid.SetCellValue(row_count, 1, "Cash:")
+    if total_portfolio_value:
+        percentage_cash = (float(account_obj.available_cash) / total_portfolio_value) * 100
+        screen_grid.SetCellValue(row_count, 2, "%.2f" % (percentage_cash) + "%")
+        screen_grid.SetCellAlignment(row_count, 2, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+    screen_grid.SetCellValue(row_count, 4, config.locale.currency(account_obj.available_cash, grouping = True))
+    screen_grid.SetCellAlignment(row_count, 4, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+
+    row_count += 2
+    screen_grid.SetCellValue(row_count, 1, "Total Portfolio Value:")
+    if total_portfolio_value:
+        screen_grid.SetCellValue(row_count, 4, config.locale.currency(total_portfolio_value, grouping = True))
+        screen_grid.SetCellAlignment(row_count, 4, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+
     screen_grid.AutoSizeColumns()
 
     return screen_grid

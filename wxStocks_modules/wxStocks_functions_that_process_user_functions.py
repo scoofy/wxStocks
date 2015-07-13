@@ -266,6 +266,8 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 
 	db.save_portfolio_object(account_obj)
 
+	print line_number, type(account_obj)
+
 	return account_obj
 
 def process_custom_analysis_spreadsheet_data(stock_list, user_created_function):

@@ -76,16 +76,17 @@ def return_stocks_with_data_errors():
 def return_cost_basis_per_share(account_obj, ticker):
 	'''Return the cost basis per share of a stock in an account, if it exists, else return none'''
 	ticker = ticker.upper()
-
 	shares_of_relevant_stock = account_obj.stock_shares_dict.get(ticker)
 	if not shares_of_relevant_stock:
 		return None
-
 	cost_basis_of_relevant_stock = account_obj.cost_basis_dict.get(ticker)
 	if not cost_basis_of_relevant_stock:
 		return None
-
-	return cost_basis_of_relevant_stock
+	try:
+		cost_basis_per_share = float(cost_basis_of_relevant_stock) / shares_of_relevant_stock
+	except:
+		return None
+	return cost_basis_per_share
 
 def return_account_by_id(id_number):
 	try:
@@ -97,7 +98,7 @@ def return_account_by_id(id_number):
 	except Exception as e:
 		print line_number()
 		logging.error("Portfolio object with id: %s does not appear to exist" % str(id_number))
-		return None	
+		return None
 
 ####################### Stock utility functions #################################################
 def stock_value_is_negative(stock_obj, attribute_str):
@@ -230,7 +231,7 @@ def time_since_creation(item_epoch_var):
 			time_str = "%d days" % days
 		else:
 			time_str = "%d day" % days
-	elif (raw_secs >=(60*60*24*30)) and (raw_secs < (60*60*24*365)):		
+	elif (raw_secs >=(60*60*24*30)) and (raw_secs < (60*60*24*365)):
 		minutes = (raw_secs/60)
 		hours = (minutes/60)
 		days = (hours/24)
@@ -251,7 +252,7 @@ def time_since_creation(item_epoch_var):
 	else:
 		logging.error("something wrong with time_since_creation function")
 		time_str = None
-	return time_str		
+	return time_str
 def check_url(url_str):
 	link_var = url_str
 	deadLinkFound = check_url_instance(link_var)
@@ -311,7 +312,7 @@ def time_from_epoch(item_epoch_var):
 			time_str = "%d days" % days
 		else:
 			time_str = "%d day" % days
-	elif (raw_secs >=(60*60*24*30)) and (raw_secs < (60*60*24*365)):		
+	elif (raw_secs >=(60*60*24*30)) and (raw_secs < (60*60*24*365)):
 		minutes = (raw_secs/60)
 		hours = (minutes/60)
 		days = (hours/24)
@@ -332,7 +333,7 @@ def time_from_epoch(item_epoch_var):
 	else:
 		logging.error("something wrong with time_from_epoch function")
 		time_str = None
-	return time_str	
+	return time_str
 
 def is_number(some_string):
 	try:

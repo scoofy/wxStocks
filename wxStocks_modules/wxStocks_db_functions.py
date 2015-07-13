@@ -188,7 +188,6 @@ def save_GLOBAL_ATTRIBUTE_SET():
 	attribute_set = config.GLOBAL_ATTRIBUTE_SET
 	with open(all_attributes_path, 'wb') as output:
 		pickle.dump(attribute_set, output, pickle.HIGHEST_PROTOCOL)
-
 ### Stock screen loading information
 def load_GLOBAL_STOCK_SCREEN_DICT():
 	print line_number(), "Loading GLOBAL_STOCK_SCREEN_DICT"
@@ -482,6 +481,13 @@ def load_DATA_ABOUT_PORTFOLIOS():
 	# Load portfolio objects
 	#print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
 	load_all_portfolio_objects()
+
+def create_new_Account_if_one_doesnt_exist(portfolio_id):
+	portfolio_obj = load_portfolio_object(portfolio_id)
+	if not portfolio_obj:
+		portfolio_obj = wxStocks_classes.Account(portfolio_id)
+	save_portfolio_object(portfolio_obj)
+	return portfolio_obj
 
 def save_portfolio_object(portfolio_obj):
 	# First, set this object into the portfolio dict, for the first time it's saved:

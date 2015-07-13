@@ -1,5 +1,5 @@
 import os, glob
-from wxStocks_modules.wxStocks_classes import CustomAnalysisSpreadsheetCell as Cell
+from wxStocks_modules.wxStocks_classes import SpreadsheetCell as Cell
 
 def line_number():
     import inspect
