@@ -14,7 +14,7 @@ import pprint as pp
 from collections import namedtuple
 from wx.lib import sheet
 
-from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow
+from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
@@ -79,61 +79,86 @@ class MainFrame(wx.Frame): # reorder tab postions here
 
         # Here we create a panel and a notebook on the panel
         main_frame = wx.Panel(self)
-        notebook = wx.Notebook(main_frame)
+        self.notebook = wx.Notebook(main_frame)
 
 
         # create the page windows as children of the notebook
         # add the pages to the notebook with the label to show on the tab
-        welcome_page_title = "Welcome"
-        self.welcome_page = WelcomePage(notebook)
-        notebook.AddPage(self.welcome_page, welcome_page_title)
-        config.PAGES_DICT[welcome_page_title] = self.welcome_page
+        self.welcome_page = WelcomePage(self.notebook)
+        self.notebook.AddPage(self.welcome_page, self.welcome_page.title)
 
-        get_data_title = "Import Data"
-        self.get_data_page = GetDataPage(notebook)
-        notebook.AddPage(self.get_data_page, get_data_title)
-        config.PAGES_DICT[get_data_title] = self.get_data_page
+        self.get_data_page = GetDataPage(self.notebook)
+        self.notebook.AddPage(self.get_data_page, self.get_data_page.title)
 
-        portfolio_page_title = "Portfolios"
-        self.portfolio_page = PortfolioPage(notebook)
-        notebook.AddPage(self.portfolio_page, portfolio_page_title)
-        config.PAGES_DICT[portfolio_page_title] = self.portfolio_page
+        self.portfolio_page = PortfolioPage(self.notebook)
+        self.notebook.AddPage(self.portfolio_page, self.portfolio_page.title)
 
-        view_data_page_title = "View Data"
-        self.view_data_page = ViewDataPage(notebook)
-        notebook.AddPage(self.view_data_page, view_data_page_title)
-        config.PAGES_DICT[view_data_page_title] = self.view_data_page
+        self.view_data_page = ViewDataPage(self.notebook)
+        self.notebook.AddPage(self.view_data_page, self.view_data_page.title)
 
-        analyse_page_title = "Analyse Data"
-        self.analyse_page = AnalysisPage(notebook)
-        notebook.AddPage(self.analyse_page, analyse_page_title)
-        config.PAGES_DICT[analyse_page_title] = self.analyse_page
+        self.analyse_page = AnalysisPage(self.notebook)
+        self.notebook.AddPage(self.analyse_page, self.analyse_page.title)
 
-        sale_prep_page_title = "Sale Prep"
-        self.sale_prep_page = SalePrepPage(notebook)
-        notebook.AddPage(self.sale_prep_page, sale_prep_page_title)
-        config.PAGES_DICT[sale_prep_page_title] = self.sale_prep_page
+        self.sale_prep_page = SalePrepPage(self.notebook)
+        self.notebook.AddPage(self.sale_prep_page, self.sale_prep_page.title)
 
-        trade_page_title = "Trade"
-        self.trade_page = TradePage(notebook)
-        notebook.AddPage(self.trade_page, trade_page_title)
-        config.PAGES_DICT[trade_page_title] = self.trade_page
+        self.trade_page = TradePage(self.notebook)
+        self.notebook.AddPage(self.trade_page, self.trade_page.title)
 
-        user_functions_page_title = "Edit Functions"
-        self.user_functions_page = UserFunctionsPage(notebook)
-        notebook.AddPage(self.user_functions_page, user_functions_page_title)
-        config.PAGES_DICT[user_functions_page_title] = self.user_functions_page
+        self.user_functions_page = UserFunctionsPage(self.notebook)
+        self.notebook.AddPage(self.user_functions_page, self.user_functions_page.title)
 
         # finally, put the notebook in a sizer for the panel to manage
         # the layout
 
-
         sizer = wx.BoxSizer()
-        sizer.Add(notebook, 1, wx.EXPAND)
+        sizer.Add(self.notebook, 1, wx.EXPAND)
         main_frame.SetSizer(sizer)
 
+        # here we add all pages to the config.GLOBAL_PAGES_DICT, adding both the index and the title as key values.
+        self.set_config_PAGES_DICT_key_value_pairs(self.notebook)
+
         print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
-        print config.PAGES_DICT
+
+
+        print line_number()
+        print sorted(config.GLOBAL_PAGES_DICT.iteritems(), key = lambda x: x[1].index)
+        for key, value in sorted(config.GLOBAL_PAGES_DICT.iteritems(), key = lambda x: x[1].index):
+            print value.index
+            print value.name
+            print ""
+
+    def set_config_PAGES_DICT_key_value_pairs(self, notebook, parent_index = None):
+        for child in notebook.Children:
+            # sadly, have to use ordinals which is why  + 1.
+            page_index = notebook.Children.index(child) + 1.
+            if parent_index:
+                if len(notebook.Children) > 10:
+                    denominator = 100.
+                elif len(notebook.Children) > 100:
+                    print line_number(), "Error: far too many tabs in", notebook
+                    sys.exit()
+                else:
+                    denominator = 10.
+                # create formatted indexes
+                if float(parent_index).is_integer():
+                    page_index = float(int(parent_index) + (page_index/denominator))
+                else: # it already has decimals
+                    page_index = float(str(parent_index) + str(page_index/denominator).replace("0.", ""))
+            if float(page_index).is_integer():
+                page_index = int(page_index)
+            page = PageReference(child.title, index = page_index, obj = child)
+            config.GLOBAL_PAGES_DICT[page_index] = page
+            page_index = float(page_index)
+            config.GLOBAL_PAGES_DICT[child.title] = page
+            #config.PAGES_DICT[child.title] = child
+            if child.Children:
+                for grandchild in child.Children:
+                    if type(grandchild) is wx._windows.Panel:
+                        for great_grandchild in grandchild.Children:
+                            if type(great_grandchild) is wx._controls.Notebook:
+                                self.set_config_PAGES_DICT_key_value_pairs(great_grandchild, parent_index = page_index)
+
 class Tab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -142,6 +167,9 @@ class Tab(wx.Panel):
 class WelcomePage(Tab):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+
+        self.title = "Welcome"
+
         welcome_page_text = wx.StaticText(self, -1,
                              "Welcome to wxStocks",
                              (10,10)
@@ -404,27 +432,29 @@ class WelcomePage(Tab):
 ##
 class GetDataPage(Tab):
     def __init__(self, parent):
+        self.title = "Import Data"
         wx.Panel.__init__(self, parent)
         ####
-        get_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
-        get_data_notebook = wx.Notebook(get_data_page_panel)
+        self.get_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        self.get_data_notebook = wx.Notebook(self.get_data_page_panel)
 
-        self.ticker_page = TickerPage(get_data_notebook)
-        get_data_notebook.AddPage(self.ticker_page, "Download Ticker Data")
+        self.ticker_page = TickerPage(self.get_data_notebook)
+        self.get_data_notebook.AddPage(self.ticker_page, self.ticker_page.title)
 
-        self.yql_scrape_page = YqlScrapePage(get_data_notebook)
-        get_data_notebook.AddPage(self.yql_scrape_page, "Scrape YQL")
+        self.yql_scrape_page = YqlScrapePage(self.get_data_notebook)
+        self.get_data_notebook.AddPage(self.yql_scrape_page, self.yql_scrape_page.title)
 
-        self.spreadsheet_import_page = SpreadsheetImportPage(get_data_notebook)
-        get_data_notebook.AddPage(self.spreadsheet_import_page, "Import Data Spreadsheets")
+        self.spreadsheet_import_page = SpreadsheetImportPage(self.get_data_notebook)
+        self.get_data_notebook.AddPage(self.spreadsheet_import_page, self.spreadsheet_import_page.title)
 
         sizer2 = wx.BoxSizer()
-        sizer2.Add(get_data_notebook, 1, wx.EXPAND)
+        sizer2.Add(self.get_data_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
         ####
 
 class PortfolioPage(Tab):
     def __init__(self, parent):
+        self.title = "Portfolios"
         wx.Panel.__init__(self, parent)
         ####
         portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -447,6 +477,7 @@ class PortfolioPage(Tab):
                 if i in range(len(default_portfolio_names)):
                     portfolio_name = default_portfolio_names[i]
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account.title = portfolio_name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 
                 new_portfolio_name_list.append(portfolio_name)
@@ -472,6 +503,7 @@ class PortfolioPage(Tab):
                     need_to_save = True
 
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account.title = portfolio_name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
             if need_to_save == True:
                 config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
@@ -486,6 +518,7 @@ class PortfolioPage(Tab):
 
 class PortfolioAccountTab(Tab):
     def __init__(self, parent, tab_number):
+        self.title = None
         tab_panel = wx.Panel.__init__(self, parent, tab_number)
 
         self.portfolio_id = tab_number
@@ -926,6 +959,7 @@ class PortfolioAccountTab(Tab):
 
 class TickerPage(Tab):
     def __init__(self, parent):
+        self.title = "Download Ticker Data"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the ticker page.",
@@ -1065,6 +1099,7 @@ class TickerPage(Tab):
                                     )
 class YqlScrapePage(Tab):
     def __init__(self, parent):
+        self.title = "Scrape YQL"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the scrape page",
@@ -1261,16 +1296,17 @@ class YqlScrapePage(Tab):
 
 class SpreadsheetImportPage(Tab):
     def __init__(self, parent):
+        self.title = "Import Data Spreadsheets"
         wx.Panel.__init__(self, parent)
         ####
         spreadsheet_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         spreadsheet_notebook = wx.Notebook(spreadsheet_page_panel)
 
         self.xls_import_page = XlsImportPage(spreadsheet_notebook)
-        spreadsheet_notebook.AddPage(self.xls_import_page, "Import .XLS Data")
+        spreadsheet_notebook.AddPage(self.xls_import_page, self.xls_import_page.title)
 
         self.csv_import_page = CsvImportPage(spreadsheet_notebook)
-        spreadsheet_notebook.AddPage(self.csv_import_page, "Import .CSV Data")
+        spreadsheet_notebook.AddPage(self.csv_import_page, self.csv_import_page.title)
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(spreadsheet_notebook, 1, wx.EXPAND)
@@ -1278,6 +1314,7 @@ class SpreadsheetImportPage(Tab):
         ####
 class CsvImportPage(Tab):
     def __init__(self, parent):
+        self.title = "Import .CSV Data"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the CSV data import page page.\nYou can make your own import functions under the function tab.",
@@ -1347,6 +1384,7 @@ class CsvImportPage(Tab):
         confirm.ShowModal()
 class XlsImportPage(Tab):
     def __init__(self, parent):
+        self.title = "Import .XLS Data"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the XLS data import page page.\nYou can make your own import functions under the function tab.",
@@ -1434,16 +1472,17 @@ class XlsImportPage(Tab):
 ###
 class ViewDataPage(Tab):
     def __init__(self, parent):
+        self.title = "View Data"
         wx.Panel.__init__(self, parent)
         ####
         view_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         view_data_notebook = wx.Notebook(view_data_page_panel)
 
         self.all_stocks_page = AllStocksPage(view_data_notebook)
-        view_data_notebook.AddPage(self.all_stocks_page, "View All Stocks")
+        view_data_notebook.AddPage(self.all_stocks_page, self.all_stocks_page.title)
 
         self.stock_data_page = StockDataPage(view_data_notebook)
-        view_data_notebook.AddPage(self.stock_data_page, "View One Stock")
+        view_data_notebook.AddPage(self.stock_data_page, self.stock_data_page.title)
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(view_data_notebook, 1, wx.EXPAND)
@@ -1451,6 +1490,7 @@ class ViewDataPage(Tab):
         ####
 class AllStocksPage(Tab):
     def __init__(self, parent):
+        self.title = "View All Stocks"
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Full Stock List",
@@ -1497,6 +1537,7 @@ class AllStocksPage(Tab):
         db.save_GLOBAL_ATTRIBUTE_SET()
 class StockDataPage(Tab):
     def __init__(self, parent):
+        self.title = "View One Stock"
         wx.Panel.__init__(self, parent)
 
         rank_page_text = wx.StaticText(self, -1,
@@ -1593,22 +1634,24 @@ class StockDataPage(Tab):
 #####
 class AnalysisPage(Tab):
     def __init__(self, parent):
+        self.title = "Analyse Data"
         wx.Panel.__init__(self, parent)
         ####
+
         analyse_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         analyse_notebook = wx.Notebook(analyse_panel)
 
         self.screen_page = ScreenPage(analyse_notebook)
-        analyse_notebook.AddPage(self.screen_page, "Screen")
+        analyse_notebook.AddPage(self.screen_page, self.screen_page.title)
 
         self.saved_screen_page = SavedScreenPage(analyse_notebook)
-        analyse_notebook.AddPage(self.saved_screen_page, "View Saved Screens")
+        analyse_notebook.AddPage(self.saved_screen_page, self.saved_screen_page.title)
 
         self.rank_page = RankPage(analyse_notebook)
-        analyse_notebook.AddPage(self.rank_page, "Rank")
+        analyse_notebook.AddPage(self.rank_page, self.rank_page.title)
 
         self.personal_analyse_meta_page = CustomAnalysisMetaPage(analyse_notebook)
-        analyse_notebook.AddPage(self.personal_analyse_meta_page, "Custom Analysis")
+        analyse_notebook.AddPage(self.personal_analyse_meta_page, self.personal_analyse_meta_page.title)
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(analyse_notebook, 1, wx.EXPAND)
@@ -1616,6 +1659,7 @@ class AnalysisPage(Tab):
 
 class ScreenPage(Tab):
     def __init__(self, parent):
+        self.title = "Screen"
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Screen Stocks",
@@ -1729,6 +1773,7 @@ class ScreenPage(Tab):
                 return
 class SavedScreenPage(Tab):
     def __init__(self, parent):
+        self.title = "View Saved Screens"
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Saved screens",
@@ -1846,6 +1891,7 @@ class SavedScreenPage(Tab):
         self.delete_screen_button.Show()
 class RankPage(Tab):
     def __init__(self, parent):
+        self.title = "Rank"
         wx.Panel.__init__(self, parent)
 
         self.full_ticker_list = [] # this should hold all tickers in any spreadsheet displayed
@@ -2183,6 +2229,7 @@ class RankPage(Tab):
 
 class CustomAnalysisMetaPage(Tab):
     def __init__(self, parent):
+        self.title = "Custom Analysis"
         wx.Panel.__init__(self, parent)
         ####
         personal_analyse_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -2200,12 +2247,14 @@ class CustomAnalysisMetaPage(Tab):
             self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
             doc_string = triple.doc
             function_name = triple.name
+            # name custom analysis page
             if doc_string:
-                meta_analyse_notebook.AddPage(self.this_page, doc_string)
+                self.this_page.title = doc_string
             elif len(function_name) < 30:
-                meta_analyse_notebook.AddPage(self.this_page, function_name)
+                self.this_page.title = function_name
             else:
-                meta_analyse_notebook.AddPage(self.this_page, "Custom Analysis " + str(self.user_created_function_page_triples.index(triple) + 1))
+                self.this_page.title = "Custom Analysis " + str(self.user_created_function_page_triples.index(triple) + 1)
+            meta_analyse_notebook.AddPage(self.this_page, self.this_page.title)
 
 
 
@@ -2215,6 +2264,7 @@ class CustomAnalysisMetaPage(Tab):
 
 class CustomAnalysisPage(Tab):
     def __init__(self, parent, function_triple, page_index):
+        self.title = None
         wx.Panel.__init__(self, parent)
         self.doc_string = function_triple.doc
         self.function_name = function_triple.name
@@ -2489,6 +2539,7 @@ class CustomAnalysisPage(Tab):
 
 class SalePrepPage(Tab):
     def __init__(self, parent):
+        self.title = "Sale Prep"
         wx.Panel.__init__(self, parent)
         trade_page_text = wx.StaticText(self, -1,
                              "Sale Prep",
@@ -3036,6 +3087,7 @@ class SalePrepPage(Tab):
 
 class TradePage(Tab):
     def __init__(self, parent):
+        self.title = "Trade"
         self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
         self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
 
@@ -3936,6 +3988,7 @@ class TradePage(Tab):
 
 class UserFunctionsPage(Tab):
     def __init__(self, parent):
+        self.title = "Edit Functions"
         wx.Panel.__init__(self, parent)
         ####
         user_function_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -3943,22 +3996,22 @@ class UserFunctionsPage(Tab):
 
 
         self.user_created_tests = UserCreatedTestsPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_created_tests, "Screen Tests")
+        user_function_notebook.AddPage(self.user_created_tests, self.user_created_tests.title)
 
         self.user_ranking_functions = UserCreatedRankFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_ranking_functions, "Ranking Functions")
+        user_function_notebook.AddPage(self.user_ranking_functions, self.user_ranking_functions.title)
 
         self.user_csv_import_functions = UserCreatedCsvImportFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_csv_import_functions, "CSV Import Functions")
+        user_function_notebook.AddPage(self.user_csv_import_functions, self.user_csv_import_functions.title)
 
         self.user_xls_import_functions = UserCreatedXlsImportFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_xls_import_functions, "XLS Import Functions")
+        user_function_notebook.AddPage(self.user_xls_import_functions, self.user_xls_import_functions.title)
 
         self.user_portfolio_import_functions = UserCreatedPortfolioImportFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_portfolio_import_functions, "Portfolio Import Functions")
+        user_function_notebook.AddPage(self.user_portfolio_import_functions, self.user_portfolio_import_functions.title)
 
         self.user_custom_analysis_functions = UserCreatedCustomAnaylsisPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_custom_analysis_functions, "Custom Analysis Functions")
+        user_function_notebook.AddPage(self.user_custom_analysis_functions, self.user_custom_analysis_functions.title)
 
 
 
@@ -3969,6 +4022,7 @@ class UserFunctionsPage(Tab):
 
 class UserCreatedTestsPage(Tab):
     def __init__(self, parent):
+        self.title = "Screen Tests"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user generated test page.",
@@ -4045,6 +4099,7 @@ class UserCreatedTestsPage(Tab):
         self.file_display.Show()
 class UserCreatedRankFunctionPage(Tab):
     def __init__(self, parent):
+        self.title = "Ranking Functions"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created ranking function page.",
@@ -4121,6 +4176,7 @@ class UserCreatedRankFunctionPage(Tab):
         self.file_display.Show()
 class UserCreatedCsvImportFunctionPage(Tab):
     def __init__(self, parent):
+        self.title = "CSV Import Functions"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created csv import function page.",
@@ -4197,6 +4253,7 @@ class UserCreatedCsvImportFunctionPage(Tab):
         self.file_display.Show()
 class UserCreatedXlsImportFunctionPage(Tab):
     def __init__(self, parent):
+        self.title = "XLS Import Functions"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created .xls import function page.",
@@ -4273,6 +4330,7 @@ class UserCreatedXlsImportFunctionPage(Tab):
         self.file_display.Show()
 class UserCreatedPortfolioImportFunctionPage(Tab):
     def __init__(self, parent):
+        self.title = "Portfolio Import Functions"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created portfolio import function page.",
@@ -4349,6 +4407,7 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
         self.file_display.Show()
 class UserCreatedCustomAnaylsisPage(Tab):
     def __init__(self, parent):
+        self.title = "Custom Analysis Functions"
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the custom analysis editor.",

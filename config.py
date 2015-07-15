@@ -1,5 +1,5 @@
-### Editable globals that may improve your performance ###
 import locale
+### Editable globals that may improve your performance ###
 locale.setlocale(locale.LC_ALL, "") # this can be changed to show currency formats differently.
 currency_symbol = "$"
 
@@ -178,7 +178,7 @@ CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE = ((855,578),(105,58))
 ###################################################################################################
 ################# Do not edit below, all are reset to saved values on startup #####################
 ###################################################################################################
-PAGES_DICT = {}
+GLOBAL_PAGES_DICT = {}
 
 GLOBAL_TABS_DICT = {}
 

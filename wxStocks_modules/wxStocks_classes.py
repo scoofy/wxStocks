@@ -302,3 +302,10 @@ class SpreadsheetRow(object):
         self.row_title = row_title
         self.name = name
         self.cell_dict = cell_dict
+
+class PageReference(object):
+	def __init__(self, name, obj = None, index = None):
+		self.name = name
+		self.obj = obj
+		self.index = index
+
