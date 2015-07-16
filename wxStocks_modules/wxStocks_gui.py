@@ -120,14 +120,6 @@ class MainFrame(wx.Frame): # reorder tab postions here
 
         print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
 
-
-        print line_number()
-        print sorted(config.GLOBAL_PAGES_DICT.iteritems(), key = lambda x: x[1].index)
-        for key, value in sorted(config.GLOBAL_PAGES_DICT.iteritems(), key = lambda x: x[1].index):
-            print value.index
-            print value.name
-            print ""
-
     def set_config_PAGES_DICT_key_value_pairs(self, notebook, parent_index = None):
         for child in notebook.Children:
             # sadly, have to use ordinals which is why  + 1.
@@ -151,6 +143,11 @@ class MainFrame(wx.Frame): # reorder tab postions here
             config.GLOBAL_PAGES_DICT[page_index] = page
             page_index = float(page_index)
             config.GLOBAL_PAGES_DICT[child.title] = page
+            try: # main page (find these in the config file)
+                config.GLOBAL_PAGES_DICT[child.uid] = page
+                page.uid = child.uid
+            except: # user created subsection
+                pass
             #config.PAGES_DICT[child.title] = child
             if child.Children:
                 for grandchild in child.Children:
@@ -166,9 +163,9 @@ class Tab(wx.Panel):
 # ###################### wx tabs #########################################################
 class WelcomePage(Tab):
     def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-
         self.title = "Welcome"
+        self.uid = config.WELCOME_PAGE_UNIQUE_ID
+        wx.Panel.__init__(self, parent)
 
         welcome_page_text = wx.StaticText(self, -1,
                              "Welcome to wxStocks",
@@ -433,6 +430,7 @@ class WelcomePage(Tab):
 class GetDataPage(Tab):
     def __init__(self, parent):
         self.title = "Import Data"
+        self.uid = config.GET_DATA_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
         self.get_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -455,6 +453,7 @@ class GetDataPage(Tab):
 class PortfolioPage(Tab):
     def __init__(self, parent):
         self.title = "Portfolios"
+        self.uid = config.PORTFOLIO_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
         portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -960,6 +959,7 @@ class PortfolioAccountTab(Tab):
 class TickerPage(Tab):
     def __init__(self, parent):
         self.title = "Download Ticker Data"
+        self.uid = config.TICKER_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the ticker page.",
@@ -1016,9 +1016,12 @@ class TickerPage(Tab):
 
         #self.saveTickerDataAsStocks(ticker_data) # no longer used
         self.showAllTickers()
-        # Update scrape page?
-        # Don't want to take the time to figure this out just now.
-        print line_number(), "Add function here to update scrape time."
+        # Update scrape page
+        scrape_page = config.GLOBAL_PAGES_DICT.get(config.YQL_SCRAPE_PAGE_UNIQUE_ID).obj
+        scrape_page.calculate_scrape_times()
+        # Update view all stocks
+        view_all_stocks_page = config.GLOBAL_PAGES_DICT.get(config.ALL_STOCKS_PAGE_UNIQUE_ID).obj
+        view_all_stocks_page.spreadSheetFillAllStocks("event")
 
     # no longer used
     def saveTickerDataAsStocks(self, ticker_data_from_download):
@@ -1100,6 +1103,7 @@ class TickerPage(Tab):
 class YqlScrapePage(Tab):
     def __init__(self, parent):
         self.title = "Scrape YQL"
+        self.uid = config.YQL_SCRAPE_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the scrape page",
@@ -1297,6 +1301,7 @@ class YqlScrapePage(Tab):
 class SpreadsheetImportPage(Tab):
     def __init__(self, parent):
         self.title = "Import Data Spreadsheets"
+        self.uid = config.SPREADSHEET_IMPORT_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
         spreadsheet_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -1315,6 +1320,7 @@ class SpreadsheetImportPage(Tab):
 class CsvImportPage(Tab):
     def __init__(self, parent):
         self.title = "Import .CSV Data"
+        self.uid = config.CSV_IMPORT_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the CSV data import page page.\nYou can make your own import functions under the function tab.",
@@ -1385,6 +1391,7 @@ class CsvImportPage(Tab):
 class XlsImportPage(Tab):
     def __init__(self, parent):
         self.title = "Import .XLS Data"
+        self.uid = config.XLS_IMPORT_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the XLS data import page page.\nYou can make your own import functions under the function tab.",
@@ -1473,6 +1480,7 @@ class XlsImportPage(Tab):
 class ViewDataPage(Tab):
     def __init__(self, parent):
         self.title = "View Data"
+        self.uid = config.VIEW_DATA_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
         view_data_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -1491,6 +1499,7 @@ class ViewDataPage(Tab):
 class AllStocksPage(Tab):
     def __init__(self, parent):
         self.title = "View All Stocks"
+        self.uid = config.ALL_STOCKS_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Full Stock List",
@@ -1507,6 +1516,9 @@ class AllStocksPage(Tab):
 
 
         self.first_spread_sheet_load = True
+
+        # commented out below to speed up testing
+        #self.spreadSheetFillAllStocks("event")
 
         print line_number(), "AllStocksPage loaded"
 
@@ -1538,6 +1550,7 @@ class AllStocksPage(Tab):
 class StockDataPage(Tab):
     def __init__(self, parent):
         self.title = "View One Stock"
+        self.uid = config.STOCK_DATA_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
 
         rank_page_text = wx.StaticText(self, -1,
@@ -1635,6 +1648,7 @@ class StockDataPage(Tab):
 class AnalysisPage(Tab):
     def __init__(self, parent):
         self.title = "Analyse Data"
+        self.uid = config.ANALYSE_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
 
@@ -1650,8 +1664,8 @@ class AnalysisPage(Tab):
         self.rank_page = RankPage(analyse_notebook)
         analyse_notebook.AddPage(self.rank_page, self.rank_page.title)
 
-        self.personal_analyse_meta_page = CustomAnalysisMetaPage(analyse_notebook)
-        analyse_notebook.AddPage(self.personal_analyse_meta_page, self.personal_analyse_meta_page.title)
+        self.custom_analyse_meta_page = CustomAnalysisMetaPage(analyse_notebook)
+        analyse_notebook.AddPage(self.custom_analyse_meta_page, self.custom_analyse_meta_page.title)
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(analyse_notebook, 1, wx.EXPAND)
@@ -1660,6 +1674,7 @@ class AnalysisPage(Tab):
 class ScreenPage(Tab):
     def __init__(self, parent):
         self.title = "Screen"
+        self.uid = config.SCREEN_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Screen Stocks",
@@ -1774,6 +1789,7 @@ class ScreenPage(Tab):
 class SavedScreenPage(Tab):
     def __init__(self, parent):
         self.title = "View Saved Screens"
+        self.uid = config.SAVED_SCREEN_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Saved screens",
@@ -1892,6 +1908,7 @@ class SavedScreenPage(Tab):
 class RankPage(Tab):
     def __init__(self, parent):
         self.title = "Rank"
+        self.uid = config.RANK_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
 
         self.full_ticker_list = [] # this should hold all tickers in any spreadsheet displayed
@@ -2230,6 +2247,7 @@ class RankPage(Tab):
 class CustomAnalysisMetaPage(Tab):
     def __init__(self, parent):
         self.title = "Custom Analysis"
+        self.uid = config.CUSTOM_ANALYSE_META_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
         personal_analyse_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -2540,6 +2558,7 @@ class CustomAnalysisPage(Tab):
 class SalePrepPage(Tab):
     def __init__(self, parent):
         self.title = "Sale Prep"
+        self.uid = config.SALE_PREP_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         trade_page_text = wx.StaticText(self, -1,
                              "Sale Prep",
@@ -2597,8 +2616,6 @@ class SalePrepPage(Tab):
                 if is_checked:
                     self.spreadSheetFill('event')
                     break
-
-
 
         print line_number(), "SalePrepPage loaded"
 
@@ -2721,6 +2738,9 @@ class SalePrepPage(Tab):
                                                                 ]
         print config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
         self.saved_text.Show()
+
+        trade_page = config.GLOBAL_PAGES_DICT.get(config.TRADE_PAGE_UNIQUE_ID).obj
+        trade_page.importSaleCandidates("event")
 
     def refreshAccountData(self, event):
         ######## Rebuild Checkbox List in case of new accounts
@@ -2954,6 +2974,7 @@ class SalePrepPage(Tab):
         sale_value = None
         percent_to_commission = None
 
+        row_obj = self.rows_dict.get(str(row))
         stocks_ticker_cell = row_obj.cell_dict.get(str(self.ticker_cell.col))
         if stocks_ticker_cell:
             ticker = stocks_ticker_cell.text
@@ -3070,7 +3091,7 @@ class SalePrepPage(Tab):
 
         self.saved_text.Hide()
         self.save_button.Show()
-        #print "Show Me!"
+        self.exportSaleCandidates("event")
 
     def setGridError(self, row):
         self.grid.SetCellValue(row, self.sale_check_cell.col, "Error")
@@ -3088,6 +3109,7 @@ class SalePrepPage(Tab):
 class TradePage(Tab):
     def __init__(self, parent):
         self.title = "Trade"
+        self.uid = config.TRADE_PAGE_UNIQUE_ID
         self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
         self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
 
@@ -3132,6 +3154,8 @@ class TradePage(Tab):
 
 
         self.grid = None
+
+        self.makeGridOnButtonPush("event")
 
         print line_number(), "TradePage loaded"
 
@@ -3223,6 +3247,7 @@ class TradePage(Tab):
             id_number = portfolio.id_number
             print line_number(), "Portfolio %d:" % id_number, config.PORTFOLIO_NAMES[id_number - 1]
         print line_number(), self.sale_tuple_list
+        self.makeGridOnButtonPush("event")
 
         # Now, how to refresh only parts of the list... hmmmm
     def makeGridOnButtonPush(self, event):
@@ -3547,6 +3572,7 @@ class TradePage(Tab):
             grid = self.grid
         else:
             print line_number(), grid
+
         if not cursor_positon:
             row = event.GetRow()
             column = event.GetCol()
@@ -3563,17 +3589,24 @@ class TradePage(Tab):
                 #print row
                 ticker = grid.GetCellValue(row, self.default_buy_candidate_column)
                 #print ticker
-                stock = utils.return_stock_by_symbol(ticker)
-                if stock:
-                    self.buy_candidates.append(str(stock.symbol))
-                    quantity = grid.GetCellValue(row, self.default_buy_candidate_quantity_column)
-                    if quantity:
-                        if str(quantity).isdigit():
-                            quantity = int(quantity)
-                            ticker_row = row
-                            self.buy_candidate_tuples.append((ticker_row, quantity))
-                else:
-                    print line_number(), ticker, "doesn't seem to exist"
+                if ticker:
+                    stock = utils.return_stock_by_symbol(ticker)
+                    if stock:
+                        self.buy_candidates.append(str(stock.symbol))
+                        quantity = grid.GetCellValue(row, self.default_buy_candidate_quantity_column)
+                        if quantity:
+                            if str(quantity).isdigit():
+                                quantity = int(quantity)
+                                ticker_row = row
+                                self.buy_candidate_tuples.append((ticker_row, quantity))
+                    else:
+                        print line_number(), ticker, "doesn't seem to exist"
+                        self.grid.SetCellValue(row, column, ticker)
+                        self.grid.SetCellAlignment(row, column, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+                        self.grid.SetCellValue(row, column + 1, "Error")
+                        self.grid.SetCellAlignment(row, column + 1, horiz = wx.ALIGN_CENTER, vert = wx.ALIGN_BOTTOM)
+                        self.grid.SetCellTextColour(row, column + 1, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+                        return
         print line_number(), self.buy_candidates
 
         # build new grid
@@ -3657,9 +3690,9 @@ class TradePage(Tab):
 
             total_asset_cell = [0, this_column_number, "Total asset value ="]
             approximate_surplus_cash_cell = [3, this_column_number, "Approximate surplus cash from sale ="]
-            percent_total_cash_cell = [6, this_column_number, "%% Total Cash After Sale"]
+            percent_total_cash_cell = [6, this_column_number, "%" + " Total Cash After Sale"]
             portfolio_cash_available_cell = [9, this_column_number, "Portfolio Cash Available ="]
-            num_stocks_to_look_cell = [12, this_column_number, "# of stocks to look at at for 3%% of portfolio each."]
+            num_stocks_to_look_cell = [12, this_column_number, "# of stocks to look at at for 3%" + " of portfolio each."]
             approximate_to_spend_cell = [15, this_column_number, "Approximate to spend on each (3%) stock."]
 
             spreadsheet_cell_list.append(total_asset_cell)
@@ -3744,7 +3777,7 @@ class TradePage(Tab):
             total_cost_cell = [1, this_column_number, "Total Cost ="]
             adjusted_cash_cell = [2, this_column_number, "Adjusted Cash Available ="]
             num_stocks_to_purchase_cell = [3, this_column_number, "Number of stocks left to purchase at 3% ="]
-            new_cash_percentage_cell = [4, this_column_number, "New cash %% of portfolio ="]
+            new_cash_percentage_cell = [4, this_column_number, "New cash %" + " of portfolio ="]
             # this cell may be irrelevant
             # new_cash_total_cell = [5, this_column_number, "New cash %% of total ="]
 
@@ -3792,7 +3825,7 @@ class TradePage(Tab):
 
             total_asset_value = 0.00
             for account in self.relevant_portfolios_list:
-                total_asset_value += float(str(account.availble_cash).replace("$",""))
+                total_asset_value += float(str(account.available_cash).replace("$",""))
                 for ticker, quantity in account.stock_shares_dict.iteritems():
                     stock = utils.return_stock_by_symbol(ticker)
                     quantity = float(str(quantity).replace(",",""))
@@ -3800,7 +3833,7 @@ class TradePage(Tab):
                     value_of_held_stock = last_price * quantity
                     total_asset_value += value_of_held_stock
 
-            total_asset_value_cell = [total_asset_value_row, this_column_number, ("$" + str(total_asset_value))]
+            total_asset_value_cell = [total_asset_value_row, this_column_number, config.locale.currency(total_asset_value, grouping = True)]
             spreadsheet_cell_list.append(total_asset_value_cell)
 
             ## approximate surplus cash
@@ -3814,7 +3847,7 @@ class TradePage(Tab):
                 last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
                 value_of_single_stock_to_sell = last_price * number_of_shares_to_sell
                 value_of_all_stock_to_sell += value_of_single_stock_to_sell
-            surplus_cash_cell = [approximate_surplus_cash_row, this_column_number, ("$" + str(value_of_all_stock_to_sell))]
+            surplus_cash_cell = [approximate_surplus_cash_row, this_column_number, config.locale.currency(value_of_all_stock_to_sell, grouping = True)]
             spreadsheet_cell_list.append(surplus_cash_cell)
 
             ## percent of portfolio that is cash after sale
@@ -3822,7 +3855,7 @@ class TradePage(Tab):
 
             total_cash = 0.00
             for account in self.relevant_portfolios_list:
-                total_cash += float(str(account.availble_cash).replace("$",""))
+                total_cash += float(str(account.available_cash).replace("$",""))
             total_cash += value_of_all_stock_to_sell
             if total_cash != 0:
                 percent_cash = total_cash / total_asset_value
@@ -3838,7 +3871,7 @@ class TradePage(Tab):
             cash_after_sale_row = 10
 
             total_cash_after_sale = total_cash # from above
-            total_cash_after_sale = "$" + str(total_cash_after_sale)
+            total_cash_after_sale = config.locale.currency(total_cash_after_sale, grouping = True)
 
             total_cash_after_sale_cell = [cash_after_sale_row, this_column_number, total_cash_after_sale]
             spreadsheet_cell_list.append(total_cash_after_sale_cell)
@@ -3882,7 +3915,7 @@ class TradePage(Tab):
 
                         try:
                             last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
-                            new_grid.SetCellValue(row_num, column_num + 2, "$" + str(last_price))
+                            new_grid.SetCellValue(row_num, column_num + 2, config.locale.currency(last_price, grouping = True))
                             update_error = False
                         except Exception as e:
                             print line_number(), e
@@ -3929,7 +3962,7 @@ class TradePage(Tab):
                         quantity = int(quantity)
                         cost = float(getattr(stock, self.default_last_trade_price_attribute_name)) * quantity
                         total_buy_cost += cost
-                        cost_cell = [row_num, buy_cost_column, "$" + str(cost)]
+                        cost_cell = [row_num, buy_cost_column, config.locale.currency(cost, grouping = True)]
                         spreadsheet_cell_list.append(cost_cell)
 
         # column 18 (final column)
@@ -3937,7 +3970,7 @@ class TradePage(Tab):
 
         total_cost_row = 1
 
-        total_cost_sum_cell = [total_cost_row, this_column_number, "$" + str(total_buy_cost)]
+        total_cost_sum_cell = [total_cost_row, this_column_number, config.locale.currency(total_buy_cost, grouping = True)]
         spreadsheet_cell_list.append(total_cost_sum_cell)
 
         adjusted_cash_row = 2
@@ -3946,7 +3979,7 @@ class TradePage(Tab):
             color = "black"
         else:
             color = "red"
-        adjusted_cash_result_cell = [adjusted_cash_row, this_column_number, "$" + str(adjusted_cash_result)]
+        adjusted_cash_result_cell = [adjusted_cash_row, this_column_number, config.locale.currency(adjusted_cash_result, grouping = True)]
         spreadsheet_cell_list.append(adjusted_cash_result_cell)
         new_grid.SetCellTextColour(adjusted_cash_row, this_column_number, color)
 
@@ -3960,7 +3993,7 @@ class TradePage(Tab):
         new_grid.SetCellTextColour(number_of_stocks_still_yet_to_buy_row, this_column_number, color)
 
         new_percent_cash_row = 4
-        if adjusted_cash_result != 0:
+        if adjusted_cash_result != 0 and total_asset_value != 0:
             new_percent_cash = round(100 * adjusted_cash_result / total_asset_value)
         else:
             new_percent_cash = 0
@@ -3989,6 +4022,7 @@ class TradePage(Tab):
 class UserFunctionsPage(Tab):
     def __init__(self, parent):
         self.title = "Edit Functions"
+        self.uid = config.USER_FUNCTIONS_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
         user_function_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
@@ -4023,6 +4057,7 @@ class UserFunctionsPage(Tab):
 class UserCreatedTestsPage(Tab):
     def __init__(self, parent):
         self.title = "Screen Tests"
+        self.uid = config.USER_CREATED_TESTS_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user generated test page.",
@@ -4100,6 +4135,7 @@ class UserCreatedTestsPage(Tab):
 class UserCreatedRankFunctionPage(Tab):
     def __init__(self, parent):
         self.title = "Ranking Functions"
+        self.uid = config.USER_RANKING_FUNCTIONS_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created ranking function page.",
@@ -4177,6 +4213,7 @@ class UserCreatedRankFunctionPage(Tab):
 class UserCreatedCsvImportFunctionPage(Tab):
     def __init__(self, parent):
         self.title = "CSV Import Functions"
+        self.uid = config.USER_CSV_IMPORT_FUNCTIONS_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created csv import function page.",
@@ -4254,6 +4291,7 @@ class UserCreatedCsvImportFunctionPage(Tab):
 class UserCreatedXlsImportFunctionPage(Tab):
     def __init__(self, parent):
         self.title = "XLS Import Functions"
+        self.uid = config.USER_XLS_IMPORT_FUNCTIONS_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created .xls import function page.",
@@ -4331,6 +4369,7 @@ class UserCreatedXlsImportFunctionPage(Tab):
 class UserCreatedPortfolioImportFunctionPage(Tab):
     def __init__(self, parent):
         self.title = "Portfolio Import Functions"
+        self.uid = config.USER_PORTFOLIO_IMPORT_FUNCTIONS_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the user created portfolio import function page.",
@@ -4408,6 +4447,7 @@ class UserCreatedPortfolioImportFunctionPage(Tab):
 class UserCreatedCustomAnaylsisPage(Tab):
     def __init__(self, parent):
         self.title = "Custom Analysis Functions"
+        self.uid = config.USER_CUSTOM_ANALYSIS_FUNCTIONS_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the custom analysis editor.",

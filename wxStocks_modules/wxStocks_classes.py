@@ -304,8 +304,9 @@ class SpreadsheetRow(object):
         self.cell_dict = cell_dict
 
 class PageReference(object):
-	def __init__(self, name, obj = None, index = None):
+	def __init__(self, name, obj = None, index = None, uid = None):
 		self.name = name
 		self.obj = obj
 		self.index = index
+		self.uid = uid # unique id
 

@@ -26,7 +26,12 @@ def return_stock_by_symbol(ticker_symbol):
 		return config.GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
 	except Exception as e:
 		print line_number()
-		logging.error("Stock with symbol %s does not appear to exist" % ticker_symbol.upper())
+		try:
+			ticker_symbol = ticker_symbol.upper()
+		except:
+			pass
+		print line_number()
+		print "Stock with symbol %s does not appear to exist" % ticker_symbol
 		return None
 
 def return_all_stocks():

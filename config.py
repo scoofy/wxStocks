@@ -1,4 +1,4 @@
-import locale
+import locale, sys
 ### Editable globals that may improve your performance ###
 locale.setlocale(locale.LC_ALL, "") # this can be changed to show currency formats differently.
 currency_symbol = "$"
@@ -179,6 +179,92 @@ CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE = ((855,578),(105,58))
 ################# Do not edit below, all are reset to saved values on startup #####################
 ###################################################################################################
 GLOBAL_PAGES_DICT = {}
+
+# unique ids
+# top level tabs
+#
+WELCOME_PAGE_UNIQUE_ID 			= "w"
+GET_DATA_PAGE_UNIQUE_ID 		= "g"
+#
+# ## second level tabs
+TICKER_PAGE_UNIQUE_ID				= "g_ti"
+YQL_SCRAPE_PAGE_UNIQUE_ID			= "g_yq"
+SPREADSHEET_IMPORT_PAGE_UNIQUE_ID	= "g_sp"
+# ## ### third level tabs
+XLS_IMPORT_PAGE_UNIQUE_ID 				= "g_sp_xls"
+CSV_IMPORT_PAGE_UNIQUE_ID 				= "g_sp_csv"
+# ## ###
+# ##
+#
+PORTFOLIO_PAGE_UNIQUE_ID 		= "p"
+VIEW_DATA_PAGE_UNIQUE_ID 		= "v"
+#
+# ##
+ALL_STOCKS_PAGE_UNIQUE_ID 			= "v_al"
+STOCK_DATA_PAGE_UNIQUE_ID 			= "v_st"
+# ##
+#
+ANALYSE_PAGE_UNIQUE_ID 			= "a"
+#
+# ##
+SCREEN_PAGE_UNIQUE_ID 				= "a_sc"
+SAVED_SCREEN_PAGE_UNIQUE_ID 		= "a_sa"
+RANK_PAGE_UNIQUE_ID 				= "a_ra"
+CUSTOM_ANALYSE_META_PAGE_UNIQUE_ID= "a_pe"
+# ##
+#
+SALE_PREP_PAGE_UNIQUE_ID 		= "s"
+TRADE_PAGE_UNIQUE_ID 			= "t"
+USER_FUNCTIONS_PAGE_UNIQUE_ID 	= "u"
+#
+# ##
+USER_CREATED_TESTS_UNIQUE_ID 			 = "u_cr"
+USER_RANKING_FUNCTIONS_UNIQUE_ID 		 = "u_ra"
+USER_CSV_IMPORT_FUNCTIONS_UNIQUE_ID 	 = "u_cs"
+USER_XLS_IMPORT_FUNCTIONS_UNIQUE_ID 	 = "u_xl"
+USER_PORTFOLIO_IMPORT_FUNCTIONS_UNIQUE_ID= "u_po"
+USER_CUSTOM_ANALYSIS_FUNCTIONS_UNIQUE_ID = "u_cu"
+# ##
+#
+GLOBAL_UNIQUE_ID_LIST = [
+	WELCOME_PAGE_UNIQUE_ID,
+	GET_DATA_PAGE_UNIQUE_ID,
+	TICKER_PAGE_UNIQUE_ID,
+	YQL_SCRAPE_PAGE_UNIQUE_ID,
+	SPREADSHEET_IMPORT_PAGE_UNIQUE_ID,
+	XLS_IMPORT_PAGE_UNIQUE_ID,
+	CSV_IMPORT_PAGE_UNIQUE_ID,
+	PORTFOLIO_PAGE_UNIQUE_ID,
+	VIEW_DATA_PAGE_UNIQUE_ID,
+	ALL_STOCKS_PAGE_UNIQUE_ID,
+	STOCK_DATA_PAGE_UNIQUE_ID,
+	ANALYSE_PAGE_UNIQUE_ID,
+	SCREEN_PAGE_UNIQUE_ID,
+	SAVED_SCREEN_PAGE_UNIQUE_ID,
+	RANK_PAGE_UNIQUE_ID,
+	CUSTOM_ANALYSE_META_PAGE_UNIQUE_ID,
+	SALE_PREP_PAGE_UNIQUE_ID,
+	TRADE_PAGE_UNIQUE_ID,
+	USER_FUNCTIONS_PAGE_UNIQUE_ID,
+	USER_CREATED_TESTS_UNIQUE_ID,
+	USER_RANKING_FUNCTIONS_UNIQUE_ID,
+	USER_CSV_IMPORT_FUNCTIONS_UNIQUE_ID,
+	USER_XLS_IMPORT_FUNCTIONS_UNIQUE_ID,
+	USER_PORTFOLIO_IMPORT_FUNCTIONS_UNIQUE_ID,
+	USER_CUSTOM_ANALYSIS_FUNCTIONS_UNIQUE_ID,
+	]
+if len(GLOBAL_UNIQUE_ID_LIST) != len(set(GLOBAL_UNIQUE_ID_LIST)):
+	# one of the ids is not unique
+	print "Error: GLOBAL_UNIQUE_ID_LIST has duplicates"
+	dummy_list = []
+	duplicates = []
+	for u_id in GLOBAL_UNIQUE_ID_LIST:
+		if u_id not in dummy_list:
+			dummy_list.append(u_id)
+		else:
+			duplicates.append(u_id)
+	print duplicates
+	sys.exit()
 
 GLOBAL_TABS_DICT = {}
 
