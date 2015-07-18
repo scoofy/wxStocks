@@ -2591,8 +2591,8 @@ class SalePrepPage(Tab):
         refresh_button = wx.Button(self, label="Clear and Refresh Spreadsheet", pos=(110,5), size=(-1,-1))
         refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFill, refresh_button)
 
-        load_new_account_data_button = wx.Button(self, label="Refresh Accounts Data and Spreadsheet", pos=(110,30), size=(-1,-1))
-        load_new_account_data_button.Bind(wx.EVT_BUTTON, self.refreshAccountData, load_new_account_data_button)
+        self.load_new_account_data_button = wx.Button(self, label="Refresh Accounts Data and Spreadsheet", pos=(110,30), size=(-1,-1))
+        self.load_new_account_data_button.Bind(wx.EVT_BUTTON, self.refreshAccountData, self.load_new_account_data_button)
 
         self.save_button = wx.Button(self, label="Export for Trade Window", pos=(420,50), size=(-1,-1))
         self.save_button.Bind(wx.EVT_BUTTON, self.exportSaleCandidates, self.save_button)
@@ -3069,7 +3069,10 @@ class SalePrepPage(Tab):
                 self.setGridError(row)
         if price:
             sale_value = float(number_of_shares_to_sell) * float(price)
-            percent_to_commission = 100 * self.commission/sale_value
+            if sale_value:
+                percent_to_commission = 100 * self.commission/sale_value
+            else:
+                percent_to_commission = 0
 
         if sale_value:
             self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
@@ -3126,18 +3129,29 @@ class TradePage(Tab):
 
         self.default_rows_above_buy_candidates = 5
         self.default_buy_candidate_column = 7
+        self.default_buy_candidate_color = "#FAEFCF"
+        self.default_not_entered_buy_candidate_color = "#FBF7EC"
         self.default_buy_candidate_quantity_column = 14
+        self.default_buy_candidate_quantity_color = "#CFE8FC"
+        self.default_not_entered_buy_candidate_quantity_color = "#E9F4FD"
+
         self.buy_candidates = [] # this will be tickers to buy, but no quantities
         self.buy_candidate_tuples = [] # this will be tickers ROWS with quantities, if they don't appear in previous list, there will be disregarded, because data has been changed.
 
         self.default_columns = 19
         self.default_min_rows = 17
 
-        import_sale_candidates_button = wx.Button(self, label="Import sale candidates and refresh spreadsheet", pos=(0,30), size=(-1,-1))
-        import_sale_candidates_button.Bind(wx.EVT_BUTTON, self.importSaleCandidates, import_sale_candidates_button)
+        # no longer used
+        #import_sale_candidates_button = wx.Button(self, label="Import sale candidates and refresh spreadsheet", pos=(0,30), size=(-1,-1))
+        #import_sale_candidates_button.Bind(wx.EVT_BUTTON, self.importSaleCandidates, import_sale_candidates_button)
 
-        create_grid_button = wx.Button(self, label="Create grid", pos=(500,30), size=(-1,-1))
-        create_grid_button.Bind(wx.EVT_BUTTON, self.makeGridOnButtonPush, create_grid_button)
+        self.create_grid_button = wx.Button(self, label="Create grid", pos=(500,0), size=(-1,-1))
+        self.create_grid_button.Bind(wx.EVT_BUTTON, self.makeGridOnButtonPush, self.create_grid_button)
+        self.create_grid_button.Hide()
+
+        self.clear_grid_button = wx.Button(self, label="Clear", pos=(900,0), size=(-1,-1))
+        self.clear_grid_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_grid_button)
+
         self.grid_list = []
 
         self.update_stocks_button = wx.Button(self, label="Update stocks with errors.", pos=(700,30), size=(-1,-1))
@@ -3237,6 +3251,18 @@ class TradePage(Tab):
             timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
             timer.start()
 
+    def clearGrid(self, event):
+        self.relevant_portfolios_list = []
+        self.sale_tuple_list = []
+        self.ticker_list = []
+        self.buy_candidates = []
+        self.buy_candidate_tuples = []
+        self.stocks_to_update = []
+        self.newGridFill()
+        sale_prep_page = config.GLOBAL_PAGES_DICT.get(config.SALE_PREP_PAGE_UNIQUE_ID).obj
+        sale_prep_page.saved_text.Hide()
+        sale_prep_page.save_button.Show()
+
     def importSaleCandidates(self, event):
         print line_number(), "Boom goes the boom!!!!!!!!"
 
@@ -3252,314 +3278,7 @@ class TradePage(Tab):
         # Now, how to refresh only parts of the list... hmmmm
     def makeGridOnButtonPush(self, event):
         self.newGridFill()
-    def spreadSheetFill(self, cursor_positon = (0,0) ):
-        pass # currently redundant
 
-        # print cursor_positon
-        # try:
-        #   self.grid.Destroy()
-        #   print "Destroyed grid"
-        # except Exception, exception:
-        #   #pass
-        #   print line_number(), exception
-
-        # # CREATE A GRID HERE
-        # self.grid = TradeGrid(self, -1, size=(1000,650), pos=(0,83))
-        # # calc rows
-        # global SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
-        #
-        # relevant_portfolio_name_list = []
-        # try:
-        #   self.relevant_portfolios_list = []
-        #   for account in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]:
-        #       id_number = account.id_number
-        #       self.relevant_portfolios_list.append(account)
-        #       relevant_portfolio_name_list.append(config.PORTFOLIO_NAMES[(id_number - 1)])
-
-        #   num_rows = len(SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1])
-        #   global DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
-        #   num_rows += DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
-        # except Exception, exception:
-        #   print line_number(), exception
-        #   num_rows = 0
-
-        # num_rows = max(num_rows, self.default_min_rows, (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1))
-        # self.grid.CreateGrid(num_rows, self.default_columns)
-        # self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, self.grid)
-
-        # for column_num in range(self.default_columns):
-        #   for row_num in range(num_rows):
-        #       if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,14]:
-        #           self.grid.SetReadOnly(row_num, column_num, True)
-        #       elif column_num == self.default_buy_candidate_column:
-        #           self.grid.SetCellBackgroundColour(row_num, column_num, "#FAEFCF")
-        #       elif column_num == 14:
-        #           self.grid.SetCellBackgroundColour(row_num, column_num, "#CFE8FC")
-
-
-        # # Defining cells separately from forming them so they are easy to edit
-        # # e.g. dummy_cell_var = [Row, Column, "Name/Value"]
-        # # cell_list = [dummy_cell_var, dummy_cell_2, etc...]
-        # # for cell in cell_list:
-        # #     self.grid.SetCellValue(cell[0],cell[1],cell[2])
-        # spreadsheet_cell_list = []
-
-        # # Start with static values (large if statement for code folding purposes only)
-        # if "This section sets the static cell values by column" == "This section sets the static cell values by column":
-        #   # Column 0 (using zero-based numbering for simplicity):
-        #   this_column_number = 0
-
-        #   title_with_relevant_portfolios_string = "Trade Prep (" + ", ".join(relevant_portfolio_name_list) + ")"
-
-        #   name_of_spreadsheet_cell = [0, this_column_number, title_with_relevant_portfolios_string]
-        #   share_to_sell_cell = [2, this_column_number, "Shares to sell:"]
-        #   ticker_title_cell = [3, this_column_number, "Ticker"]
-
-        #   spreadsheet_cell_list.append(name_of_spreadsheet_cell)
-        #   spreadsheet_cell_list.append(share_to_sell_cell)
-        #   spreadsheet_cell_list.append(ticker_title_cell)
-
-        #   # Column 1:
-        #   this_column_number = 1
-
-        #   num_shares_cell = [3, this_column_number,"# shares"]
-        #   spreadsheet_cell_list.append(num_shares_cell)
-
-        #   # Column 2:
-        #   this_column_number = 2
-
-        #   volume_title_cell = [3, this_column_number, "Volume"]
-        #   spreadsheet_cell_list.append(volume_title_cell)
-
-        #   # Column 3:
-        #   # empty
-
-        #   # Column 4:
-        #   this_column_number = 4
-
-        #   total_asset_cell = [0, this_column_number, "Total asset value ="]
-        #   approximate_surplus_cash_cell = [3, this_column_number, "Approximate surplus cash from sale ="]
-        #   percent_total_cash_cell = [6, this_column_number, "%% Total Cash After Sale"]
-        #   portfolio_cash_available_cell = [9, this_column_number, "Portfolio Cash Available ="]
-        #   num_stocks_to_look_cell = [12, this_column_number, "# of stocks to look at at for 3%% of portfolio each."]
-        #   approximate_to_spend_cell = [15, this_column_number, "Approximate to spend on each (3%) stock."]
-
-        #   spreadsheet_cell_list.append(total_asset_cell)
-        #   spreadsheet_cell_list.append(approximate_surplus_cash_cell)
-        #   spreadsheet_cell_list.append(percent_total_cash_cell)
-        #   spreadsheet_cell_list.append(portfolio_cash_available_cell)
-        #   spreadsheet_cell_list.append(num_stocks_to_look_cell)
-        #   spreadsheet_cell_list.append(approximate_to_spend_cell)
-
-        #   # Column 5:
-        #   # empty
-
-        #   # Column 6:
-        #   this_column_number = 6
-
-        #   num_symbol_cell = [5, this_column_number, "#"]
-        #   spreadsheet_cell_list.append(num_symbol_cell)
-
-        #   # Column 7:
-        #   this_column_number = 7
-
-        #   shares_to_buy_cell = [2, this_column_number, "Shares to buy:"]
-        #   input_ticker_cell = [3, this_column_number, "Input ticker"]
-
-        #   spreadsheet_cell_list.append(shares_to_buy_cell)
-        #   spreadsheet_cell_list.append(input_ticker_cell)
-
-        #   # Column 8:
-        #   # empty
-
-        #   # Column 9:
-        #   # empty
-
-        #   # Column 10:
-        #   this_column_number = 10
-
-        #   num_shares_to_buy_cell = [2, this_column_number, "# of shares to buy for"]
-        #   three_percent_cell = [3, this_column_number, "3%"]
-
-        #   spreadsheet_cell_list.append(num_shares_to_buy_cell)
-        #   spreadsheet_cell_list.append(three_percent_cell)
-
-        #   # Column 11:
-        #   this_column_number = 11
-
-        #   for_cell = [2, this_column_number, "for"]
-        #   five_percent_cell = [3, this_column_number, "5%"]
-
-        #   spreadsheet_cell_list.append(for_cell)
-        #   spreadsheet_cell_list.append(five_percent_cell)
-
-        #   # Column 12:
-        #   this_column_number = 12
-
-        #   for_cell_2 = [2, this_column_number, "for"]
-        #   ten_percent_cell = [3, this_column_number, "10%"]
-
-        #   spreadsheet_cell_list.append(for_cell_2)
-        #   spreadsheet_cell_list.append(ten_percent_cell)
-
-        #   # Column 13:
-        #   # empty
-
-        #   # Column 14:
-        #   this_column_number = 14
-
-        #   input_num_shares_cell = [3, this_column_number, "Input # Shares to Purchase"]
-        #   spreadsheet_cell_list.append(input_num_shares_cell)
-
-        #   # Column 15:
-        #   this_column_number = 15
-
-        #   cost_cell = [3, this_column_number, "Cost"]
-        #   spreadsheet_cell_list.append(cost_cell)
-
-        #   # Column 16:
-        #   # empty
-
-        #   # Column 17:
-        #   this_column_number = 17
-
-        #   total_cost_cell = [1, this_column_number, "Total Cost ="]
-        #   adjusted_cash_cell = [2, this_column_number, "Adjusted Cash Available ="]
-        #   num_stocks_to_purchase_cell = [3, this_column_number, "Number of stocks left to purchase at 3% ="]
-        #   new_cash_percentage_cell = [4, this_column_number, "New cash %% of portfolio ="]
-        #   # this cell may be irrelevant
-        #   new_cash_total_cell = [5, this_column_number, "New cash %% of total ="]
-
-        #   spreadsheet_cell_list.append(total_cost_cell)
-        #   spreadsheet_cell_list.append(adjusted_cash_cell)
-        #   spreadsheet_cell_list.append(num_stocks_to_purchase_cell)
-        #   spreadsheet_cell_list.append(new_cash_percentage_cell)
-        #   spreadsheet_cell_list.append(new_cash_total_cell)
-
-        #   # Column 18:
-        #   # computed values only
-
-        # if "This section sets the variable cell values with relevant data" == "This section sets the variable cell values with relevant data":
-
-        #   # Column 0-2 data:
-        #   this_column_number = 0
-        #   default_rows = DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS # called globally above
-        #   counter = 0
-        #   for stock_tuple in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
-        #       ticker = stock_tuple[0]
-        #       number_of_shares_to_sell = stock_tuple[1]
-        #       stock = return_stock_by_symbol(ticker)
-        #       correct_row = counter + default_rows
-
-        #       ticker_cell = [correct_row, this_column_number, ticker]
-        #       number_of_shares_to_sell_cell = [correct_row, (this_column_number + 1), str(number_of_shares_to_sell)]
-
-        #       spreadsheet_cell_list.append(ticker_cell)
-        #       spreadsheet_cell_list.append(number_of_shares_to_sell_cell)
-
-        #       try:
-        #           avg_daily_volume = stock.AverageDailyVolume
-        #           volume_cell = [correct_row, (this_column_number + 2), str(avg_daily_volume)]
-        #           spreadsheet_cell_list.append(volume_cell)
-        #       except Exception, exception:
-        #           print line_number(), exception
-
-        #       counter += 1
-
-        #   # Column 4 data:
-        #   this_column_number = 4
-
-        #   ## total asset value
-        #   total_asset_value_row = 1
-
-        #   total_asset_value = 0.00
-        #   for account in self.relevant_portfolios_list:
-        #       total_asset_value += float(account.availble_cash.replace("$",""))
-        #       for stock in account.stock_list:
-        #           stock_data = return_stock_by_symbol(stock.symbol)
-        #           quantity = float(stock.quantity.replace(",",""))
-        #           last_price = float(stock_data.LastTradePriceOnly)
-        #           value_of_held_stock = last_price * quantity
-        #           total_asset_value += value_of_held_stock
-
-        #   total_asset_value_cell = [total_asset_value_row, this_column_number, ("$" + str(total_asset_value))]
-        #   spreadsheet_cell_list.append(total_asset_value_cell)
-
-        #   ## approximate surplus cash
-        #   approximate_surplus_cash_row = 4
-
-        #   value_of_all_stock_to_sell = 0.00
-        #   for stock_tuple in SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
-        #       ticker = stock_tuple[0]
-        #       number_of_shares_to_sell = int(stock_tuple[1])
-        #       stock_data = return_stock_by_symbol(ticker)
-        #       last_price = float(stock_data.LastTradePriceOnly)
-        #       value_of_single_stock_to_sell = last_price * number_of_shares_to_sell
-        #       value_of_all_stock_to_sell += value_of_single_stock_to_sell
-        #   surplus_cash_cell = [approximate_surplus_cash_row, this_column_number, ("$" + str(value_of_all_stock_to_sell))]
-        #   spreadsheet_cell_list.append(surplus_cash_cell)
-
-        #   ## percent of portfolio that is cash after sale
-        #   percent_cash_row = 7
-
-        #   total_cash = 0.00
-        #   for account in self.relevant_portfolios_list:
-        #       total_cash += float(account.availble_cash.replace("$",""))
-        #   total_cash += value_of_all_stock_to_sell
-        #   if total_cash != 0:
-        #       percent_cash = total_cash / total_asset_value
-        #       percent_cash = round(percent_cash * 100)
-        #       percent_cash = str(percent_cash) + "%"
-        #   else:
-        #       percent_cash = "Null"
-
-        #   percent_cash_cell = [percent_cash_row, this_column_number, percent_cash]
-        #   spreadsheet_cell_list.append(percent_cash_cell)
-
-        #   ## portfolio cash available after sale
-        #   cash_after_sale_row = 10
-
-        #   total_cash_after_sale = total_cash # from above
-        #   total_cash_after_sale = "$" + str(total_cash_after_sale)
-
-        #   total_cash_after_sale_cell = [cash_after_sale_row, this_column_number, total_cash_after_sale]
-        #   spreadsheet_cell_list.append(total_cash_after_sale_cell)
-
-        #   ## Number of stocks to purchase at 3% each
-        #   stocks_at_three_percent_row = 13
-
-        #   three_percent_of_all_assets = 0.03 * total_asset_value # from above
-        #   try:
-        #       number_of_stocks_at_3_percent = total_cash / three_percent_of_all_assets # total_cash defined above
-        #   except Exception, exception:
-        #       print line_number(), exception
-        #       number_of_stocks_at_3_percent = 0
-        #   number_of_stocks_at_3_percent = int(math.floor(number_of_stocks_at_3_percent)) # always round down
-
-        #   stocks_at_three_percent_cell = [stocks_at_three_percent_row, this_column_number, str(number_of_stocks_at_3_percent)]
-        #   spreadsheet_cell_list.append(stocks_at_three_percent_cell)
-
-        #   ## Approximate to spend on each stock at 3%
-        #   three_percent_of_all_assets_row = 16
-
-        #   three_persent_in_dollars = "$" + "%.2f" % three_percent_of_all_assets # that %.2f rounds float two decimal places
-        #   three_percent_of_all_assets_cell = [three_percent_of_all_assets_row, this_column_number, three_persent_in_dollars]
-        #   spreadsheet_cell_list.append(three_percent_of_all_assets_cell)
-
-        # # Now, add buy candidate tickers:
-
-
-        # # Finally, set cell values in list:
-        # for cell in spreadsheet_cell_list:
-        #   #print cell
-        #   self.grid.SetCellValue(cell[0],cell[1],cell[2])
-
-
-
-        # self.grid.SetGridCursor(cursor_positon[0], cursor_positon[1])
-        # self.grid.AutoSizeColumns()
-        # print "done building self.grid"
-        # self.grid_list.append(self.grid)
     def updateGrid(self, event, grid = None, cursor_positon = None):
         # this function currently creates new grids on top of each other.
         # why?
@@ -3584,10 +3303,13 @@ class TradePage(Tab):
         self.buy_candidates = []
         self.buy_candidate_tuples = []
         for row in (range(buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1)):
+            #print line_number()
             #print row
-            if row > self.default_rows_above_buy_candidates and grid.GetCellBackgroundColour(row, self.default_buy_candidate_column) == "#FAEFCF": # or (250, 239, 207, 255)
+            if row > self.default_rows_above_buy_candidates and grid.GetCellBackgroundColour(row, self.default_buy_candidate_column) in [self.default_buy_candidate_color, self.default_not_entered_buy_candidate_color]:
+                #print line_number()
                 #print row
                 ticker = grid.GetCellValue(row, self.default_buy_candidate_column)
+                #print line_number()
                 #print ticker
                 if ticker:
                     stock = utils.return_stock_by_symbol(ticker)
@@ -3622,12 +3344,12 @@ class TradePage(Tab):
         relevant_portfolio_name_list = []
         try:
             self.relevant_portfolios_list = []
-            for account in config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]:
+            for account in self.relevant_portfolios_list:
                 id_number = account.id_number
                 self.relevant_portfolios_list.append(account)
                 relevant_portfolio_name_list.append(config.PORTFOLIO_NAMES[(id_number - 1)])
 
-            num_rows = len(config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1])
+            num_rows = len(self.sale_tuple_list)
             num_rows += config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
         except Exception, exception:
             print line_number(), exception
@@ -3643,9 +3365,15 @@ class TradePage(Tab):
                 if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,14]:
                     new_grid.SetReadOnly(row_num, column_num, True)
                 elif column_num == self.default_buy_candidate_column:
-                    new_grid.SetCellBackgroundColour(row_num, column_num, "#FAEFCF")
+                    if int(row_num) == int(self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1):
+                        new_grid.SetCellBackgroundColour(row_num, column_num, self.default_not_entered_buy_candidate_color)
+                    else:
+                        new_grid.SetCellBackgroundColour(row_num, column_num, self.default_buy_candidate_color)
                 elif column_num == 14:
-                    new_grid.SetCellBackgroundColour(row_num, column_num, "#CFE8FC")
+                    if int(row_num) == int(self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1):
+                        new_grid.SetCellBackgroundColour(row_num, column_num, self.default_not_entered_buy_candidate_quantity_color)
+                    else:
+                        new_grid.SetCellBackgroundColour(row_num, column_num, self.default_buy_candidate_quantity_color)
 
 
         # Defining cells separately from forming them so they are easy to edit
@@ -3662,9 +3390,9 @@ class TradePage(Tab):
 
             title_with_relevant_portfolios_string = "Trade Prep (" + ", ".join(relevant_portfolio_name_list) + ")"
 
-            name_of_spreadsheet_cell = [0, this_column_number, title_with_relevant_portfolios_string]
-            share_to_sell_cell = [2, this_column_number, "Shares to sell:"]
-            ticker_title_cell = [3, this_column_number, "Ticker"]
+            name_of_spreadsheet_cell = SpreadsheetCell(row = 0, col = this_column_number, text=title_with_relevant_portfolios_string)
+            share_to_sell_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "Sell:")
+            ticker_title_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "Ticker")
 
             spreadsheet_cell_list.append(name_of_spreadsheet_cell)
             spreadsheet_cell_list.append(share_to_sell_cell)
@@ -3673,13 +3401,13 @@ class TradePage(Tab):
             # Column 1:
             this_column_number = 1
 
-            num_shares_cell = [3, this_column_number,"# shares"]
+            num_shares_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "# shares")
             spreadsheet_cell_list.append(num_shares_cell)
 
             # Column 2:
             this_column_number = 2
 
-            volume_title_cell = [3, this_column_number, "Volume"]
+            volume_title_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "Volume")
             spreadsheet_cell_list.append(volume_title_cell)
 
             # Column 3:
@@ -3688,12 +3416,12 @@ class TradePage(Tab):
             # Column 4:
             this_column_number = 4
 
-            total_asset_cell = [0, this_column_number, "Total asset value ="]
-            approximate_surplus_cash_cell = [3, this_column_number, "Approximate surplus cash from sale ="]
-            percent_total_cash_cell = [6, this_column_number, "%" + " Total Cash After Sale"]
-            portfolio_cash_available_cell = [9, this_column_number, "Portfolio Cash Available ="]
-            num_stocks_to_look_cell = [12, this_column_number, "# of stocks to look at at for 3%" + " of portfolio each."]
-            approximate_to_spend_cell = [15, this_column_number, "Approximate to spend on each (3%) stock."]
+            total_asset_cell = SpreadsheetCell(             row = 0,  col = this_column_number, text = "Total asset value =")
+            approximate_surplus_cash_cell = SpreadsheetCell(row = 3,  col = this_column_number, text = "Approximate surplus cash from sale =")
+            percent_total_cash_cell = SpreadsheetCell(      row = 6,  col = this_column_number, text = "%" + " Total Cash After Sale")
+            portfolio_cash_available_cell = SpreadsheetCell(row = 9,  col = this_column_number, text = "Portfolio Cash Available =")
+            num_stocks_to_look_cell = SpreadsheetCell(      row = 12, col = this_column_number, text = "# of stocks to look at for 3%" + " of portfolio each.")
+            approximate_to_spend_cell = SpreadsheetCell(    row = 15, col = this_column_number, text = "Approximate to spend on each (3%) stock.")
 
             spreadsheet_cell_list.append(total_asset_cell)
             spreadsheet_cell_list.append(approximate_surplus_cash_cell)
@@ -3708,14 +3436,14 @@ class TradePage(Tab):
             # Column 6:
             this_column_number = 6
 
-            num_symbol_cell = [5, this_column_number, "#"]
+            num_symbol_cell = SpreadsheetCell(row = 5, col = this_column_number, text = "#")
             spreadsheet_cell_list.append(num_symbol_cell)
 
             # Column 7:
             this_column_number = 7
 
-            shares_to_buy_cell = [2, this_column_number, "Shares to buy:"]
-            input_ticker_cell = [3, this_column_number, "Input ticker"]
+            shares_to_buy_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "To buy:")
+            input_ticker_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "Input ticker")
 
             spreadsheet_cell_list.append(shares_to_buy_cell)
             spreadsheet_cell_list.append(input_ticker_cell)
@@ -3729,8 +3457,8 @@ class TradePage(Tab):
             # Column 10:
             this_column_number = 10
 
-            num_shares_to_buy_cell = [2, this_column_number, "# of shares to buy for"]
-            three_percent_cell = [3, this_column_number, "3%"]
+            num_shares_to_buy_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "# shares for")
+            three_percent_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "3%")
 
             spreadsheet_cell_list.append(num_shares_to_buy_cell)
             spreadsheet_cell_list.append(three_percent_cell)
@@ -3738,8 +3466,8 @@ class TradePage(Tab):
             # Column 11:
             this_column_number = 11
 
-            for_cell = [2, this_column_number, "for"]
-            five_percent_cell = [3, this_column_number, "5%"]
+            for_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "for")
+            five_percent_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "5%")
 
             spreadsheet_cell_list.append(for_cell)
             spreadsheet_cell_list.append(five_percent_cell)
@@ -3747,8 +3475,8 @@ class TradePage(Tab):
             # Column 12:
             this_column_number = 12
 
-            for_cell_2 = [2, this_column_number, "for"]
-            ten_percent_cell = [3, this_column_number, "10%"]
+            for_cell_2 = SpreadsheetCell(row = 2, col = this_column_number, text = "for")
+            ten_percent_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "10%")
 
             spreadsheet_cell_list.append(for_cell_2)
             spreadsheet_cell_list.append(ten_percent_cell)
@@ -3759,13 +3487,15 @@ class TradePage(Tab):
             # Column 14:
             this_column_number = 14
 
-            input_num_shares_cell = [3, this_column_number, "Input # Shares to Purchase"]
+            input_num_shares_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "Input # Shares")
+            input_num_shares_cell_2 = SpreadsheetCell(row = 3, col = this_column_number, text = "to Purchase")
             spreadsheet_cell_list.append(input_num_shares_cell)
+            spreadsheet_cell_list.append(input_num_shares_cell_2)
 
             # Column 15:
             this_column_number = 15
 
-            cost_cell = [3, this_column_number, "Cost"]
+            cost_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "Cost")
             spreadsheet_cell_list.append(cost_cell)
 
             # Column 16:
@@ -3774,10 +3504,10 @@ class TradePage(Tab):
             # Column 17:
             this_column_number = 17
 
-            total_cost_cell = [1, this_column_number, "Total Cost ="]
-            adjusted_cash_cell = [2, this_column_number, "Adjusted Cash Available ="]
-            num_stocks_to_purchase_cell = [3, this_column_number, "Number of stocks left to purchase at 3% ="]
-            new_cash_percentage_cell = [4, this_column_number, "New cash %" + " of portfolio ="]
+            total_cost_cell = SpreadsheetCell(row = 1, col = this_column_number, text = "Total Cost =")
+            adjusted_cash_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "Adjusted Cash Available =")
+            num_stocks_to_purchase_cell = SpreadsheetCell(row = 3, col = this_column_number, text = "# Stocks left to purchase at 3%")
+            new_cash_percentage_cell = SpreadsheetCell(row = 4, col = this_column_number, text = "New cash %" + " of portfolio =")
             # this cell may be irrelevant
             # new_cash_total_cell = [5, this_column_number, "New cash %% of total ="]
 
@@ -3796,21 +3526,21 @@ class TradePage(Tab):
             this_column_number = 0
             default_rows = config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
             counter = 0
-            for stock_tuple in config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
+            for stock_tuple in self.sale_tuple_list:
                 ticker = stock_tuple[0]
                 number_of_shares_to_sell = stock_tuple[1]
                 stock = utils.return_stock_by_symbol(ticker)
                 correct_row = counter + default_rows
 
-                ticker_cell = [correct_row, this_column_number, ticker]
-                number_of_shares_to_sell_cell = [correct_row, (this_column_number + 1), str(number_of_shares_to_sell)]
+                ticker_cell = SpreadsheetCell(row = correct_row, col = this_column_number, text = ticker)
+                number_of_shares_to_sell_cell = SpreadsheetCell(row = correct_row, col = this_column_number+1, text = str(number_of_shares_to_sell), value = number_of_shares_to_sell, align_right = True)
 
                 spreadsheet_cell_list.append(ticker_cell)
                 spreadsheet_cell_list.append(number_of_shares_to_sell_cell)
 
                 try:
                     avg_daily_volume = getattr(stock, self.default_average_daily_volume_attribute_name)
-                    volume_cell = [correct_row, (this_column_number + 2), str(avg_daily_volume)]
+                    volume_cell = SpreadsheetCell(row = correct_row, col = this_column_number + 2, text = str(avg_daily_volume), value = avg_daily_volume, align_right = True)
                     spreadsheet_cell_list.append(volume_cell)
                 except Exception, exception:
                     print line_number(), exception
@@ -3833,21 +3563,21 @@ class TradePage(Tab):
                     value_of_held_stock = last_price * quantity
                     total_asset_value += value_of_held_stock
 
-            total_asset_value_cell = [total_asset_value_row, this_column_number, config.locale.currency(total_asset_value, grouping = True)]
+            total_asset_value_cell = SpreadsheetCell(row = total_asset_value_row, col = this_column_number, text = config.locale.currency(total_asset_value, grouping = True), value = total_asset_value, align_right = True)
             spreadsheet_cell_list.append(total_asset_value_cell)
 
             ## approximate surplus cash
             approximate_surplus_cash_row = 4
 
             value_of_all_stock_to_sell = 0.00
-            for stock_tuple in config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]:
+            for stock_tuple in self.sale_tuple_list:
                 ticker = stock_tuple[0]
                 number_of_shares_to_sell = int(stock_tuple[1])
                 stock = utils.return_stock_by_symbol(ticker)
                 last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
                 value_of_single_stock_to_sell = last_price * number_of_shares_to_sell
                 value_of_all_stock_to_sell += value_of_single_stock_to_sell
-            surplus_cash_cell = [approximate_surplus_cash_row, this_column_number, config.locale.currency(value_of_all_stock_to_sell, grouping = True)]
+            surplus_cash_cell = SpreadsheetCell(row = approximate_surplus_cash_row, col = this_column_number, text = config.locale.currency(value_of_all_stock_to_sell, grouping = True), value = value_of_all_stock_to_sell, align_right = True)
             spreadsheet_cell_list.append(surplus_cash_cell)
 
             ## percent of portfolio that is cash after sale
@@ -3857,23 +3587,22 @@ class TradePage(Tab):
             for account in self.relevant_portfolios_list:
                 total_cash += float(str(account.available_cash).replace("$",""))
             total_cash += value_of_all_stock_to_sell
-            if total_cash != 0:
+            if total_cash != 0 and total_asset_value != 0:
                 percent_cash = total_cash / total_asset_value
                 percent_cash = round(percent_cash * 100)
                 percent_cash = str(percent_cash) + "%"
             else:
                 percent_cash = "Null"
 
-            percent_cash_cell = [percent_cash_row, this_column_number, percent_cash]
+            percent_cash_cell = SpreadsheetCell(row = percent_cash_row, col = this_column_number, text = percent_cash, align_right = True)
             spreadsheet_cell_list.append(percent_cash_cell)
 
             ## portfolio cash available after sale
             cash_after_sale_row = 10
 
             total_cash_after_sale = total_cash # from above
-            total_cash_after_sale = config.locale.currency(total_cash_after_sale, grouping = True)
 
-            total_cash_after_sale_cell = [cash_after_sale_row, this_column_number, total_cash_after_sale]
+            total_cash_after_sale_cell = SpreadsheetCell(row = cash_after_sale_row, col = this_column_number, text = config.locale.currency(total_cash_after_sale, grouping = True), value = total_cash_after_sale, align_right = True)
             spreadsheet_cell_list.append(total_cash_after_sale_cell)
 
             ## Number of stocks to purchase at 3% each
@@ -3887,14 +3616,13 @@ class TradePage(Tab):
                 number_of_stocks_at_3_percent = 0
             number_of_stocks_at_3_percent = int(math.floor(number_of_stocks_at_3_percent)) # always round down
 
-            stocks_at_three_percent_cell = [stocks_at_three_percent_row, this_column_number, str(number_of_stocks_at_3_percent)]
+            stocks_at_three_percent_cell = SpreadsheetCell(row = stocks_at_three_percent_row, col = this_column_number, text = str(number_of_stocks_at_3_percent), value = number_of_stocks_at_3_percent, align_right = True)
             spreadsheet_cell_list.append(stocks_at_three_percent_cell)
 
             ## Approximate to spend on each stock at 3%
             three_percent_of_all_assets_row = 16
 
-            three_persent_in_dollars = "$" + "%.2f" % three_percent_of_all_assets # that %.2f rounds float two decimal places
-            three_percent_of_all_assets_cell = [three_percent_of_all_assets_row, this_column_number, three_persent_in_dollars]
+            three_percent_of_all_assets_cell = SpreadsheetCell(row = three_percent_of_all_assets_row, col = this_column_number, text = config.locale.currency(three_percent_of_all_assets, grouping = True), value = three_percent_of_all_assets, align_right = True)
             spreadsheet_cell_list.append(three_percent_of_all_assets_cell)
 
         # Now, add buy candidate tickers:
@@ -3903,24 +3631,37 @@ class TradePage(Tab):
         # This is the a very similar iteration as above
         for column_num in range(self.default_columns):
             for row_num in range(num_rows):
+                # iterate over all cells
                 if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column, self.default_buy_candidate_quantity_column]:
+                    # basically skip all irrelevant rows for these purposes
                     pass
                 elif column_num == self.default_buy_candidate_column:
                     if count in range(len(self.buy_candidates)):
-                        new_grid.SetCellValue(row_num, column_num - 1, str(count + 1))
-                        new_grid.SetCellValue(row_num, column_num, self.buy_candidates[count])
+                        this_ticker = self.buy_candidates[count]
+                        company_to_buy_number = SpreadsheetCell(row = row_num, col = column_num - 1, text = str(count + 1))
+                        company_to_buy_ticker = SpreadsheetCell(row = row_num, col = column_num, text = this_ticker)
+                        spreadsheet_cell_list.append(company_to_buy_number)
+                        spreadsheet_cell_list.append(company_to_buy_ticker)
 
-                        stock = utils.return_stock_by_symbol(self.buy_candidates[count])
-                        new_grid.SetCellValue(row_num, column_num + 1, str(stock.firm_name))
+                        stock = utils.return_stock_by_symbol(this_ticker)
+                        if stock:
+                            company_to_buy_firm_name = SpreadsheetCell(row = row_num, col = column_num + 1, text = str(stock.firm_name))
+                            spreadsheet_cell_list.append(company_to_buy_firm_name)
 
                         try:
                             last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
-                            new_grid.SetCellValue(row_num, column_num + 2, config.locale.currency(last_price, grouping = True))
+
+                            company_to_buy_price = SpreadsheetCell(row = row_num, col = column_num + 2, text = config.locale.currency(last_price, grouping = True), value = last_price, align_right = True)
+                            spreadsheet_cell_list.append(company_to_buy_price)
+
                             update_error = False
                         except Exception as e:
                             print line_number(), e
-                            new_grid.SetCellValue(row_num, column_num + 2, "(Error: Update %s)" % stock.symbol)
-                            new_grid.SetCellTextColour(row_num, column_num + 2, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+
+                            company_to_buy_price_error = SpreadsheetCell( row = row_num, col = column_num + 2, text = "(Error: Update %s)" % stock.symbol, text_color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+                            spreadsheet_cell_list.append(company_to_buy_price_error)
+
+
                             update_error = True
                             self.stocks_to_update.append(stock.symbol)
                             utils.remove_list_duplicates(self.stocks_to_update)
@@ -3929,40 +3670,62 @@ class TradePage(Tab):
 
                         column_shift = 3
                         for percent in [0.03, 0.05, 0.10]:
+                            color = None
                             if not update_error:
                                 # total_asset_value calculated above
                                 #print total_asset_value
                                 max_cost = total_asset_value * percent
                                 #print max_cost
                                 number_of_shares_to_buy = int(math.floor(max_cost / last_price))
+                            else:
+                                number_of_shares_to_buy = "-"
+                                color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX
                                 #print number_of_shares_to_buy
-                                new_grid.SetCellValue(row_num, column_num + column_shift, str(number_of_shares_to_buy))
-                            else: # If error...
-                                new_grid.SetCellValue(row_num, column_num + column_shift, "-")
-                                new_grid.SetCellTextColour(row_num, column_num + column_shift, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+                            number_of_shares_to_buy_cell = SpreadsheetCell(row = row_num, col = column_num + column_shift, text = str(number_of_shares_to_buy), value = number_of_shares_to_buy, align_right = True, text_color = color)
+                            spreadsheet_cell_list.append(number_of_shares_to_buy_cell)
+
                             column_shift += 1
 
                         for this_tuple in self.buy_candidate_tuples:
                             if this_tuple[0] == row_num:
-                                new_grid.SetCellValue(row_num, self.default_buy_candidate_quantity_column, str(this_tuple[1]))
+                                quantity = this_tuple[1]
+
+                                buy_candidate_quantity_cell = SpreadsheetCell(row = row_num, col = self.default_buy_candidate_quantity_column, text = str(quantity), value = quantity, align_right = False) # align right looks bad here, though it is an int
+                                spreadsheet_cell_list.append(buy_candidate_quantity_cell)
                     count += 1
 
         # now calculate final values
         buy_cost_column = 15
 
         total_buy_cost = 0.00
+
         for row_num in range(num_rows):
             if row_num > self.default_rows_above_buy_candidates:
-                quantity = str(new_grid.GetCellValue(row_num, buy_cost_column - 1))
-                if quantity:
-                    ticker = str(new_grid.GetCellValue(row_num, buy_cost_column - 8))
+                quantity_cell = [cell for cell in spreadsheet_cell_list if (cell.row == row_num and cell.col == (buy_cost_column - 1))]
+                if quantity_cell:
+                    if len(quantity_cell) > 1:
+                        print line_number(), "Error: too many cells returned for cell list"
+                        return
+                    quantity = quantity_cell[0].text
+                else:
+                    quantity = None
+                if quantity is not None:
+                    ticker_cell = [cell for cell in spreadsheet_cell_list if (cell.row == row_num and cell.col == (buy_cost_column - 8))]
+                    if ticker_cell:
+                        if len(ticker_cell) > 1:
+                            print line_number(), "Error: too many cells returned for cell list"
+                            return
+                        ticker = ticker_cell[0].text
+                    else:
+                        ticker = None
                     print line_number(), ticker
                     stock = utils.return_stock_by_symbol(ticker)
                     if stock:
                         quantity = int(quantity)
                         cost = float(getattr(stock, self.default_last_trade_price_attribute_name)) * quantity
+
                         total_buy_cost += cost
-                        cost_cell = [row_num, buy_cost_column, config.locale.currency(cost, grouping = True)]
+                        cost_cell = SpreadsheetCell(row = row_num, col = buy_cost_column, text = config.locale.currency(cost, grouping = True), value = cost, align_right = True)
                         spreadsheet_cell_list.append(cost_cell)
 
         # column 18 (final column)
@@ -3970,7 +3733,7 @@ class TradePage(Tab):
 
         total_cost_row = 1
 
-        total_cost_sum_cell = [total_cost_row, this_column_number, config.locale.currency(total_buy_cost, grouping = True)]
+        total_cost_sum_cell = SpreadsheetCell(row = total_cost_row, col = this_column_number, text = config.locale.currency(total_buy_cost, grouping = True), value = total_buy_cost, align_right = True)
         spreadsheet_cell_list.append(total_cost_sum_cell)
 
         adjusted_cash_row = 2
@@ -3978,34 +3741,34 @@ class TradePage(Tab):
         if adjusted_cash_result >= 0:
             color = "black"
         else:
-            color = "red"
-        adjusted_cash_result_cell = [adjusted_cash_row, this_column_number, config.locale.currency(adjusted_cash_result, grouping = True)]
+            color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX
+        adjusted_cash_result_cell = SpreadsheetCell(row = adjusted_cash_row, col = this_column_number, text = config.locale.currency(adjusted_cash_result, grouping = True), value = adjusted_cash_result, align_right = True, text_color = color)
         spreadsheet_cell_list.append(adjusted_cash_result_cell)
-        new_grid.SetCellTextColour(adjusted_cash_row, this_column_number, color)
 
         number_of_stocks_still_yet_to_buy_row = 3
         if total_asset_value > 0:
             number_of_stocks_still_yet_to_buy = int(math.floor(adjusted_cash_result / (total_asset_value * 0.03)))
         else:
             number_of_stocks_still_yet_to_buy = 0
-        number_of_stocks_still_yet_to_buy_cell = [number_of_stocks_still_yet_to_buy_row, this_column_number, str(number_of_stocks_still_yet_to_buy)]
+        number_of_stocks_still_yet_to_buy_cell = SpreadsheetCell(row = number_of_stocks_still_yet_to_buy_row, col = this_column_number, text = str(number_of_stocks_still_yet_to_buy), value = number_of_stocks_still_yet_to_buy, align_right = True, text_color = color)
         spreadsheet_cell_list.append(number_of_stocks_still_yet_to_buy_cell)
-        new_grid.SetCellTextColour(number_of_stocks_still_yet_to_buy_row, this_column_number, color)
 
         new_percent_cash_row = 4
         if adjusted_cash_result != 0 and total_asset_value != 0:
             new_percent_cash = round(100 * adjusted_cash_result / total_asset_value)
         else:
             new_percent_cash = 0
-        new_percent_cash_cell = [new_percent_cash_row, this_column_number, "%d" % int(new_percent_cash) + "%"]
+        new_percent_cash_cell = SpreadsheetCell(row = new_percent_cash_row, col = this_column_number, text = "%d" % int(new_percent_cash) + "%", align_right = True, text_color = color)
         spreadsheet_cell_list.append(new_percent_cash_cell)
-        new_grid.SetCellTextColour(new_percent_cash_row, this_column_number, color)
 
         # Finally, set cell values in list:
         for cell in spreadsheet_cell_list:
             #print cell
-            new_grid.SetCellValue(cell[0],cell[1],cell[2])
-
+            new_grid.SetCellValue(cell.row, cell.col, cell.text)
+            if cell.align_right:
+                new_grid.SetCellAlignment(cell.row, cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+            if cell.text_color:
+                new_grid.SetCellTextColour(cell.row, cell.col, cell.text_color)
 
 
         new_grid.AutoSizeColumns()
