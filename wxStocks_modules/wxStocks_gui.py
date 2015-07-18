@@ -33,49 +33,54 @@ def line_number():
 
 class MainFrame(wx.Frame): # reorder tab postions here
     def __init__(self, *args, **kwargs):
-        wx.Frame.__init__(self, None, title="wxStocks", *args, **kwargs)
+        wx.Frame.__init__(self, parent = None, id = wx.ID_ANY, title="wxStocks", pos = wx.DefaultPosition, size = (1020,800))
+        self.SetSizeHints(1020,800)
+        self.title = "wxStocks"
+        self.uid = config.MAIN_FRAME_UNIQUE_ID
 
-        # There seems to be a major bug with osx at this point with message dialogs... cannot get code below functional.
+        if not "failed crypto on startup, will look at later" == 1:
+            pass
+            # There seems to be a major bug with osx at this point with message dialogs... cannot get code below functional.
 
-        # Confirm encryption if module not installed
-        # try:
-        #   import Crypto
-        #   from modules import simplecrypt
-        #   print line_number(), "Remove this and the following test line."
-        #   import force_error
-        #   yesNoAnswer = None
-        # except Exception, e:
-        #   print e
-        #   print line_number(), 'Change "Error" to "Crypto" before deploying.'
-        #   confirm = wx.MessageDialog(self,
-        #                                  "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.",
-        #                                  'You do not have pycrypto installed.',
-        #                                  style = wx.YES_NO
-        #                                  )
-        #   confirm.SetYesNoLabels(("&Close"), ("&I Understand And Want To Continue Without Encryption"))
-        #   #yesNoAnswer = confirm.ShowModal()
-        #   if confirm.ShowModal() != wx.ID_YES:
-        #       yesNoAnswer = wx.ID_NO
-        #       print "No!"
-        #   else:
-        #       yesNoAnswer = wx.ID_YES
-        #       print "Yes!!!"
-        # if yesNoAnswer == wx.ID_YES:
-        #   sys.exit()
-        # else:
-        #   if yesNoAnswer:
-        #       confirm.Destroy()
+            # Confirm encryption if module not installed
+            # try:
+            #   import Crypto
+            #   from modules import simplecrypt
+            #   print line_number(), "Remove this and the following test line."
+            #   import force_error
+            #   yesNoAnswer = None
+            # except Exception, e:
+            #   print e
+            #   print line_number(), 'Change "Error" to "Crypto" before deploying.'
+            #   confirm = wx.MessageDialog(self,
+            #                                  "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.",
+            #                                  'You do not have pycrypto installed.',
+            #                                  style = wx.YES_NO
+            #                                  )
+            #   confirm.SetYesNoLabels(("&Close"), ("&I Understand And Want To Continue Without Encryption"))
+            #   #yesNoAnswer = confirm.ShowModal()
+            #   if confirm.ShowModal() != wx.ID_YES:
+            #       yesNoAnswer = wx.ID_NO
+            #       print "No!"
+            #   else:
+            #       yesNoAnswer = wx.ID_YES
+            #       print "Yes!!!"
+            # if yesNoAnswer == wx.ID_YES:
+            #   sys.exit()
+            # else:
+            #   if yesNoAnswer:
+            #       confirm.Destroy()
 
-        # Workaround
-        #import wx.lib.agw.genericmessagedialog as GMD
-        #main_message = "Without the pycrypto module functioning,\nif you import your portfolios,\nthey will not be encrypted when saved.\nThis will leave your data vulnurable to theft,\npossibly exposing your positions and net worth."
-        #
-        #
-        #dlg = GMD.GenericMessageDialog(None, main_message, 'You do not have pycrypto installed.',
-        #                               agwStyle=wx.ICON_INFORMATION | wx.OK)
-        #
-        #dlg.ShowModal()
-        #dlg.Destroy()
+            # Workaround
+            #import wx.lib.agw.genericmessagedialog as GMD
+            #main_message = "Without the pycrypto module functioning,\nif you import your portfolios,\nthey will not be encrypted when saved.\nThis will leave your data vulnurable to theft,\npossibly exposing your positions and net worth."
+            #
+            #
+            #dlg = GMD.GenericMessageDialog(None, main_message, 'You do not have pycrypto installed.',
+            #                               agwStyle=wx.ICON_INFORMATION | wx.OK)
+            #
+            #dlg.ShowModal()
+            #dlg.Destroy()
 
         # Here we create a panel and a notebook on the panel
         main_frame = wx.Panel(self)
@@ -116,11 +121,14 @@ class MainFrame(wx.Frame): # reorder tab postions here
         main_frame.SetSizer(sizer)
 
         # here we add all pages to the config.GLOBAL_PAGES_DICT, adding both the index and the title as key values.
-        self.set_config_PAGES_DICT_key_value_pairs(self.notebook)
+        self.set_config_GLOBAL_PAGES_DICT_key_value_pairs(self.notebook)
+        config.GLOBAL_PAGES_DICT[self.uid] = self
+        config.GLOBAL_PAGES_DICT[0] = self
+        config.GLOBAL_PAGES_DICT[self.title] = self
 
         print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
 
-    def set_config_PAGES_DICT_key_value_pairs(self, notebook, parent_index = None):
+    def set_config_GLOBAL_PAGES_DICT_key_value_pairs(self, notebook, parent_index = None):
         for child in notebook.Children:
             # sadly, have to use ordinals which is why  + 1.
             page_index = notebook.Children.index(child) + 1.
@@ -154,7 +162,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
                     if type(grandchild) is wx._windows.Panel:
                         for great_grandchild in grandchild.Children:
                             if type(great_grandchild) is wx._controls.Notebook:
-                                self.set_config_PAGES_DICT_key_value_pairs(great_grandchild, parent_index = page_index)
+                                self.set_config_GLOBAL_PAGES_DICT_key_value_pairs(great_grandchild, parent_index = page_index)
 
 class Tab(wx.Panel):
     def __init__(self, parent):
@@ -1500,6 +1508,7 @@ class AllStocksPage(Tab):
     def __init__(self, parent):
         self.title = "View All Stocks"
         self.uid = config.ALL_STOCKS_PAGE_UNIQUE_ID
+        self.parent = parent
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Full Stock List",
@@ -1533,7 +1542,30 @@ class AllStocksPage(Tab):
 
         # Find all attribute names
         stock_list = utils.return_all_stocks()
-        self.spreadsheet = create_megagrid_from_stock_list(stock_list, self)
+
+        #You need this code to resize
+        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+        new_grid = create_megagrid_from_stock_list(stock_list, self, size = size)
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+        self.spreadsheet = new_grid
+
         self.spreadsheet.Show()
 
     def resetGlobalAttributeSet(self, event):
@@ -1551,6 +1583,7 @@ class StockDataPage(Tab):
     def __init__(self, parent):
         self.title = "View One Stock"
         self.uid = config.STOCK_DATA_PAGE_UNIQUE_ID
+        self.parent = parent
         wx.Panel.__init__(self, parent)
 
         rank_page_text = wx.StaticText(self, -1,
@@ -1612,7 +1645,29 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker" or not ticker:
             return
-        self.screen_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper())
+
+        #You need this code to resize
+        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(60)
+
+        new_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper(), size = size)
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+        self.screen_grid = new_grid
 
     def update_yql_basic_data(self, event):
         ticker = self.ticker_input.GetValue()
@@ -1675,6 +1730,7 @@ class ScreenPage(Tab):
     def __init__(self, parent):
         self.title = "Screen"
         self.uid = config.SCREEN_PAGE_UNIQUE_ID
+        self.parent = parent
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Screen Stocks",
@@ -1736,7 +1792,32 @@ class ScreenPage(Tab):
                 print line_number(), e
 
         stock_list.sort(key = lambda x: (x is None, x.symbol))
-        self.screen_grid = create_megagrid_from_stock_list(stock_list, self)
+
+        #You need this code to resize
+        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+
+        new_grid = create_megagrid_from_stock_list(stock_list, self, size = size)
+
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+
+        self.screen_grid = new_grid
 
     def saveScreen(self, event):
         current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
@@ -1790,6 +1871,7 @@ class SavedScreenPage(Tab):
     def __init__(self, parent):
         self.title = "View Saved Screens"
         self.uid = config.SAVED_SCREEN_PAGE_UNIQUE_ID
+        self.parent = parent
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              "Saved screens",
@@ -1901,7 +1983,31 @@ class SavedScreenPage(Tab):
         self.spreadSheetFill()
 
     def spreadSheetFill(self):
-        self.spreadsheet = create_megagrid_from_stock_list(config.CURRENT_SAVED_SCREEN_LIST, self)
+        #You need this code to resize
+        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+
+        new_grid = create_megagrid_from_stock_list(config.CURRENT_SAVED_SCREEN_LIST, self, size = size)
+
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+        self.spreadsheet = new_grid
+
         self.spreadsheet.Show()
 
         self.delete_screen_button.Show()
@@ -1909,6 +2015,7 @@ class RankPage(Tab):
     def __init__(self, parent):
         self.title = "Rank"
         self.uid = config.RANK_PAGE_UNIQUE_ID
+        self.parent = parent
         wx.Panel.__init__(self, parent)
 
         self.full_ticker_list = [] # this should hold all tickers in any spreadsheet displayed
@@ -2040,7 +2147,32 @@ class RankPage(Tab):
                 print line_number(), exception
 
         stock_list.sort(key = lambda x: x.symbol)
-        self.spreadsheet = create_megagrid_from_stock_list(stock_list, self, size=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1])
+
+        #You need this code to resize
+        size = config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+
+        new_grid = create_megagrid_from_stock_list(stock_list, self, size = size, pos=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1])
+
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+        self.spreadsheet = new_grid
+
 
         self.clear_button.Show()
         self.sort_button.Show()
@@ -2054,8 +2186,35 @@ class RankPage(Tab):
         self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
         self.sort_drop_down.Set(self.full_attribute_list)
 
+
+
+        #You need this code to resize
+        size = config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+
+        new_grid = create_ranked_megagrid_from_tuple_list(ranked_tuple_list, self, rank_name, size = size)
+
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+        self.spreadsheet = new_grid
+
+
         ######################################
-        self.spreadsheet = create_ranked_megagrid_from_tuple_list(ranked_tuple_list, self, rank_name)
 
         self.clear_button.Show()
         self.sort_button.Show()
@@ -2283,6 +2442,7 @@ class CustomAnalysisMetaPage(Tab):
 class CustomAnalysisPage(Tab):
     def __init__(self, parent, function_triple, page_index):
         self.title = None
+        self.parent = parent
         wx.Panel.__init__(self, parent)
         self.doc_string = function_triple.doc
         self.function_name = function_triple.name
@@ -2472,8 +2632,9 @@ class CustomAnalysisPage(Tab):
             error.Destroy()
             return
         for stock in screen_stock_list:
-            if stock not in self.all_stocks_currently_included:
-                self.all_stocks_currently_included.append(stock)
+            if stock:
+                if stock not in self.all_stocks_currently_included:
+                    self.all_stocks_currently_included.append(stock)
         self.showStocksCurrentlyUsed()
 
     def loadCustomSpreadsheet(self, event):
@@ -2494,14 +2655,43 @@ class CustomAnalysisPage(Tab):
 
         list_of_spreadsheet_cells = process_user_function.process_custom_analysis_spreadsheet_data(self.all_stocks_currently_included, self.custom_spreadsheet_builder)
         #print line_number(), list_of_spreadsheet_cells
-        self.custom_spreadsheet = self.create_custom_analysis_spread_sheet(list_of_spreadsheet_cells)
+
+        #You need this code to resize
+        size = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-165, height-200) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.inner_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.inner_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][0])
+
+        self.inner_inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_inner_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+        self.inner_sizer.Add(self.inner_inner_sizer, 2, wx.ALL|wx.EXPAND)
+
+
+        new_grid = self.create_custom_analysis_spread_sheet(list_of_spreadsheet_cells, size = size)
+
+        self.inner_inner_sizer.Add(new_grid, 2, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+        self.custom_spreadsheet = new_grid
+
         self.custom_spreadsheet.Show()
 
     def create_custom_analysis_spread_sheet(self,
         cell_list,
         held_ticker_list = [] # not used currently
-        , height = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0][1]
-        , width = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0][0]
+        , size = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0]
         , position = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1]
         , enable_editing = False
         ):
@@ -2520,7 +2710,7 @@ class CustomAnalysisPage(Tab):
         num_columns += 1 # check and see if it's ordinal or cardinal
         num_rows += 1   # ditto
 
-        self.screen_grid = wx.grid.Grid(self, -1, size=(width, height), pos=position)
+        self.screen_grid = wx.grid.Grid(self, -1, size=size, pos=position)
         self.screen_grid.CreateGrid(num_rows, num_columns)
         self.screen_grid.EnableEditing(enable_editing)
 
@@ -2549,8 +2739,9 @@ class CustomAnalysisPage(Tab):
         portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(account_index)
         for ticker in portfolio_obj.stock_shares_dict:
             stock = utils.return_stock_by_symbol(ticker)
-            if stock not in self.all_stocks_currently_included:
-                self.all_stocks_currently_included.append(stock)
+            if stock:
+                if stock not in self.all_stocks_currently_included:
+                    self.all_stocks_currently_included.append(stock)
         self.showStocksCurrentlyUsed()
 
 ####
@@ -2559,6 +2750,7 @@ class SalePrepPage(Tab):
     def __init__(self, parent):
         self.title = "Sale Prep"
         self.uid = config.SALE_PREP_PAGE_UNIQUE_ID
+        self.parent = parent
         wx.Panel.__init__(self, parent)
         trade_page_text = wx.StaticText(self, -1,
                              "Sale Prep",
@@ -2567,8 +2759,6 @@ class SalePrepPage(Tab):
         self.ticker_list = []
         self.checkbox_list = []
         self.rows_dict = {}
-
-
 
         for i in range(config.NUMBER_OF_PORTFOLIOS):
             portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
@@ -2616,6 +2806,8 @@ class SalePrepPage(Tab):
                 if is_checked:
                     self.spreadSheetFill('event')
                     break
+
+
 
         print line_number(), "SalePrepPage loaded"
 
@@ -2812,9 +3004,32 @@ class SalePrepPage(Tab):
             except Exception, exception:
                 print line_number(), exception
 
-        self.grid = SalePrepGrid(self, -1, size=(1000,650), pos=(0,83))
-        self.grid.CreateGrid(num_rows, num_columns)
-        self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, self.grid)
+        # set size for grid
+        size = (1000, 650)
+        size = (800, 650)
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            print line_number(), width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(83)
+
+        new_grid = SalePrepGrid(self, -1, size=size, pos=(0,83))
+        new_grid.CreateGrid(num_rows, num_columns)
+        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
+        #You need this code to resize
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
+
+        self.grid = new_grid
 
         # I deactivated this binding because it caused too much confusion if you don't click on a white square after entering data
         # self.grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK ,self.hideSaveButtonWhileEnteringData, self.grid)
@@ -3113,6 +3328,7 @@ class TradePage(Tab):
     def __init__(self, parent):
         self.title = "Trade"
         self.uid = config.TRADE_PAGE_UNIQUE_ID
+        self.parent = parent
         self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
         self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
 
@@ -3165,7 +3381,6 @@ class TradePage(Tab):
                              (700,30)
                              )
         self.stock_update_pending_text.Hide()
-
 
         self.grid = None
 
@@ -3334,11 +3549,17 @@ class TradePage(Tab):
         # build new grid
         self.newGridFill(cursor_positon = cursor_positon)
 
-    def newGridFill(self, cursor_positon = (0,0) ):
-        #print cursor_positon
-
+    def newGridFill(self, cursor_positon = (0,0)):
+        #print line_number() cursor_positon
+        size = (1000, 650)
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            #print line_number() width, height
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except:
+            pass
         # CREATE A GRID HERE
-        new_grid = TradeGrid(self, -1, size=(1000,650), pos=(0,83))
+        new_grid = TradeGrid(self, -1, size=size, pos=(0,83))
         # calc rows
 
         relevant_portfolio_name_list = []
@@ -3357,7 +3578,20 @@ class TradePage(Tab):
 
         num_rows = max(num_rows, self.default_min_rows, (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 2))
         new_grid.CreateGrid(num_rows, self.default_columns)
-        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, lambda event: self.updateGrid(event, grid = new_grid), new_grid) # self.updateGrid, new_grid)
+        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, lambda event: self.updateGrid(event, grid = new_grid), new_grid)
+
+        #You need this code to resize
+        self.sizer = None
+        self.inner_sizer = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.inner_sizer.AddSpacer(83)
+
+        self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.parent.SetSizer(self.inner_sizer)
+        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        ##
 
         #print self.buy_candidates
         for column_num in range(self.default_columns):
@@ -4621,6 +4855,7 @@ class MegaGrid(wx.grid.Grid):
 # ###########################################################################################
 
 # ############ Spreadsheet Functions ########################################################
+
 # # Had to switch to mega grids because data got too large!
 def create_megagrid_from_stock_list(stock_list, parent, size=config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1]):
     # Find all attribute names
@@ -4866,8 +5101,7 @@ def create_account_spread_sheet(
 def create_spread_sheet_for_one_stock(
     wxWindow,
     ticker,
-    height = 637,
-    width = 980,
+    size = (980, 637),
     position = (0,60),
     enable_editing = False
     ):
@@ -4897,7 +5131,7 @@ def create_spread_sheet_for_one_stock(
     if num_rows < num_attributes:
         num_rows = num_attributes
 
-    screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+    screen_grid = wx.grid.Grid(wxWindow, -1, size=size, pos=position)
 
     screen_grid.CreateGrid(num_rows, num_columns)
     screen_grid.EnableEditing(enable_editing)
