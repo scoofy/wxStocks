@@ -3441,6 +3441,7 @@ class TradePage(Tab):
         self.ticker_list = []
 
         self.relevant_portfolios_list = []
+        self.relevant_portfolio_name_list = []
         self.sale_tuple_list = []
 
         self.default_rows_above_buy_candidates = 5
@@ -3513,16 +3514,12 @@ class TradePage(Tab):
 
         timer = threading.Timer(0, self.executeUpdatePartOne, [chunk_list, 0])
         timer.start()
-
     def executeUpdatePartOne(self, ticker_chunk_list, position_of_this_chunk):
         data = scrape.executeYqlScrapePartOne(ticker_chunk_list, position_of_this_chunk)
 
         sleep_time = config.SCRAPE_SLEEP_TIME
         timer = threading.Timer(sleep_time, self.executeUpdatePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
         timer.start()
-
-
-
     def executeUpdatePartTwo(self, ticker_chunk_list, position_of_this_chunk, successful_pyql_data):
         scrape.executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data)
 
@@ -3600,6 +3597,7 @@ class TradePage(Tab):
         # when i tried to update the previous grid using the data (run self.spreadSheetFill on the last line).
         # this caused a Segmentation fault: 11
         # thus, this hack... create a new grid on execution each time.
+        # it will tell you how many grids have loaded, but it shouldn't affect performance (i think).
 
         if not grid:
             print line_number(), "no grid"
@@ -3662,18 +3660,20 @@ class TradePage(Tab):
         new_grid = TradeGrid(self, -1, size=size, pos=(0,83))
         # calc rows
 
-        relevant_portfolio_name_list = []
+        self.relevant_portfolio_name_list = []
         try:
-            self.relevant_portfolios_list = []
+            # set initial rows, buy candidate rows checked below
+            print line_number(), "relevant_portfolios_list"
             for account in self.relevant_portfolios_list:
                 id_number = account.id_number
-                self.relevant_portfolios_list.append(account)
-                relevant_portfolio_name_list.append(config.PORTFOLIO_NAMES[(id_number - 1)])
+                self.relevant_portfolio_name_list.append(config.PORTFOLIO_NAMES[(id_number - 1)])
+                print line_number(), "relevant_portfolio_name_list:", self.relevant_portfolio_name_list
 
             num_rows = len(self.sale_tuple_list)
             num_rows += config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
         except Exception, exception:
             print line_number(), exception
+            print "Error in loading trade grid, num_rows will be reset to zero."
             num_rows = 0
 
         num_rows = max(num_rows, self.default_min_rows, (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 2))
@@ -3722,7 +3722,7 @@ class TradePage(Tab):
             # Column 0 (using zero-based numbering for simplicity):
             this_column_number = 0
 
-            title_with_relevant_portfolios_string = "Trade Prep (" + ", ".join(relevant_portfolio_name_list) + ")"
+            title_with_relevant_portfolios_string = "Trade Prep (" + ",\n".join(self.relevant_portfolio_name_list) + ")"
 
             name_of_spreadsheet_cell = SpreadsheetCell(row = 0, col = this_column_number, text=title_with_relevant_portfolios_string)
             share_to_sell_cell = SpreadsheetCell(row = 2, col = this_column_number, text = "Sell:")
