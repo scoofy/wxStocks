@@ -14,7 +14,8 @@ import pprint as pp
 from collections import namedtuple
 from wx.lib import sheet
 
-from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference
+from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage
+from wxStocks_default_functions import default_function_page_object_config as functions_config
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
@@ -110,7 +111,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         self.trade_page = TradePage(self.notebook)
         self.notebook.AddPage(self.trade_page, self.trade_page.title)
 
-        self.user_functions_page = UserFunctionsPage(self.notebook)
+        self.user_functions_page = UserFunctionsMetaPage(self.notebook)
         self.notebook.AddPage(self.user_functions_page, self.user_functions_page.title)
 
         # finally, put the notebook in a sizer for the panel to manage
@@ -4115,7 +4116,7 @@ class TradePage(Tab):
         new_grid.SetFocus()
         self.grid = new_grid
 
-class UserFunctionsPage(Tab):
+class UserFunctionsMetaPage(Tab):
     def __init__(self, parent):
         self.title = "Edit Functions"
         self.uid = config.USER_FUNCTIONS_PAGE_UNIQUE_ID
@@ -4124,68 +4125,63 @@ class UserFunctionsPage(Tab):
         user_function_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         user_function_notebook = wx.Notebook(user_function_page_panel)
 
-
-        self.user_created_tests = UserCreatedTestsPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_created_tests, self.user_created_tests.title)
-
-        self.user_ranking_functions = UserCreatedRankFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_ranking_functions, self.user_ranking_functions.title)
-
-        self.user_csv_import_functions = UserCreatedCsvImportFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_csv_import_functions, self.user_csv_import_functions.title)
-
-        self.user_xls_import_functions = UserCreatedXlsImportFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_xls_import_functions, self.user_xls_import_functions.title)
-
-        self.user_portfolio_import_functions = UserCreatedPortfolioImportFunctionPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_portfolio_import_functions, self.user_portfolio_import_functions.title)
-
-        self.user_custom_analysis_functions = UserCreatedCustomAnaylsisPage(user_function_notebook)
-        user_function_notebook.AddPage(self.user_custom_analysis_functions, self.user_custom_analysis_functions.title)
-
-
+        for function_page_dict in functions_config.user_created_function_ref_dict_list:
+            function_page_obj = FunctionPage(
+                title                       = function_page_dict.get("title"),
+                uid_config_reference        = function_page_dict.get("uid_config_reference"),
+                general_text                = function_page_dict.get("general_text"),
+                additional_text             = function_page_dict.get("additional_text"),
+                save_button_text            = function_page_dict.get("save_button_text"),
+                reset_button_text           = function_page_dict.get("reset_button_text"),
+                function_that_loads_text_of_user_created_functions = function_page_dict.get("function_that_loads_text_of_user_created_functions"),
+                save_function               = function_page_dict.get("save_function"),
+                function_to_load_defaults   = function_page_dict.get("function_to_load_defaults"),
+                )
+            new_functions_page = UserFunctionsPage(user_function_notebook, function_page_obj)
+            user_function_notebook.AddPage(new_functions_page, function_page_obj.title)
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(user_function_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
         ####
 
-class UserCreatedTestsPage(Tab):
-    def __init__(self, parent):
-        self.title = "Screen Tests"
-        self.uid = config.USER_CREATED_TESTS_UNIQUE_ID
+class UserFunctionsPage(Tab):
+    def __init__(self, parent, function_page_obj):
+        self.title = function_page_obj.title
+        self.uid = function_page_obj.uid
+        self.parent = parent
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.AddSpacer(95)
+
         wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1,
-                             "Welcome to the user generated test page.",
-                             (10,10)
-                             )
-        save_button = wx.Button(self, label="Save Tests", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
 
-        reset_button = wx.Button(self, label="Reset Tests to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
+        self.general_text = wx.StaticText(self, -1, function_page_obj.general_text, (10,10))
+        self.additional_text = wx.StaticText(self, -1, function_page_obj.additional_text, (145,36))
 
-        more_text = wx.StaticText(self, -1,
-                             "Create stock screen tests to be imported into screen or rank pages.",
-                             (145,36)
-                             )
+        self.save_button = wx.Button(self, label=function_page_obj.save_button_text, pos=(5, 30), size=(-1,-1))
+        self.save_button.Bind(wx.EVT_BUTTON, self.confirmSave, self.save_button)
 
+        self.reset_button = wx.Button(self, label=function_page_obj.reset_button_text, pos=(5, 60), size=(-1,-1))
+        self.reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, self.reset_button)
 
+        self.function_file_text = function_page_obj.function_that_loads_text_of_user_created_functions()
 
-        self.file_text = db.load_user_created_tests()
+        self.height_offset = 95
 
-
-        self.height_var = 100
         self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
+                                    self.function_file_text,
+                                    (10, self.height_offset),
                                     size = (955, 580),
                                     style = wx.TE_MULTILINE ,
                                     )
+
+        self.sizer.Add(self.file_display, 1, wx.ALL|wx.EXPAND)
         self.file_display.Show()
 
-        print line_number(), "UserCreatedTestsPage loaded"
+        self.SetSizer(self.sizer)
 
+        print line_number(), "%s loaded" % function_page_obj.title
 
     def confirmSave(self, event):
         confirm = wx.MessageDialog(None,
@@ -4198,10 +4194,11 @@ class UserCreatedTestsPage(Tab):
         confirm.Destroy()
 
         if yesNoAnswer == wx.ID_YES:
-            self.saveTests()
-    def saveTests(self):
-        text = self.file_display.GetValue()
-        db.save_user_created_tests(text)
+            self.saveFunctionsFile()
+
+    def saveFunctionsFile(self):
+        text_to_save = self.file_display.GetValue()
+        function_page_obj.save_function(text_to_save)
 
     def confirmResetToDefault(self, event):
         confirm = wx.MessageDialog(None,
@@ -4215,411 +4212,27 @@ class UserCreatedTestsPage(Tab):
 
         if yesNoAnswer == wx.ID_YES:
             self.resetToDefault()
+
     def resetToDefault(self):
         self.file_display.Destroy()
 
-        self.file_text = db.load_default_tests()
-        db.save_user_created_tests(self.file_text)
+        self.function_file_text = function_page_obj.function_to_load_defaults()
+        function_page_obj.saveFunctionsFile(self.function_file_text)
+
+        size = (955, 580)
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - self.height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
+        except:
+            pass
 
         self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (765, 625),
+                                    self.function_file_text,
+                                    (10, self.height_offset),
+                                    size = size,
                                     style = wx.TE_MULTILINE ,
                                     )
         self.file_display.Show()
-class UserCreatedRankFunctionPage(Tab):
-    def __init__(self, parent):
-        self.title = "Ranking Functions"
-        self.uid = config.USER_RANKING_FUNCTIONS_UNIQUE_ID
-        wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1,
-                             "Welcome to the user created ranking function page.",
-                             (10,10)
-                             )
-        save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
-
-        reset_button = wx.Button(self, label="Reset Ranking Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
-
-        more_text = wx.StaticText(self, -1,
-                             "Create stock ranking functions to be imported into the rank page.",
-                             (145,36)
-                             )
-
-
-
-        self.file_text = db.load_user_ranking_functions()
-
-
-        self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (955, 580),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-
-        print line_number(), "UserCreatedRankFunctionPage loaded"
-
-
-    def confirmSave(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you want to save your work? This action cannot be undone.",
-                                   'Confirm Save',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.saveRankFunctions()
-    def saveRankFunctions(self):
-        text = self.file_display.GetValue()
-        db.save_user_ranking_functions(text)
-
-    def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you reset to file default? This action cannot be undone.",
-                                   'Confirm Reset',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.resetToDefault()
-    def resetToDefault(self):
-        self.file_display.Destroy()
-
-        self.file_text = db.load_default_ranking_functions()
-        db.save_user_ranking_functions(self.file_text)
-
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (765, 625),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-class UserCreatedCsvImportFunctionPage(Tab):
-    def __init__(self, parent):
-        self.title = "CSV Import Functions"
-        self.uid = config.USER_CSV_IMPORT_FUNCTIONS_UNIQUE_ID
-        wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1,
-                             "Welcome to the user created csv import function page.",
-                             (10,10)
-                             )
-        save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
-
-        reset_button = wx.Button(self, label="Reset CSV Import Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
-
-        more_text = wx.StaticText(self, -1,
-                             "Create CSV import functions to be imported into the import page.",
-                             (145,36)
-                             )
-
-
-
-        self.file_text = db.load_user_csv_import_functions()
-
-
-        self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (955, 580),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-
-        print line_number(), "UserCreatedCsvImportFunctionPage loaded"
-
-
-    def confirmSave(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you want to save your work? This action cannot be undone.",
-                                   'Confirm Save',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.saveCsvImportFunctions()
-    def saveCsvImportFunctions(self):
-        text = self.file_display.GetValue()
-        db.save_user_csv_import_functions(text)
-
-    def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you reset to file default? This action cannot be undone.",
-                                   'Confirm Reset',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.resetToDefault()
-    def resetToDefault(self):
-        self.file_display.Destroy()
-
-        self.file_text = db.load_default_csv_import_functions()
-        db.save_user_csv_import_functions(self.file_text)
-
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (765, 625),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-class UserCreatedXlsImportFunctionPage(Tab):
-    def __init__(self, parent):
-        self.title = "XLS Import Functions"
-        self.uid = config.USER_XLS_IMPORT_FUNCTIONS_UNIQUE_ID
-        wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1,
-                             "Welcome to the user created .xls import function page.",
-                             (10,10)
-                             )
-        save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
-
-        reset_button = wx.Button(self, label="Reset XLS Import Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
-
-        more_text = wx.StaticText(self, -1,
-                             "Create XLS import functions to be imported into the import page.",
-                             (145,36)
-                             )
-
-
-
-        self.file_text = db.load_user_xls_import_functions()
-
-
-        self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (955, 580),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-
-        print line_number(), "UserCreatedCsvImportFunctionPage loaded"
-
-
-    def confirmSave(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you want to save your work? This action cannot be undone.",
-                                   'Confirm Save',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.saveXlsImportFunctions()
-    def saveXlsImportFunctions(self):
-        text = self.file_display.GetValue()
-        db.save_user_xls_import_functions(text)
-
-    def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you reset to file default? This action cannot be undone.",
-                                   'Confirm Reset',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.resetToDefault()
-    def resetToDefault(self):
-        self.file_display.Destroy()
-
-        self.file_text = db.load_default_xls_import_functions()
-        db.save_user_xls_import_functions(self.file_text)
-
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (765, 625),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-class UserCreatedPortfolioImportFunctionPage(Tab):
-    def __init__(self, parent):
-        self.title = "Portfolio Import Functions"
-        self.uid = config.USER_PORTFOLIO_IMPORT_FUNCTIONS_UNIQUE_ID
-        wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1,
-                             "Welcome to the user created portfolio import function page.",
-                             (10,10)
-                             )
-        save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
-
-        reset_button = wx.Button(self, label="Reset Portfolio Import Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
-
-        more_text = wx.StaticText(self, -1,
-                             "Create stock portfolio import functions to be imported into the portfolio page.",
-                             (145,36)
-                             )
-
-
-
-        self.file_text = db.load_user_portfolio_import_functions()
-
-
-        self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (955, 580),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-
-        print line_number(), "UserCreatedPortfolioImportFunctionPage loaded"
-
-
-    def confirmSave(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you want to save your work? This action cannot be undone.",
-                                   'Confirm Save',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.savePortfolioImportFunctions()
-    def savePortfolioImportFunctions(self):
-        text = self.file_display.GetValue()
-        db.save_user_portfolio_import_functions(text)
-
-    def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you reset to file default? This action cannot be undone.",
-                                   'Confirm Reset',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.resetToDefault()
-    def resetToDefault(self):
-        self.file_display.Destroy()
-
-        self.file_text = db.load_default_portfolio_import_functions()
-        db.save_user_portfolio_import_functions(self.file_text)
-
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (765, 625),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-class UserCreatedCustomAnaylsisPage(Tab):
-    def __init__(self, parent):
-        self.title = "Custom Analysis Functions"
-        self.uid = config.USER_CUSTOM_ANALYSIS_FUNCTIONS_UNIQUE_ID
-        wx.Panel.__init__(self, parent)
-        text = wx.StaticText(self, -1,
-                             "Welcome to the custom analysis editor.",
-                             (10,10)
-                             )
-        save_button = wx.Button(self, label="Save Functions", pos=(5, 30), size=(-1,-1))
-        save_button.Bind(wx.EVT_BUTTON, self.confirmSave, save_button)
-
-        reset_button = wx.Button(self, label="Reset Functions to Default", pos=(5, 60), size=(-1,-1))
-        reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, reset_button)
-
-        more_text = wx.StaticText(self, -1,
-                             "Create analysis functions to be imported into the custom anyalsis page.",
-                             (145,36)
-                             )
-
-
-
-        self.file_text = db.load_user_custom_analysis_functions()
-
-
-        self.height_var = 100
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (955, 580),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-
-        print line_number(), "UserCreatedTestsPage loaded"
-
-
-    def confirmSave(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you want to save your work? This action cannot be undone.",
-                                   'Confirm Save',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Save"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.saveFunctions()
-    def saveFunctions(self):
-        text = self.file_display.GetValue()
-        db.save_user_custom_analysis_functions(text)
-
-    def confirmResetToDefault(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "Are you sure you reset to file default? This action cannot be undone.",
-                                   'Confirm Reset',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Reset"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.resetToDefault()
-    def resetToDefault(self):
-        self.file_display.Destroy()
-
-        self.file_text = db.load_default_custom_analysis_functions()
-        db.save_user_custom_analysis_functions(self.file_text)
-
-        self.file_display = wx.TextCtrl(self, -1,
-                                    self.file_text,
-                                    (10, self.height_var),
-                                    size = (765, 625),
-                                    style = wx.TE_MULTILINE ,
-                                    )
-        self.file_display.Show()
-
-
 # ###########################################################################################
 
 # ###################### wx grids #######################################################

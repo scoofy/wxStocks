@@ -313,3 +313,46 @@ class PageReference(object):
 		self.index = index
 		self.uid = uid # unique id
 
+class FunctionPage(object):
+	def __init__(self,
+		title,
+		uid_config_reference,
+		general_text,
+		additional_text,
+		save_button_text,
+		reset_button_text,
+		function_that_loads_text_of_user_created_functions,
+		save_function,
+		function_to_load_defaults,
+		):
+		self.title = title
+		self.uid = uid_config_reference
+		self.general_text = general_text
+		self.additional_text = additional_text
+		self.save_button_text = save_button_text
+		self.reset_button_text = reset_button_text
+		self.function_that_loads_text_of_user_created_functions = function_that_loads_text_of_user_created_functions
+		self.save_function = save_function
+		self.function_to_load_defaults = function_to_load_defaults
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
