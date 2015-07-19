@@ -276,6 +276,7 @@ class SpreadsheetCell(object):
         function = None,
         stock = None # stock being referred to by data
         , align_right = False
+        , align_center = False
         ):
         self.row = row
         self.col = col
@@ -290,6 +291,8 @@ class SpreadsheetCell(object):
         self.function = function
         self.stock = stock
         self.align_right = align_right
+        self.align_center = align_center # this is bad form, but VERY few values will be centered
+
 
 class SpreadsheetRow(object):
     def __init__(self,

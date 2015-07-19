@@ -458,517 +458,16 @@ class GetDataPage(Tab):
         self.SetSizer(sizer2)
         ####
 
-class PortfolioPage(Tab):
-    def __init__(self, parent):
-        self.title = "Portfolios"
-        self.uid = config.PORTFOLIO_PAGE_UNIQUE_ID
-        wx.Panel.__init__(self, parent)
-        ####
-        portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
-        portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
-
-        #print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
-        portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
-
-        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
-        if not portfolios_that_already_exist:
-            config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
-            new_portfolio_name_list = []
-            for i in range(config.NUMBER_OF_PORTFOLIOS):
-                print line_number(), i
-                portfolio_name = None
-                if config.NUMBER_OF_PORTFOLIOS < 10:
-                    portfolio_name = "Portfolio %d" % (i+1)
-                else:
-                    portfolio_name = "%dth" % (i+1)
-                if i in range(len(default_portfolio_names)):
-                    portfolio_name = default_portfolio_names[i]
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
-                portfolio_account.title = portfolio_name
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
-
-                new_portfolio_name_list.append(portfolio_name)
-
-                config.DATA_ABOUT_PORTFOLIOS[0] = config.NUMBER_OF_PORTFOLIOS
-                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
-            db.save_DATA_ABOUT_PORTFOLIOS()
-        else:
-            need_to_save = False
-            for i in range(config.NUMBER_OF_PORTFOLIOS):
-                #print line_number(), i
-                try:
-                    portfolio_name = portfolios_that_already_exist[i]
-                except Exception, exception:
-                    print line_number(), exception
-                    if i < 3:
-                        number_words = ["Primary", "Secondary", "Tertiary"]
-                        portfolio_name = number_words[i]
-                    else:
-                        portfolio_name = "Portfolio %d" % (i+1)
-                    portfolios_that_already_exist.append(portfolio_name)
-                    need_to_save = True
-
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
-                portfolio_account.title = portfolio_name
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
-            if need_to_save == True:
-                config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
-                db.save_DATA_ABOUT_PORTFOLIOS()
-
-        sizer2 = wx.BoxSizer()
-        sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
-        self.SetSizer(sizer2)
-        ####
-
-        print line_number(), "PortfolioPage loaded"
-
-class PortfolioAccountTab(Tab):
-    def __init__(self, parent, tab_number):
-        self.title = None
-        tab_panel = wx.Panel.__init__(self, parent, tab_number)
-
-        self.portfolio_id = tab_number
-        #print line_number(), "self.portfolio_id =", self.portfolio_id
-        self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
-
-        if not self.portfolio_obj:
-            if config.ENCRYPTION_POSSIBLE:
-                db.load_portfolio_object(self.portfolio_id)
-            else:
-                try:
-                    db.load_portfolio_object(self.portfolio_id)
-                except Exception, e:
-                    print line_number(), e
-                    self.portfolio_obj = None
-
-        self.add_button = wx.Button(self, label="Update from file", pos=(5,0), size=(-1,-1))
-        self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button)
-
-        self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
-        self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
-
-        self.triple_list = meta.return_portfolio_import_function_triple()
-
-        self.portfolio_import_name = None
-
-
-        self.delete_button = wx.Button(self, label="Delete this portfolio", pos=(800,0), size=(-1,-1))
-        self.delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, self.delete_button)
-
-        self.rename_button = wx.Button(self, label="Rename this portfolio", pos=(568,22), size=(-1,-1))
-        self.rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, self.rename_button)
-
-        self.change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(568,0), size=(-1,-1))
-        self.change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, self.change_number_of_portfolios_button)
-
-        #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
-        #print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button)
-
-        self.current_account_spreadsheet = None
-        if self.portfolio_obj:
-            self.spreadSheetFill(self.portfolio_obj)
-        self.screen_grid = None
-
-        self.ticker_input = wx.TextCtrl(self, -1, "", (250, 3))
-        self.ticker_input.SetHint("ticker")
-
-        self.share_input = wx.TextCtrl(self, -1, "", (250, 25))
-        self.share_input.SetHint("# shares")
-
-        self.cost_basis_input = wx.TextCtrl(self, -1, "", (350, 3))
-        self.cost_basis_input.SetHint("Cash/Cost")
-
-        self.update_button = wx.Button(self, label="Update Data", pos=(346,22), size=(-1,-1))
-        self.update_button.Bind(wx.EVT_BUTTON, self.updateManually, self.update_button)
-
-        self.update_prices_button = wx.Button(self, label="Update Prices", pos=(446,22), size=(-1,-1))
-        self.update_prices_button.Bind(wx.EVT_BUTTON, self.confirmUpdatePrices, self.update_prices_button)
-
-        self.remove_data_button = wx.Button(self, label="Remove Data", pos = (446, 0), size = (-1,-1))
-        self.remove_data_button.Bind(wx.EVT_BUTTON, self.confirmRemoveData, self.remove_data_button)
-
-        print line_number(), "PortfolioAccountTab loaded"
-
-    def confirmRemoveData(self, event):
-        ticker = self.ticker_input.GetValue()
-        cost_basis = self.cost_basis_input.GetValue()
-        shares = self.share_input.GetValue()
-        if not ticker:
-            return
-        if shares:
-            try:
-                shares = float(shares)
-            except:
-                print line_number(), "Shares must be a number."
-                return
-
-
-        stock = utils.return_stock_by_symbol(ticker)
-        if not stock:
-            print line_number(), "Stock %s does not appear to exist. If you want to delete cash, you must set it to zero. It cannot be None" % ticker
-            return
-
-        if ticker and not (cost_basis or shares):
-            confirm_message = "You are about to remove %s from your portfolio." % stock.symbol
-        elif ticker and shares and cost_basis:
-            confirm_message = "You are about to remove %s's share and cost basis data from your portfolio." % stock.symbol
-        elif ticker and shares:
-            if shares <= self.portfolio_obj.stock_shares_dict.get(stock.symbol):
-                confirm_message = "You are about to remove " + str(shares) + " of %s's shares from your portfolio." % stock.symbol
-            else:
-                print line_number(), "Error: invalid number of shares."
-                print "You currently have", str(self.portfolio_obj.stock_shares_dict.get(stock.symbol)), "shares."
-                print "You tried to remove", str(shares) + "."
-                return
-        elif ticker and cost_basis:
-            confirm_message = "You are about to remove %s's cost basis data from your portfolio." % stock.symbol
-        else:
-            print line_number(), "Invalid input"
-            return
-
-        confirm = wx.MessageDialog(None,
-                                   confirm_message,
-                                   'Delete Data',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        #try:
-        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
-        #except AttributeError:
-        #   pass
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.removeData(self.portfolio_obj, stock, shares, cost_basis)
-
-
-    def removeData(self, Account_object, stock, shares_to_remove = None, cost_basis = None):
-        if cost_basis or shares_to_remove:
-            if cost_basis:
-                Account_object.cost_basis_dict.pop(stock.symbol, None)
-            if shares_to_remove:
-                current_shares = Account_object.stock_shares_dict.get(stock.symbol)
-                new_shares = current_shares - shares_to_remove
-                Account_object.stock_shares_dict[stock.symbol] = new_shares
-        else: # remove stock
-            Account_object.cost_basis_dict.pop(stock.symbol, None)
-            Account_object.stock_shares_dict.pop(stock.symbol, None)
-        db.save_portfolio_object(Account_object)
-        self.spreadSheetFill(Account_object)
-
-        self.ticker_input.SetValue("")
-        self.cost_basis_input.SetValue("")
-        self.share_input.SetValue("")
-
-
-    def changeNumberOfPortfolios(self, event):
-        num_of_portfolios_popup = wx.NumberEntryDialog(None,
-                                      "What would you like to call this portfolio?",
-                                      "Rename tab",
-                                      "Caption",
-                                      config.NUMBER_OF_PORTFOLIOS,
-                                      0,
-                                      10
-                                      )
-        if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
-            return
-
-        new_number_of_portfolios = num_of_portfolios_popup.GetValue()
-        num_of_portfolios_popup.Destroy()
-
-        config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
-        config.DATA_ABOUT_PORTFOLIOS[0] = new_number_of_portfolios
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-        confirm = wx.MessageDialog(self,
-                                 "The number of portfolios has changed. The change will be applied the next time you launch this program.",
-                                 'Restart Required',
-                                 style = wx.ICON_EXCLAMATION
-                                 )
-        confirm.ShowModal()
-        confirm.Destroy()
-    def spreadSheetFill(self, portfolio_obj):
-        if self.current_account_spreadsheet:
-            self.current_account_spreadsheet.Destroy()
-        self.current_account_spreadsheet = create_account_spread_sheet(self, portfolio_obj)
-        self.current_account_spreadsheet.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, self.loadStockDataFromGridIntoUpdateSection, self.current_account_spreadsheet)
-
-        if self.current_account_spreadsheet:
-            self.current_account_spreadsheet.Show()
-        return
-
-    def loadStockDataFromGridIntoUpdateSection(self, event):
-        row = event.GetRow()
-        total_rows = self.current_account_spreadsheet.GetNumberRows()
-        column = event.GetCol()
-        total_cols = self.current_account_spreadsheet.GetNumberCols()
-        value = self.current_account_spreadsheet.GetCellValue(row, column)
-
-        ticker = None
-        shares = None
-        cost_basis = None
-        cash = None
-
-        if row <= (total_rows - 6): # 5 extra nonequity rows below, editble
-            ticker = self.current_account_spreadsheet.GetCellValue(row, 0)
-            shares = self.current_account_spreadsheet.GetCellValue(row, 2)
-            cost_basis = self.current_account_spreadsheet.GetCellValue(row, 5)
-        elif row == (total_rows - 3): # cash row
-            cash = self.current_account_spreadsheet.GetCellValue(row, 4)
-        else: # Nothing relevant selected
-            self.ticker_input.SetValue("")
-            self.share_input.SetValue("")
-            self.cost_basis_input.SetValue("")
-
-
-        if ticker:
-            self.ticker_input.SetValue(ticker)
-        if shares:
-            self.share_input.SetValue(shares)
-        if cost_basis:
-            self.cost_basis_input.SetValue(cost_basis)
-        if cash:
-            self.ticker_input.SetValue("")
-            self.share_input.SetValue("")
-            self.cost_basis_input.SetValue(cash)
-
-
-    def addAccountCSV(self, event):
-        '''append a csv to current ticker list'''
-        self.portfolio_import_name = self.drop_down.GetValue()
-
-        # Identify the function mapped to screen name
-        for triple in self.triple_list:
-            if self.portfolio_import_name == triple.doc:
-                portfolio_import_function = triple.function
-            # in case doc string is too many characters...
-            elif self.portfolio_import_name == triple.name:
-                portfolio_import_function = triple.function
-
-        if not portfolio_import_function:
-            print line_number(), "Error, somthing went wrong locating the correct import function to use."
-
-        self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
-
-        print line_number(), type(self.account_obj)
-
-        self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
-
-        # this is used in sale prep page:
-        config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
-
-        print line_number(), "Portfolio CSV import complete."
-
-    def updateAccountViaCSV(self, event):
-        self.portfolio_update_name = self.drop_down.GetValue()
-        # Identify the function mapped to screen name
-        for triple in self.triple_list:
-            if self.portfolio_import_name == triple.doc:
-                portfolio_import_function = triple.function
-            # in case doc string is too many characters...
-            elif self.portfolio_import_name == triple.name:
-                portfolio_import_function = triple.function
-
-    def updateManually(self, event):
-        ticker = self.ticker_input.GetValue()
-        cost_basis_or_cash = self.cost_basis_input.GetValue()
-        shares = self.share_input.GetValue()
-
-        if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
-            # basically if the entered data cannot be parsed
-            print line_number(), "invalid entry"
-            return
-        if cost_basis_or_cash and not (ticker or shares):
-            # User is updating cash in account
-            cash = cost_basis_or_cash
-            try:
-                cash = float(cash)
-            except Exception, e:
-                if "$" or "," in cash:
-                    cash = cash.replace("$", "")
-                    cash = cash.replace(",", "")
-                    try:
-                        cash = float(cash)
-                    except Exception, e:
-                        print line_number(), e, "invalid entry"
-                        return
-                else:
-                    print line_number, e
-                    return
-            if not self.portfolio_obj:
-                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
-            self.portfolio_obj.available_cash = cash
-        else:
-            # updating an individual stock
-            if not self.portfolio_obj:
-                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
-
-            cost_basis = cost_basis_or_cash
-
-            try:
-                ticker = ticker.upper()
-            except Exception, e:
-                print line_number(), e, "invalid ticker: %s" % ticker
-
-            stock = utils.return_stock_by_symbol(ticker)
-            if not stock:
-                print line_number(), "stock %s does not appear to exist" % ticker
-
-            if shares:
-                try:
-                    shares = float(shares)
-                    self.portfolio_obj.stock_shares_dict[ticker] = shares
-                except Exception, e:
-                    print line_number(), e, "Error: shares data is improperly formatted"
-
-            if cost_basis:
-                if "$" in str(cost_basis):
-                    cost_basis = cost_basis.replace("$", "")
-                try:
-                    cost_basis = float(cost_basis)
-                    self.portfolio_obj.cost_basis_dict[ticker] = cost_basis
-                except:
-                    pass
-
-
-        db.save_portfolio_object(self.portfolio_obj)
-        self.spreadSheetFill(self.portfolio_obj)
-        self.ticker_input.SetValue("")
-        self.cost_basis_input.SetValue("")
-        self.share_input.SetValue("")
-
-    def confirmUpdatePrices(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.",
-                                   'Confirm Download',
-                                   style = wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        #try:
-        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
-        #except AttributeError:
-        #   pass
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.updatePrices()
-
-    def updatePrices(self):
-        print line_number(), "Begin ticker download..."
-        ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
-
-        self.spreadSheetFill()
-
-        db.save_GLOBAL_STOCK_DICT()
-
-        #self.saveTickerDataAsStocks(ticker_data) # no longer used
-        # Update scrape page?
-        # Don't want to take the time to figure this out just now.
-        print line_number(), "Add function here to update scrape time."
-
-
-    def changeTabName(self, event):
-        old_name = self.GetLabel()
-        rename_popup = wx.TextEntryDialog(None,
-                                      "What would you like to call this portfolio?",
-                                      "Rename tab",
-                                      str(self.GetLabel())
-                                      )
-        rename_popup.ShowModal()
-        new_name = str(rename_popup.GetValue())
-        rename_popup.Destroy()
-
-
-        portfolio_name_list = config.DATA_ABOUT_PORTFOLIOS[1]
-        new_portfolio_names = []
-        if new_name != old_name:
-            if new_name not in portfolio_name_list:
-                for i in portfolio_name_list:
-                    if i == old_name:
-                        new_portfolio_names.append(new_name)
-                    else:
-                        new_portfolio_names.append(i)
-                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
-
-                print ""
-                print line_number(), "This file opening needs to be removed."
-                # password = ""
-                # if config.ENCRYPTION_POSSIBLE:
-                #   password = self.get_password()
-                db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-                print ""
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
-                confirm = wx.MessageDialog(self,
-                                         "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
-                                         'Restart Required',
-                                         style = wx.ICON_EXCLAMATION
-                                         )
-                confirm.ShowModal()
-                confirm.Destroy()
-
-            else:
-                error = wx.MessageDialog(self,
-                                         'Each portfolio must have a unique name.',
-                                         'Name Error',
-                                         style = wx.ICON_ERROR
-                                         )
-                error.ShowModal()
-                error.Destroy()
-
-    def confirmDeleteAccount(self, event):
-        confirm = wx.MessageDialog(None,
-                                   "You are about to delete your current account data. Are you sure you want to delete this data?",
-                                   'Delete Portfolio Data?',
-                                   wx.YES_NO
-                                   )
-        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
-        yesNoAnswer = confirm.ShowModal()
-        confirm.Destroy()
-
-        if yesNoAnswer == wx.ID_YES:
-            self.deleteAccountList()
-
-    def deleteAccountList(self):
-        '''delete account'''
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.delete_portfolio_object(self.portfolio_id) #, password = password)
-
-
-        # Reset to default name in data about portfolios
-        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
-        if self.portfolio_id < 10:
-            portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
-        else:
-            portfolio_name = "%dth" % (self.portfolio_id+1)
-        if self.portfolio_id in range(len(default_portfolio_names)):
-            portfolio_name = default_portfolio_names[self.portfolio_id]
-        config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-
-        self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
-
-        if self.current_account_spreadsheet:
-            self.current_account_spreadsheet.Destroy()
-            self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-            self.spreadSheetFill(self.portfolio_obj)
-        return
-
-
 class TickerPage(Tab):
     def __init__(self, parent):
         self.title = "Download Ticker Data"
         self.uid = config.TICKER_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.AddSpacer(88) # vertical offset
+        self.SetSizer(self.sizer)
+
         text = wx.StaticText(self, -1,
                              "Welcome to the ticker page.",
                              (10,10)
@@ -1090,7 +589,8 @@ class TickerPage(Tab):
                 ticker_list.append(ticker)
         ticker_list.sort()
         self.displayTickers(ticker_list)
-        self.Show()
+        self.sizer.Add(self.file_display, 1, wx.ALL|wx.EXPAND)
+        self.file_display.Show()
         print line_number(), "Done"
 
     def displayTickers(self, ticker_list):
@@ -1099,13 +599,25 @@ class TickerPage(Tab):
         for ticker in ticker_list:
             ticker_list_massive_str += ticker
             ticker_list_massive_str += ", "
-        height_var = 100
+
+        height_offset = 90
+        size = (765, 625)
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
+        except:
+            pass
+
         #print line_number()
         #pp.pprint(config.GLOBAL_STOCK_DICT)
-        file_display = wx.TextCtrl(self, -1,
+        try:
+            self.file_display.Destroy()
+        except:
+            pass
+        self.file_display = wx.TextCtrl(self, -1,
                                     ticker_list_massive_str,
-                                    (10, height_var),
-                                    size = (765, 625),
+                                    (2, height_offset),
+                                    size = size,
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
 class YqlScrapePage(Tab):
@@ -1483,7 +995,522 @@ class XlsImportPage(Tab):
         if path:
             aaii.import_aaii_files_from_data_folder(path=path, time_until_data_needs_update = 100000000000)
 ##
+class PortfolioPage(Tab):
+    def __init__(self, parent):
+        self.title = "Portfolios"
+        self.uid = config.PORTFOLIO_PAGE_UNIQUE_ID
+        wx.Panel.__init__(self, parent)
+        ####
+        portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
 
+        #print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
+        portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
+
+        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
+        if not portfolios_that_already_exist:
+            config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
+            new_portfolio_name_list = []
+            for i in range(config.NUMBER_OF_PORTFOLIOS):
+                print line_number(), i
+                portfolio_name = None
+                if config.NUMBER_OF_PORTFOLIOS < 10:
+                    portfolio_name = "Portfolio %d" % (i+1)
+                else:
+                    portfolio_name = "%dth" % (i+1)
+                if i in range(len(default_portfolio_names)):
+                    portfolio_name = default_portfolio_names[i]
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account.title = portfolio_name
+                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+
+                new_portfolio_name_list.append(portfolio_name)
+
+                config.DATA_ABOUT_PORTFOLIOS[0] = config.NUMBER_OF_PORTFOLIOS
+                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
+                print line_number(), config.DATA_ABOUT_PORTFOLIOS
+            db.save_DATA_ABOUT_PORTFOLIOS()
+        else:
+            need_to_save = False
+            for i in range(config.NUMBER_OF_PORTFOLIOS):
+                #print line_number(), i
+                try:
+                    portfolio_name = portfolios_that_already_exist[i]
+                except Exception, exception:
+                    print line_number(), exception
+                    if i < 3:
+                        number_words = ["Primary", "Secondary", "Tertiary"]
+                        portfolio_name = number_words[i]
+                    else:
+                        portfolio_name = "Portfolio %d" % (i+1)
+                    portfolios_that_already_exist.append(portfolio_name)
+                    need_to_save = True
+
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account.title = portfolio_name
+                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+            if need_to_save == True:
+                config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
+                db.save_DATA_ABOUT_PORTFOLIOS()
+
+        sizer2 = wx.BoxSizer()
+        sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
+        self.SetSizer(sizer2)
+        ####
+
+        print line_number(), "PortfolioPage loaded"
+class PortfolioAccountTab(Tab):
+    def __init__(self, parent, tab_number):
+        self.title = None
+        tab_panel = wx.Panel.__init__(self, parent, tab_number)
+
+        self.portfolio_id = tab_number
+        #print line_number(), "self.portfolio_id =", self.portfolio_id
+        self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.AddSpacer(50)
+        self.SetSizer(self.sizer)
+
+        if not self.portfolio_obj:
+            if config.ENCRYPTION_POSSIBLE:
+                db.load_portfolio_object(self.portfolio_id)
+            else:
+                try:
+                    db.load_portfolio_object(self.portfolio_id)
+                except Exception, e:
+                    print line_number(), e
+                    self.portfolio_obj = None
+
+        self.add_button = wx.Button(self, label="Update from file", pos=(5,0), size=(-1,-1))
+        self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button)
+
+        self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
+        self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
+
+        self.triple_list = meta.return_portfolio_import_function_triple()
+
+        self.portfolio_import_name = None
+
+
+        self.delete_button = wx.Button(self, label="Delete this portfolio", pos=(800,0), size=(-1,-1))
+        self.delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, self.delete_button)
+
+        self.rename_button = wx.Button(self, label="Rename this portfolio", pos=(568,22), size=(-1,-1))
+        self.rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, self.rename_button)
+
+        self.change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(568,0), size=(-1,-1))
+        self.change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, self.change_number_of_portfolios_button)
+
+        #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
+        #print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button)
+
+        self.current_account_spreadsheet = None
+        if self.portfolio_obj:
+            self.spreadSheetFill(self.portfolio_obj)
+        self.screen_grid = None
+
+        self.ticker_input = wx.TextCtrl(self, -1, "", (250, 3))
+        self.ticker_input.SetHint("ticker")
+
+        self.share_input = wx.TextCtrl(self, -1, "", (250, 25))
+        self.share_input.SetHint("# shares")
+
+        self.cost_basis_input = wx.TextCtrl(self, -1, "", (350, 3))
+        self.cost_basis_input.SetHint("Cash/Cost")
+
+        self.update_button = wx.Button(self, label="Update Data", pos=(346,22), size=(-1,-1))
+        self.update_button.Bind(wx.EVT_BUTTON, self.updateManually, self.update_button)
+
+        self.update_prices_button = wx.Button(self, label="Update Prices", pos=(446,22), size=(-1,-1))
+        self.update_prices_button.Bind(wx.EVT_BUTTON, self.confirmUpdatePrices, self.update_prices_button)
+
+        self.remove_data_button = wx.Button(self, label="Remove Data", pos = (446, 0), size = (-1,-1))
+        self.remove_data_button.Bind(wx.EVT_BUTTON, self.confirmRemoveData, self.remove_data_button)
+
+        print line_number(), "PortfolioAccountTab loaded"
+
+    def confirmRemoveData(self, event):
+        ticker = self.ticker_input.GetValue()
+        cost_basis = self.cost_basis_input.GetValue()
+        shares = self.share_input.GetValue()
+        if not ticker:
+            return
+        if shares:
+            try:
+                shares = float(shares)
+            except:
+                print line_number(), "Shares must be a number."
+                return
+
+
+        stock = utils.return_stock_by_symbol(ticker)
+        if not stock:
+            print line_number(), "Stock %s does not appear to exist. If you want to delete cash, you must set it to zero. It cannot be None" % ticker
+            return
+
+        if ticker and not (cost_basis or shares):
+            confirm_message = "You are about to remove %s from your portfolio." % stock.symbol
+        elif ticker and shares and cost_basis:
+            confirm_message = "You are about to remove %s's share and cost basis data from your portfolio." % stock.symbol
+        elif ticker and shares:
+            if shares <= self.portfolio_obj.stock_shares_dict.get(stock.symbol):
+                confirm_message = "You are about to remove " + str(shares) + " of %s's shares from your portfolio." % stock.symbol
+            else:
+                print line_number(), "Error: invalid number of shares."
+                print "You currently have", str(self.portfolio_obj.stock_shares_dict.get(stock.symbol)), "shares."
+                print "You tried to remove", str(shares) + "."
+                return
+        elif ticker and cost_basis:
+            confirm_message = "You are about to remove %s's cost basis data from your portfolio." % stock.symbol
+        else:
+            print line_number(), "Invalid input"
+            return
+
+        confirm = wx.MessageDialog(None,
+                                   confirm_message,
+                                   'Delete Data',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.removeData(self.portfolio_obj, stock, shares, cost_basis)
+
+
+    def removeData(self, Account_object, stock, shares_to_remove = None, cost_basis = None):
+        if cost_basis or shares_to_remove:
+            if cost_basis:
+                Account_object.cost_basis_dict.pop(stock.symbol, None)
+            if shares_to_remove:
+                current_shares = Account_object.stock_shares_dict.get(stock.symbol)
+                new_shares = current_shares - shares_to_remove
+                Account_object.stock_shares_dict[stock.symbol] = new_shares
+        else: # remove stock
+            Account_object.cost_basis_dict.pop(stock.symbol, None)
+            Account_object.stock_shares_dict.pop(stock.symbol, None)
+        db.save_portfolio_object(Account_object)
+        self.spreadSheetFill(Account_object)
+
+        self.ticker_input.SetValue("")
+        self.cost_basis_input.SetValue("")
+        self.share_input.SetValue("")
+
+
+    def changeNumberOfPortfolios(self, event):
+        num_of_portfolios_popup = wx.NumberEntryDialog(None,
+                                      "What would you like to call this portfolio?",
+                                      "Rename tab",
+                                      "Caption",
+                                      config.NUMBER_OF_PORTFOLIOS,
+                                      0,
+                                      10
+                                      )
+        if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
+            return
+
+        new_number_of_portfolios = num_of_portfolios_popup.GetValue()
+        num_of_portfolios_popup.Destroy()
+
+        config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
+        config.DATA_ABOUT_PORTFOLIOS[0] = new_number_of_portfolios
+        # password = ""
+        # if config.ENCRYPTION_POSSIBLE:
+        #   password = self.get_password()
+        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+        confirm = wx.MessageDialog(self,
+                                 "The number of portfolios has changed. The change will be applied the next time you launch this program.",
+                                 'Restart Required',
+                                 style = wx.ICON_EXCLAMATION
+                                 )
+        confirm.ShowModal()
+        confirm.Destroy()
+    def spreadSheetFill(self, portfolio_obj):
+        if self.current_account_spreadsheet:
+            self.current_account_spreadsheet.Destroy()
+
+        size = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        height_offset = 52
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
+        except:
+            pass
+        self.current_account_spreadsheet = create_account_spread_sheet(self, portfolio_obj, size = size)
+        self.current_account_spreadsheet.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, self.loadStockDataFromGridIntoUpdateSection, self.current_account_spreadsheet)
+
+        if self.current_account_spreadsheet:
+            self.sizer.Add(self.current_account_spreadsheet, 1, wx.ALL|wx.EXPAND)
+            self.current_account_spreadsheet.Show()
+        return
+
+    def loadStockDataFromGridIntoUpdateSection(self, event):
+        row = event.GetRow()
+        total_rows = self.current_account_spreadsheet.GetNumberRows()
+        column = event.GetCol()
+        total_cols = self.current_account_spreadsheet.GetNumberCols()
+        value = self.current_account_spreadsheet.GetCellValue(row, column)
+
+        ticker = None
+        shares = None
+        cost_basis = None
+        cash = None
+
+        if row <= (total_rows - 6): # 5 extra nonequity rows below, editble
+            ticker = self.current_account_spreadsheet.GetCellValue(row, 0)
+            shares = self.current_account_spreadsheet.GetCellValue(row, 2)
+            cost_basis = self.current_account_spreadsheet.GetCellValue(row, 5)
+        elif row == (total_rows - 3): # cash row
+            cash = self.current_account_spreadsheet.GetCellValue(row, 4)
+        else: # Nothing relevant selected
+            self.ticker_input.SetValue("")
+            self.share_input.SetValue("")
+            self.cost_basis_input.SetValue("")
+
+
+        if ticker:
+            self.ticker_input.SetValue(ticker)
+        if shares:
+            self.share_input.SetValue(shares)
+        if cost_basis:
+            self.cost_basis_input.SetValue(cost_basis)
+        if cash:
+            self.ticker_input.SetValue("")
+            self.share_input.SetValue("")
+            self.cost_basis_input.SetValue(cash)
+
+
+    def addAccountCSV(self, event):
+        '''append a csv to current ticker list'''
+        self.portfolio_import_name = self.drop_down.GetValue()
+
+        # Identify the function mapped to screen name
+        for triple in self.triple_list:
+            if self.portfolio_import_name == triple.doc:
+                portfolio_import_function = triple.function
+            # in case doc string is too many characters...
+            elif self.portfolio_import_name == triple.name:
+                portfolio_import_function = triple.function
+
+        if not portfolio_import_function:
+            print line_number(), "Error, somthing went wrong locating the correct import function to use."
+
+        self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
+
+        print line_number(), type(self.account_obj)
+
+        self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
+
+        # this is used in sale prep page:
+        config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
+
+        print line_number(), "Portfolio CSV import complete."
+
+    def updateAccountViaCSV(self, event):
+        self.portfolio_update_name = self.drop_down.GetValue()
+        # Identify the function mapped to screen name
+        for triple in self.triple_list:
+            if self.portfolio_import_name == triple.doc:
+                portfolio_import_function = triple.function
+            # in case doc string is too many characters...
+            elif self.portfolio_import_name == triple.name:
+                portfolio_import_function = triple.function
+
+    def updateManually(self, event):
+        ticker = self.ticker_input.GetValue()
+        cost_basis_or_cash = self.cost_basis_input.GetValue()
+        shares = self.share_input.GetValue()
+
+        if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
+            # basically if the entered data cannot be parsed
+            print line_number(), "invalid entry"
+            return
+        if cost_basis_or_cash and not (ticker or shares):
+            # User is updating cash in account
+            cash = cost_basis_or_cash
+            try:
+                cash = float(cash)
+            except Exception, e:
+                if "$" or "," in cash:
+                    cash = cash.replace("$", "")
+                    cash = cash.replace(",", "")
+                    try:
+                        cash = float(cash)
+                    except Exception, e:
+                        print line_number(), e, "invalid entry"
+                        return
+                else:
+                    print line_number, e
+                    return
+            if not self.portfolio_obj:
+                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
+            self.portfolio_obj.available_cash = cash
+        else:
+            # updating an individual stock
+            if not self.portfolio_obj:
+                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
+
+            cost_basis = cost_basis_or_cash
+
+            try:
+                ticker = ticker.upper()
+            except Exception, e:
+                print line_number(), e, "invalid ticker: %s" % ticker
+
+            stock = utils.return_stock_by_symbol(ticker)
+            if not stock:
+                print line_number(), "stock %s does not appear to exist" % ticker
+
+            if shares:
+                try:
+                    shares = float(shares)
+                    self.portfolio_obj.stock_shares_dict[ticker] = shares
+                except Exception, e:
+                    print line_number(), e, "Error: shares data is improperly formatted"
+
+            if cost_basis:
+                if "$" in str(cost_basis):
+                    cost_basis = cost_basis.replace("$", "")
+                try:
+                    cost_basis = float(cost_basis)
+                    self.portfolio_obj.cost_basis_dict[ticker] = cost_basis
+                except:
+                    pass
+
+
+        db.save_portfolio_object(self.portfolio_obj)
+        self.spreadSheetFill(self.portfolio_obj)
+        self.ticker_input.SetValue("")
+        self.cost_basis_input.SetValue("")
+        self.share_input.SetValue("")
+
+    def confirmUpdatePrices(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.",
+                                   'Confirm Download',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.updatePrices()
+
+    def updatePrices(self):
+        print line_number(), "Begin ticker download..."
+        ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
+
+        self.spreadSheetFill()
+
+        db.save_GLOBAL_STOCK_DICT()
+
+        #self.saveTickerDataAsStocks(ticker_data) # no longer used
+        # Update scrape page?
+        # Don't want to take the time to figure this out just now.
+        print line_number(), "Add function here to update scrape time."
+
+
+    def changeTabName(self, event):
+        old_name = self.GetLabel()
+        rename_popup = wx.TextEntryDialog(None,
+                                      "What would you like to call this portfolio?",
+                                      "Rename tab",
+                                      str(self.GetLabel())
+                                      )
+        rename_popup.ShowModal()
+        new_name = str(rename_popup.GetValue())
+        rename_popup.Destroy()
+
+
+        portfolio_name_list = config.DATA_ABOUT_PORTFOLIOS[1]
+        new_portfolio_names = []
+        if new_name != old_name:
+            if new_name not in portfolio_name_list:
+                for i in portfolio_name_list:
+                    if i == old_name:
+                        new_portfolio_names.append(new_name)
+                    else:
+                        new_portfolio_names.append(i)
+                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
+
+                print ""
+                print line_number(), "This file opening needs to be removed."
+                # password = ""
+                # if config.ENCRYPTION_POSSIBLE:
+                #   password = self.get_password()
+                db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+                print ""
+                print line_number(), config.DATA_ABOUT_PORTFOLIOS
+                confirm = wx.MessageDialog(self,
+                                         "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
+                                         'Restart Required',
+                                         style = wx.ICON_EXCLAMATION
+                                         )
+                confirm.ShowModal()
+                confirm.Destroy()
+
+            else:
+                error = wx.MessageDialog(self,
+                                         'Each portfolio must have a unique name.',
+                                         'Name Error',
+                                         style = wx.ICON_ERROR
+                                         )
+                error.ShowModal()
+                error.Destroy()
+
+    def confirmDeleteAccount(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to delete your current account data. Are you sure you want to delete this data?",
+                                   'Delete Portfolio Data?',
+                                   wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Delete"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.deleteAccountList()
+
+    def deleteAccountList(self):
+        '''delete account'''
+        # password = ""
+        # if config.ENCRYPTION_POSSIBLE:
+        #   password = self.get_password()
+        db.delete_portfolio_object(self.portfolio_id) #, password = password)
+
+
+        # Reset to default name in data about portfolios
+        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
+        if self.portfolio_id < 10:
+            portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
+        else:
+            portfolio_name = "%dth" % (self.portfolio_id+1)
+        if self.portfolio_id in range(len(default_portfolio_names)):
+            portfolio_name = default_portfolio_names[self.portfolio_id]
+        config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
+        # password = ""
+        # if config.ENCRYPTION_POSSIBLE:
+        #   password = self.get_password()
+        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
+
+        self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
+
+        if self.current_account_spreadsheet:
+            self.current_account_spreadsheet.Destroy()
+            self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
+            self.spreadSheetFill(self.portfolio_obj)
+        return
 ###
 class ViewDataPage(Tab):
     def __init__(self, parent):
@@ -1561,7 +1588,7 @@ class AllStocksPage(Tab):
         new_grid = create_megagrid_from_stock_list(stock_list, self, size = size)
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
@@ -1664,7 +1691,7 @@ class StockDataPage(Tab):
         new_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper(), size = size)
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.screen_grid = new_grid
@@ -1813,7 +1840,7 @@ class ScreenPage(Tab):
 
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
 
@@ -2003,7 +2030,7 @@ class SavedScreenPage(Tab):
 
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
@@ -2168,7 +2195,7 @@ class RankPage(Tab):
 
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
@@ -2208,7 +2235,7 @@ class RankPage(Tab):
 
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
@@ -2451,6 +2478,28 @@ class CustomAnalysisPage(Tab):
         self.page_index = page_index
         self.panel_name = None
 
+        self.sizer = wx.FlexGridSizer(rows=1, cols=2, hgap = 1, vgap = 0)
+        self.ticker_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.grid_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.ticker_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.grid_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+
+        self.sizer.Add(self.ticker_sizer, 0, wx.BOTTOM|wx.EXPAND)
+        self.sizer.Add(self.grid_sizer, 1, wx.ALL|wx.EXPAND)
+
+        self.sizer.AddGrowableRow(0, 1)
+        self.sizer.SetFlexibleDirection(wx.VERTICAL)
+        self.sizer.AddGrowableCol(1, 1)
+        self.sizer.SetFlexibleDirection(wx.BOTH)
+
+        self.SetSizer(self.sizer)
+
+
+        #self.inner_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #self.inner_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][0])
+
+
         if self.doc_string:
             self.panel_name = self.doc_string
         elif len(self.function_name) < 30:
@@ -2588,15 +2637,22 @@ class CustomAnalysisPage(Tab):
         for stock in stock_list:
             ticker_list_massive_str += stock.symbol
             ticker_list_massive_str += "\n"
-        height_var = 60
+        height_offset = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1]
+        try:
+            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            #print line_number(), width, height
+            height = height - height_offset - (config.VERTICAL_OFFSET_PER_TAB * 3) # find the difference between the Frame and the grid size
+        except Exception, e:
+            print line_number(), e
         #print line_number()
         #pp.pprint(config.GLOBAL_STOCK_DICT)
         self.ticker_display = wx.TextCtrl(self, -1,
                                     ticker_list_massive_str,
-                                    (3, height_var),
-                                    size = (100, 580),
+                                    (3, height_offset),
+                                    size = (100, height),
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
+        self.ticker_sizer.Add(self.ticker_display, 1, wx.BOTTOM|wx.EXPAND)
         self.ticker_display.Show()
         self.clear_button.Show()
 
@@ -2649,7 +2705,7 @@ class CustomAnalysisPage(Tab):
             return
 
         try:
-            self.screen_grid.Destroy()
+            self.custom_spreadsheet.Destroy()
         except Exception, e:
             print e
 
@@ -2664,25 +2720,12 @@ class CustomAnalysisPage(Tab):
             size = (width-165, height-200) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
-        self.sizer = None
-        self.inner_sizer = None
-
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.inner_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.inner_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][0])
-
-        self.inner_inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_inner_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
-
-        self.inner_sizer.Add(self.inner_inner_sizer, 2, wx.ALL|wx.EXPAND)
+        self.inner_inner_sizer = None
 
 
         new_grid = self.create_custom_analysis_spread_sheet(list_of_spreadsheet_cells, size = size)
 
-        self.inner_inner_sizer.Add(new_grid, 2, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
-        self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
+        self.grid_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
         ##
         self.custom_spreadsheet = new_grid
 
@@ -2833,43 +2876,86 @@ class SalePrepPage(Tab):
 
         # row 5
         self.first_cell                     = SpreadsheetCell(row = 5, col = 0, text = "")
-        self.num_of_shares_cell             = SpreadsheetCell(row = 5, col = 1, text = "# of shares to sell")
-        self.percent_of_shares_cell         = SpreadsheetCell(row = 5, col = 2, text = "%" + " of shares to sell")
+
+        self.num_of_shares_cell             = SpreadsheetCell(row = 4, col = 1, text = "# of shares", align_center = True)
+        self.num_of_shares_cell_2           = SpreadsheetCell(row = 5, col = 1, text = "to sell",     align_center = True)
+
+        self.percent_of_shares_cell         = SpreadsheetCell(row = 4, col = 2, text = "%" + " of shares", align_center = True)
+        self.percent_of_shares_cell_2       = SpreadsheetCell(row = 5, col = 2, text = "to sell", align_center = True)
+
         self.ticker_cell                    = SpreadsheetCell(row = 5, col = 3, text = "Ticker")
         self.syntax_check_cell              = SpreadsheetCell(row = 5, col = 4, text = "")#Syntax Check")
         self.name_cell                      = SpreadsheetCell(row = 5, col = 5, text = "Name")
-        self.sale_check_cell                = SpreadsheetCell(row = 5, col = 6, text = "Sale Check")
-        self.number_of_shares_copy_cell     = SpreadsheetCell(row = 5, col = 7, text = "# of shares to sell")
-        self.percent_of_shares_copy_cell    = SpreadsheetCell(row = 5, col = 8, text = "%" + " of shares to sell")
-        self.total_shares_cell              = SpreadsheetCell(row = 5, col = 9, text = "Total # of shares")
+
+        self.sale_check_cell                = SpreadsheetCell(row = 4, col = 6, text = "Sale", align_center = True)
+        self.sale_check_cell_2              = SpreadsheetCell(row = 5, col = 6, text = "Check", align_center = True)
+
+        self.number_of_shares_copy_cell     = SpreadsheetCell(row = 4, col = 7, text = "# of shares", align_center = True)
+        self.number_of_shares_copy_cell_2   = SpreadsheetCell(row = 5, col = 7, text = "to sell", align_center = True)
+
+        self.percent_of_shares_copy_cell    = SpreadsheetCell(row = 4, col = 8, text = "%" + " of shares", align_center = True)
+        self.percent_of_shares_copy_cell_2  = SpreadsheetCell(row = 5, col = 8, text = "to sell", align_center = True)
+
+        self.total_shares_cell              = SpreadsheetCell(row = 4, col = 9, text = "Total # of", align_center = True)
+        self.total_shares_cell_2            = SpreadsheetCell(row = 5, col = 9, text = "shares", align_center = True)
+
         self.price_cell                     = SpreadsheetCell(row = 5, col = 10, text = "Price")
         self.sale_value_cell                = SpreadsheetCell(row = 5, col = 11, text = "Sale Value")
-        self.commission_cell                = SpreadsheetCell(row = 5, col = 12, text = "Commission loss ($%.2f/trade)" % float(self.commission))
-        self.cost_basis_cell                = SpreadsheetCell(row = 5, col = 13, text = "Cost basis per share")
-        self.fifo_cell                      = SpreadsheetCell(row = 5, col = 14, text = "FIFO Capital Gains")
-        self.adjusted_cap_gains_cell        = SpreadsheetCell(row = 5, col = 15, text = "Adjusted Capital Gains (including carryovers)")
-        self.market_value_cell              = SpreadsheetCell(row = 5, col = 16, text = "Market Value")
-        self.unrealized_cell                = SpreadsheetCell(row = 5, col = 17, text = "Unrealized Capital +/-")
 
-        self.row_five_cell_list = [
-            self.first_cell,
+        self.commission_cell                = SpreadsheetCell(row = 4, col = 12, text = "Commission loss", align_center = True)
+        self.commission_cell_2              = SpreadsheetCell(row = 5, col = 12, text = "($%.2f/trade)" % float(self.commission), align_center = True)
+        self.cost_basis_cell                = SpreadsheetCell(row = 4, col = 13, text = "Cost basis", align_center = True)
+        self.cost_basis_cell_2              = SpreadsheetCell(row = 5, col = 13, text = "per share", align_center = True)
+        self.fifo_cell                      = SpreadsheetCell(row = 4, col = 14, text = "FIFO Capital", align_center = True)
+        self.fifo_cell_2                    = SpreadsheetCell(row = 5, col = 14, text = "Gains", align_center = True)
+        self.adjusted_cap_gains_cell        = SpreadsheetCell(row = 4, col = 15, text = "Adjusted Capital Gains", align_center = True)
+        self.adjusted_cap_gains_cell_2      = SpreadsheetCell(row = 5, col = 15, text = "(including carryovers)", align_center = True)
+
+        self.market_value_cell              = SpreadsheetCell(row = 5, col = 16, text = "Market Value")
+
+        self.unrealized_cell                = SpreadsheetCell(row = 4, col = 17, text = "Unrealized", align_center = True)
+        self.unrealized_cell_2              = SpreadsheetCell(row = 5, col = 17, text = "Capital +/-", align_center = True)
+
+        self.row_four_cell_list = [
             self.num_of_shares_cell,
             self.percent_of_shares_cell,
-            self.ticker_cell,
-            self.syntax_check_cell,
-            self.name_cell,
             self.sale_check_cell,
             self.number_of_shares_copy_cell,
             self.percent_of_shares_copy_cell,
             self.total_shares_cell,
-            self.price_cell,
-            self.sale_value_cell,
             self.commission_cell,
             self.cost_basis_cell,
             self.fifo_cell,
             self.adjusted_cap_gains_cell,
-            self.market_value_cell,
             self.unrealized_cell,
+
+            ]
+        self.row_five_cell_list = [
+            self.first_cell,
+
+            self.num_of_shares_cell_2,
+            self.percent_of_shares_cell_2,
+
+            self.ticker_cell,
+            self.syntax_check_cell,
+            self.name_cell,
+
+            self.sale_check_cell_2,
+            self.number_of_shares_copy_cell_2,
+            self.percent_of_shares_copy_cell_2,
+            self.total_shares_cell_2,
+
+            self.price_cell,
+            self.sale_value_cell,
+
+            self.commission_cell_2,
+            self.cost_basis_cell_2,
+            self.fifo_cell_2,
+            self.adjusted_cap_gains_cell_2,
+
+            self.market_value_cell,
+
+            self.unrealized_cell_2,
             ]
 
         self.total_number_of_columns = len(self.row_five_cell_list)
@@ -3025,7 +3111,7 @@ class SalePrepPage(Tab):
         new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
         #You need this code to resize
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
 
@@ -3059,9 +3145,12 @@ class SalePrepPage(Tab):
         self.grid.SetCellValue(self.totals_cell.row, self.totals_cell.col, self.totals_cell.text)
 
 
-        # set row 5
-        for cell in self.row_five_cell_list:
+        # set row 4 & 5
+        for cell in self.row_five_cell_list + self.row_four_cell_list:
             self.grid.SetCellValue(cell.row, cell.col, cell.text)
+            if cell.align_center:
+                self.grid.SetCellAlignment(cell.row, cell.col, horiz = wx.ALIGN_CENTRE, vert = wx.ALIGN_BOTTOM)
+
 
         # rows 6 and 8
         for i in range(num_columns):
@@ -3216,7 +3305,7 @@ class SalePrepPage(Tab):
             #print line_number(), "# of stocks to sell changed"
             self.grid.SetCellValue(row, self.percent_of_shares_cell.col, "")
 
-            if str(number_of_shares_to_sell).isdigit() and num_shares >= number_of_shares_to_sell and number_of_shares_to_sell != 0:
+            if str(number_of_shares_to_sell).isdigit() and float(num_shares) >= float(number_of_shares_to_sell) and float(number_of_shares_to_sell) != 0.:
                 # No input errors
                 self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
                 percent_of_total_holdings = round(100 * float(number_of_shares_to_sell)/float(num_shares))
@@ -3479,7 +3568,7 @@ class TradePage(Tab):
         sale_prep_page.save_button.Show()
 
     def importSaleCandidates(self, event):
-        print line_number(), "Boom goes the boom!!!!!!!!"
+        print line_number(), "Boom goes the boom!!!!!!!!" # My favorite logging text, please don't remove :(
 
         self.relevant_portfolios_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
         self.sale_tuple_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]
@@ -3589,7 +3678,7 @@ class TradePage(Tab):
         self.inner_sizer.AddSpacer(83)
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
-        self.parent.SetSizer(self.inner_sizer)
+        self.SetSizer(self.inner_sizer)
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
 
@@ -4934,8 +5023,7 @@ def create_account_spread_sheet(
     wxWindow,
     account_obj,
     held_ticker_list = [] # not used currentl
-    , height = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0][1]
-    , width = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0][0]
+    , size = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
     , position = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1]
     , enable_editing = False
     ):
@@ -4961,7 +5049,7 @@ def create_account_spread_sheet(
         # if there are no stocks in the portfolio
         num_columns = 2
 
-    screen_grid = wx.grid.Grid(wxWindow, -1, size=(width, height), pos=position)
+    screen_grid = wx.grid.Grid(wxWindow, -1, size=size, pos=position)
     screen_grid.CreateGrid(num_rows, num_columns)
     screen_grid.EnableEditing(enable_editing)
 
