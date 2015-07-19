@@ -184,26 +184,36 @@ class WelcomePage(Tab):
     Instructions:   this program is essentially a work-flow following the tabs above.
     ---------------------------------------------------------------------------------------------------------------------------------
 
-    Tickers:        This page is where you download ticker .CSV files to create a list of tickers to scrape.
+    Welcome:\t\t\t\t\t\tGeneral insturction and password reset.
 
-    YQL Scrape:     This page takes all tickers, and then scrapes current stock data using them.
+    Import Data:
+    \tDownload Tickers:\t\t\tThis page is where you download ticker .CSV files to create a list of tickers to scrape.
+    \tScrape YQL:\t\t\t\t\tThis page takes all tickers, and then scrapes current stock data using them.
+    \tImport Data Spreadsheets:\t\tThis page allows you to import your own spreadsheets. You must first create functions in it's Edit Functions tab.
 
-    Stocks:     This page generates a list of all stocks that have been scraped and presents all the data about them.
-                Use this page to double check your data to make sure it's accurate and up to date.
+    Portfolios:\t\t\t\t\t\tThis page allows you to load your portfolios from which you plan on making trades.
+    \t\t\t\t\t\t\t\tIf you have more than one portfolio you plan on working from, you may add more.
 
-    Screen:     This page allows you to screen for stocks that fit your criteria, and save them for later.
+    View Data:
+    \tView All Stocks:\t\t\t\tThis page generates a list of all stocks that have been scraped and presents all the data about them.
+    \t\t\t\t\t\t\t\t-  Use this page to double check your data to make sure it's accurate and up to date.
+    \tView One Stock:\t\t\t\tThis page allows you to look at all the data associated with one stock.
+    \t\t\t\t\t\t\t\t-  Here you will find the attributes you may use in programming your own functions involving individual stocks.
 
-    Saved Screens:  This page allows you to recall old screens you've saved.
+    Analyse Data:
+    \tScreen:\t\t\t\t\t\tThis page allows you to screen for stocks that fit your criteria, and save them for later.
+    \tSaved Screens:\t\t\t\tThis page allows you to recall old screens you've saved.
+    \tRank:\t\t\t\t\t\tThis page allows you to rank stocks along certain criteria.
+    \tCustom Analysis:\t\t\t\tThis page allows you to execute your own custom analysis.
+    \t\t\t\t\t\t\t\t-  You can learn about programming and interfacing with wxStocks to do your own analysis in the Edit Functions section.
 
-    Rank:       This page allows you to rank stocks along certain criteria.
+    Sale Prep:\t\t\t\t\t\tThis page allows you to estimate the amount of funds generated from a potential stock sale.
 
-    Sale Prep:  This page allows you to estimate the amount of funds generated from a potential stock sale.
+    Trade:\t\t\t\t\t\t\tThis page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated,
+    \t\t\t\t\t\t\t\tand lets you estimate the volume of stocks to buy to satisfy your diversification requirements.
 
-    Trade:      This page (currently not functional) takes the stocks you plan to sell, estimates the amount of money generated,
-                and lets you estimate the volume of stocks to buy to satisfy your diversification requirements.
+    Edit Functions:\t\t\t\t\tHere you many view/edit/restore user created functions. You may also edit them in your own text editor.
 
-    Portfolio:  This page allows you to load your portfolios from which you plan on making trades.
-                If you have more than one portfolio you plan on working from, you may add more.
     '''
 
         instructions = wx.StaticText(self, -1,
@@ -256,8 +266,8 @@ class WelcomePage(Tab):
         #                           )
 
         self.reset_password_button = None
-        self.reset_password_button_horizontal_position = 10
-        self.reset_password_button_vertical_position = 550
+        self.reset_password_button_horizontal_position = 5
+        self.reset_password_button_vertical_position = 700
 
         if config.ENCRYPTION_POSSIBLE:
             self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
