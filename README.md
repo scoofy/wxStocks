@@ -13,3 +13,37 @@ Nonessential but recommended: [PyCrypto](https://pypi.python.org/pypi/pycrypto),
 License: [AGPL](https://en.wikipedia.org/wiki/Affero_General_Public_License)
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Installation:
+
+Python:
+
+If you are running a mac or linux Python 2.X. To check, open your terminal and just type "python", which should lead to a prompt that looks like ">>>". You can then quit by typing "quit()". If that doesn't work, go here: https://www.python.org/downloads/
+
+If you are running windows, go here and install python 2.X: https://www.python.org/downloads/
+
+wxPython:
+
+http://www.wxpython.org/download.php
+
+Note: I built this using the cocoa build for OSX. I should work on all other builds though, but i've heard some of my friends are having problems while using ipython. Not sure what to do if you're having issue, this is a tough one.
+
+Numpy:
+
+http://docs.scipy.org/doc/numpy/user/install.html
+
+PyCrypto (not required):
+
+https://pypi.python.org/pypi/pycrypto
+
+Good stack overflow article for windows: http://stackoverflow.com/questions/11405549/how-do-i-install-pycrypto-on-windows
+
+Good article for OSX: http://osxdaily.com/2012/07/10/how-to-install-paramiko-and-pycrypto-in-mac-os-x-the-easy-way/
+
+simplecrypt:
+
+https://pypi.python.org/pypi/simple-crypt
+
+xlrd:
+
+https://pypi.python.org/pypi/xlrd
