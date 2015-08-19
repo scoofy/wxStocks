@@ -265,7 +265,7 @@ class SpreadsheetCell(object):
     def __init__(self,
         row = None,
         col = None,
-        text = None,
+        text = "",
         value = None,
         col_title = None,
         row_title = None,
@@ -300,11 +300,13 @@ class SpreadsheetRow(object):
         row_title = None,
     	name = None,
         cell_dict = {} # key is col
+        , account = None # for sale prep, if an account is associated with a row
         ):
         self.row = row
         self.row_title = row_title
         self.name = name
         self.cell_dict = cell_dict
+        self.account = account
 
 class PageReference(object):
 	def __init__(self, name, obj = None, index = None, uid = None):

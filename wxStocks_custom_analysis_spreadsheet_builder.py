@@ -129,20 +129,23 @@ def rms_stock_analysis(stock_list):
     from functions_for_custom_analysis_go_in_here import aaii_formulas as aaii
     import numpy
     import pprint as pp
+    import locale
 
     default_row_buffer_before_stocks = 2
     all_cells_list = []
     row_list = []
-
+    #background_color = {"green": "#D1FFD1", "red": "#8A0002", "orange": "#FFE0B2"}
     class Attribute(object):
-        def __init__(self, name, function, weight, maximum, minimum, size_factor, col):
+        def __init__(self, name, function, weight, maximum, minimum, display, size_factor, col, align_right):
             self.name = name
             self.function = function
             self.weight = weight
             self.maximum = maximum
             self.minimum = minimum
             self.size_factor = size_factor
+            self.display = display
             self.col = col
+            self.align_right = align_right
             self.avg = None
             self.std = None
 
@@ -189,7 +192,8 @@ def rms_stock_analysis(stock_list):
         for attribute_obj in attribute_list:
             # first iterate over each attribute, to find the mean and standard dev
 
-            attribute_data_list = []
+            adjusted_attribute_data_list = []
+
             for row in row_list:
                 data_cell = getattr(row, attribute_obj.name)
                 data = data_cell.text
@@ -197,17 +201,18 @@ def rms_stock_analysis(stock_list):
                     if attribute_obj.minimum or attribute_obj.maximum:
                         # normalize data
                         if data < attribute_obj.minimum:
-                            data = attribute_obj.minimum
-                            data_cell.text = data
+                            adjusted_data = attribute_obj.minimum
                             data_cell.text_color = "#333333"
                         elif data > attribute_obj.maximum:
-                            data = attribute_obj.maximum
-                            data_cell.text = data
+                            adjusted_data = attribute_obj.maximum
                             data_cell.text_color = "#333333"
-                attribute_data_list.append(data)
+                adjusted_attribute_data_list.append(data)
 
+
+
+            # see if we can compute average
             not_none_data_list = []
-            for x in attribute_data_list:
+            for x in adjusted_attribute_data_list:
                 try:
                     float(x)
                     not_none_data_list.append(x)
@@ -221,10 +226,18 @@ def rms_stock_analysis(stock_list):
 
 
             try: # get average and standard deviation if possible
-                data_avg = numpy.average(not_none_data_list, axis=0)
+                data_avg = numpy.mean(not_none_data_list, axis=0)
+            except Exception, e:
+                print line_number(), e
 
+            # apply avg of data to any missing data
+            for row in row_list:
+                if getattr(row, attribute_obj.name) is None:
+                    setattr(row, attribute_obj.name, data_avg)
+
+            try:
                 data_list_averaged_data = []
-                for data in attribute_data_list:
+                for data in adjusted_attribute_data_list:
                     if data is not None:
                         data_list_averaged_data.append(data)
                     else:
@@ -267,7 +280,8 @@ def rms_stock_analysis(stock_list):
                                     print line_number(), "Error: something went wrong here"
                                 z_score_data_cell.text = score
                     except Exception, e:
-                        print line_number(), e
+                        #print line_number(), e
+                        pass
             stock_row.Score.text = score
 
     def find_score_standard_deviations(row_list):
@@ -318,6 +332,7 @@ def rms_stock_analysis(stock_list):
                 if first_iteration:
                     first_iteration = False
                     last_sigma_stage = 3
+
             elif stock_row.Score.text > (score_avg + (score_std * 2)):
                 # greater than 2 sigmas
                 if first_iteration:
@@ -402,20 +417,57 @@ def rms_stock_analysis(stock_list):
                     data = data_cell.text
                     background_color = None
                     if attribute_obj.avg is not None and attribute_obj.std is not None and data is not None:
-                        if data > (attribute_obj.avg + attribute_obj.std):
-                            # better than 1 standard deviation -> green!
-                            background_color = "#CCFFCC"
-                        elif data < (attribute_obj.avg - (attribute_obj.std * 2)):
-                            # worse than 2 standard deviations -> red :/
-                            background_color = "#F78181"
-                        elif data < (attribute_obj.avg - attribute_obj.std):
-                            # worse than 1 standard deviation -> orange
-                            background_color = "#FFB499"
+                        if attribute_obj.size_factor == "big":
+                            if data > (attribute_obj.avg + attribute_obj.std):
+                                # better than 1 standard deviation -> green!
+                                background_color = "#CCFFCC"
+                            elif data < (attribute_obj.avg - (attribute_obj.std * 2)):
+                                # worse than 2 standard deviations -> red :/
+                                background_color = "#F78181"
+                            elif data < (attribute_obj.avg - attribute_obj.std):
+                                # worse than 1 standard deviation -> orange
+                                background_color = "#FFB499"
+                        elif attribute_obj.size_factor == "small":
+                            if data < (attribute_obj.avg - attribute_obj.std):
+                                # better than 1 standard deviation -> green!
+                                background_color = "#CCFFCC"
+                            elif data > (attribute_obj.avg + (attribute_obj.std * 2)):
+                                # worse than 2 standard deviations -> red :/
+                                background_color = "#F78181"
+                            elif data > (attribute_obj.avg + attribute_obj.std):
+                                # worse than 1 standard deviation -> orange
+                                background_color = "#FFB499"
+
                     new_data_cell = Cell(text = data)
                     new_data_cell.row = row_num
                     new_data_cell.col = attribute_obj.col
                     new_data_cell.background_color = background_color
-                    new_data_cell.text = data
+                    new_data_cell.align_right = attribute_obj.align_right
+
+                    if attribute_obj.display == "2":
+                        new_data_cell.text = "%.2f" % data
+                    elif attribute_obj.display == "%":
+                        try:
+                            data = float(data)
+                            if data.is_integer():
+                                new_data_cell.text = str(int(round(float(data)))) + "%"
+                            else:
+                                new_data_cell.text = ("%.2f" % data) + "%"
+                        except:
+                            new_data_cell.text = str(data) + "%"
+                    elif attribute_obj.display == "$":
+                        try:
+                            new_data_cell.text = config.locale.currency(float(data), grouping = True)
+                        except:
+                            new_data_cell.text = "$" + data
+                    elif attribute_obj.display == "rnk":
+                        try:
+                            if float(data).is_integer():
+                                new_data_cell.text = str(int(data))
+                            else:
+                                new_data_cell.text = str(data)
+                        except:
+                            new_data_cell.text = str(data)
                     try:
                         new_data_cell.row_title = stock_row.stock.ticker
                     except:
@@ -430,29 +482,29 @@ def rms_stock_analysis(stock_list):
         return stock#.volume
 
 
-    # attr  = Attribute("name",            function,                               weight, max,    min,    size,   col)
-    score   = Attribute("Score",           None,                                   None,   None,   None,   None,   0)
-    action  = Attribute("Action",          None,                                   None,   None,   None,   None,   1)
-    ticker  = Attribute("Ticker",          return_ticker,                          None,   None,   None,   None,   2)
-    price   = Attribute("Price",           None,                                   None,   None,   None,   None,   3)
-    volume  = Attribute("AvgDly $K Vol",   None,                                   None,   None,   None,   None,   4)
-    neff5h  = Attribute("Neff 5Yr H",      aaii.neff_ratio_5y,                     1.0,    10.,    0.,     "big",  5)
-    neffttm = Attribute("Neff TTM H",      aaii.neff_TTM_historical,               1.0,    10.,    0.,     "big",  6)
-    neff5f  = Attribute("Neff 5 Yr F",     aaii.neff_5_Year_future_estimate,       2.0,    10.,    0.,     "big",  7)
-    margin  = Attribute("Mrgin %%Rnk",     aaii.marginPercentRank,                 1.0,    None,   None,   "big",  8)
-    roe_rank= Attribute("ROE %%Rnk",       aaii.roePercentRank,                    2.0,    None,   None,   "big",  9)
-    roe_dev = Attribute("ROE %%Dev",       aaii.roePercentDev,                     0.1,    2.,     None,   "small",10)
-    ticker2 = Attribute("Ticker",          return_ticker,                          None,   None,   None,   None,   11)
-    p2b_g   = Attribute("Prc2Bk Grwth",    aaii.price_to_book_growth,              0.1,    10.,    None,   "big",  12)
-    p2r     = Attribute("Prc 2Rng",        aaii.price_to_range,                    0.1,    3.,     0.,     "big",  13)
-    insiders= Attribute("Insdr %",         aaii.percentage_held_by_insiders,       0.1,    None,   None,   "big",  14)
-    inst    = Attribute("NetInst Buy%",    aaii.percentage_held_by_institutions,   0.1,    None,   None,   "big",  15)
-    current = Attribute("Cur Ratio",       aaii.current_ratio,                     0.1,    None,   None,   "big",  16)
-    ltd2e   = Attribute("LTDbt / Eqty %",  aaii.longTermDebtToEquity,              0.1,    200.,   None,   "small",17)
-    neffebit= Attribute("NeffEv Ebit",     aaii.neffEvEBIT,                        0.1,    10.,    0.,     "big",  18)
-    neff3h  = Attribute("NeffCf 3yr H",    aaii.neffCf3Year,                       1.0,    10.,    0.,     "big",  19)
-    name    = Attribute("Name",            return_name,                            None,   None,   None,   None,   20)
-    score2  = Attribute("Score",           None,                                   None,   None,   None,   None,   21)
+    # attr  = Attribute("name",            function,                               weight, max,    min,    display, size,   col, align_right)
+    score   = Attribute("Score",           None,                                   None,   None,   None,   "2",     "big",  0,   True)
+    action  = Attribute("Action",          None,                                   None,   None,   None,   None,    None,   1,   False)
+    ticker  = Attribute("Ticker",          return_ticker,                          None,   None,   None,   None,    None,   2,   False)
+    price   = Attribute("Price",           None,                                   None,   None,   None,   "$",     None,   3,   True)
+    volume  = Attribute("AvgDly $K Vol",   None,                                   None,   None,   None,   "$",     None,   4,   True)
+    neff5h  = Attribute("Neff 5Yr H",      aaii.neff_5_Year_historical,            1.0,    10.,    0.,     "2",     "big",  5,   True)
+    neffttm = Attribute("Neff TTM H",      aaii.neff_TTM_historical,               1.0,    10.,    0.,     "2",     "big",  6,   True)
+    neff5f  = Attribute("Neff 5 Yr F",     aaii.neff_5_Year_future_estimate,       2.0,    10.,    0.,     "2",     "big",  7,   True)
+    margin  = Attribute("Mrgin %"+"Rnk",   aaii.marginPercentRank,                 1.0,    None,   None,   "rnk",   "big",  8,   True)
+    roe_rank= Attribute("ROE %"+"Rnk",     aaii.roePercentRank,                    2.0,    None,   None,   "rnk",   "big",  9,   True)
+    roe_dev = Attribute("ROE %"+"Dev",     aaii.roePercentDev,                     0.1,    2.,     None,   "%",     "small",10,  True)
+    ticker2 = Attribute("Ticker",          return_ticker,                          None,   None,   None,   None,    None,   11,  False)
+    p2b_g   = Attribute("Prc2Bk Grwth",    aaii.price_to_book_growth,              0.1,    10.,    None,   "%",     "big",  12,  True)
+    p2r     = Attribute("Prc 2Rng",        aaii.price_to_range,                    0.1,    3.,     0.,     "2",     "big",  13,  True)
+    insiders= Attribute("Insdr %",         aaii.percentage_held_by_insiders,       0.1,    None,   None,   "%",     "big",  14,  True)
+    inst    = Attribute("NetInst Buy%",    aaii.net_institution_buy_percent,       0.1,    None,   None,   "%",     "big",  15,  True)
+    current = Attribute("Cur Ratio",       aaii.current_ratio,                     0.1,    None,   None,   "%",     "big",  16,  True)
+    ltd2e   = Attribute("LTDbt / Eqty %",  aaii.longTermDebtToEquity,              0.1,    200.,   None,   "%",     "small",17,  True)
+    neffebit= Attribute("NeffEv Ebit",     aaii.neffEvEBIT,                        0.1,    10.,    0.,     "2",     "big",  18,  True)
+    neff3h  = Attribute("NeffCf 3yr H",    aaii.neffCf3Year,                       1.0,    10.,    0.,     "2",     "big",  19,  True)
+    name    = Attribute("Name",            return_name,                            None,   None,   None,   None,    None,   20,  False)
+    score2  = Attribute("Score",           None,                                   None,   None,   None,   "2",     "big",   21,  True)
 
     attribute_list = [score, action, ticker, price, volume, neff5h, neffttm,
         neff5f, margin, roe_rank, roe_dev, ticker2, p2b_g, p2r, insiders, inst,

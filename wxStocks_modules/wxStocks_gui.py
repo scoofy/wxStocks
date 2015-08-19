@@ -2781,6 +2781,8 @@ class CustomAnalysisPage(Tab):
                 self.screen_grid.SetColLabelValue(cell.col, cell.col_title)
             if cell.row_title is not None:
                 self.screen_grid.SetRowLabelValue(cell.row, cell.row_title)
+            if cell.align_right:
+                self.screen_grid.SetCellAlignment(cell.row, cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
         self.screen_grid.AutoSizeColumns()
         # deal with colors and shit later, also held stocklist
         return self.screen_grid
@@ -2917,15 +2919,10 @@ class SalePrepPage(Tab):
         self.commission_cell_2              = SpreadsheetCell(row = 5, col = 12, text = "($%.2f/trade)" % float(self.commission), align_center = True)
         self.cost_basis_cell                = SpreadsheetCell(row = 4, col = 13, text = "Cost basis", align_center = True)
         self.cost_basis_cell_2              = SpreadsheetCell(row = 5, col = 13, text = "per share", align_center = True)
-        self.fifo_cell                      = SpreadsheetCell(row = 4, col = 14, text = "FIFO Capital", align_center = True)
-        self.fifo_cell_2                    = SpreadsheetCell(row = 5, col = 14, text = "Gains", align_center = True)
+        self.capital_gains_cell             = SpreadsheetCell(row = 4, col = 14, text = "Capital", align_center = True)
+        self.capital_gains_cell_2           = SpreadsheetCell(row = 5, col = 14, text = "Gains", align_center = True)
         self.adjusted_cap_gains_cell        = SpreadsheetCell(row = 4, col = 15, text = "Adjusted Capital Gains", align_center = True)
         self.adjusted_cap_gains_cell_2      = SpreadsheetCell(row = 5, col = 15, text = "(including carryovers)", align_center = True)
-
-        self.market_value_cell              = SpreadsheetCell(row = 5, col = 16, text = "Market Value")
-
-        self.unrealized_cell                = SpreadsheetCell(row = 4, col = 17, text = "Unrealized", align_center = True)
-        self.unrealized_cell_2              = SpreadsheetCell(row = 5, col = 17, text = "Capital +/-", align_center = True)
 
         self.row_four_cell_list = [
             self.num_of_shares_cell,
@@ -2936,9 +2933,8 @@ class SalePrepPage(Tab):
             self.total_shares_cell,
             self.commission_cell,
             self.cost_basis_cell,
-            self.fifo_cell,
+            self.capital_gains_cell,
             self.adjusted_cap_gains_cell,
-            self.unrealized_cell,
 
             ]
         self.row_five_cell_list = [
@@ -2961,12 +2957,9 @@ class SalePrepPage(Tab):
 
             self.commission_cell_2,
             self.cost_basis_cell_2,
-            self.fifo_cell_2,
+            self.capital_gains_cell_2,
             self.adjusted_cap_gains_cell_2,
 
-            self.market_value_cell,
-
-            self.unrealized_cell_2,
             ]
 
         self.total_number_of_columns = len(self.row_five_cell_list)
@@ -2976,7 +2969,7 @@ class SalePrepPage(Tab):
         self.carryover_text_cell = SpreadsheetCell(row = 2, col = self.adjusted_cap_gains_cell.col, text = "Input carryover loss (if any)")
 
         # row 3
-        self.carryover_input_cell = SpreadsheetCell(row = 3, col = self.carryover_text_cell.col, text = str(0.00), align_right = True)
+        self.carryover_input_cell = SpreadsheetCell(row = 3, col = self.carryover_text_cell.col, text = 0., value = 0., align_right = True)
 
         # row 7
         self.totals_cell = SpreadsheetCell(row = 7, col = 0, text = "Totals:")
@@ -3075,11 +3068,11 @@ class SalePrepPage(Tab):
 
     def spreadSheetFill(self, event):
         try:
-            self.grid.Destroy()
+            self.grid.Hide() # destroying grid will throw a segmentation fault for some reason
         except Exception, exception:
             pass
             #print line_number(), exception
-        self.rows_dict = {}
+        #self.rows_dict = {}
         relevant_portfolios_list = []
         for i in range(len(self.checkbox_list)):
             box = self.checkbox_list[i]
@@ -3102,7 +3095,6 @@ class SalePrepPage(Tab):
                 print line_number(), exception
 
         # set size for grid
-        size = (1000, 650)
         size = (800, 650)
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
@@ -3148,7 +3140,7 @@ class SalePrepPage(Tab):
         # set row 2
         self.grid.SetCellValue(self.carryover_text_cell.row, self.carryover_text_cell.col, self.carryover_text_cell.text)
         # set row 3
-        self.grid.SetCellValue(self.carryover_input_cell.row, self.carryover_input_cell.col, self.carryover_input_cell.text)
+        self.grid.SetCellValue(self.carryover_input_cell.row, self.carryover_input_cell.col, config.locale.currency(self.carryover_input_cell.text, grouping = True))
         if self.carryover_input_cell.align_right:
             self.grid.SetCellAlignment(self.carryover_input_cell.row, self.carryover_input_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
 
@@ -3192,21 +3184,33 @@ class SalePrepPage(Tab):
             row_count += 1
 
             for ticker, quantity in account.stock_shares_dict.iteritems():
-                cost_basis_per_share = None
                 stocks_last_price = None
+                sale_value = None
+                stocks_capital_gains = None
 
+
+                #print line_number()
+                #print ticker
                 # set all cell values for stock
                 stock = utils.return_stock_by_symbol(ticker)
+
                 if not stock:
                     print line_number(), "Stock %s does not appear to exist" % ticker
                     continue
                 # set ticker cell
                 stocks_ticker_cell = SpreadsheetCell(row = row_count, col = self.ticker_cell.col, text = stock.symbol, stock = stock)
-                # return cost basis per share
+                # return and set cost basis per share
                 cost_basis_per_share = utils.return_cost_basis_per_share(account, stock.symbol)
-                # set cost basis cell
                 if cost_basis_per_share:
-                    stocks_cost_basis_cell = SpreadsheetCell(row = row_count, col = self.cost_basis_cell.col, text = config.locale.currency(cost_basis_per_share, grouping = True), value = (cost_basis_per_share), align_right = True)
+                    try:
+                        cost_basis_per_share = str(cost_basis_per_share).replace("$", "").replace(",","")
+                        if cost_basis_per_share:
+                            cost_basis_per_share = float(cost_basis_per_share)
+                            stocks_cost_basis_cell = SpreadsheetCell(row = row_count, col = self.cost_basis_cell.col, text = config.locale.currency(cost_basis_per_share, grouping = True), value = (cost_basis_per_share), align_right = True)
+                    except Exception as e:
+                        print line_number(), e
+                        cost_basis_per_share = None
+
                 # set firm name cell
                 stocks_firm_name_cell = SpreadsheetCell(row = row_count, col = self.name_cell.col, text = stock.firm_name, value = stock.firm_name)
 
@@ -3214,7 +3218,7 @@ class SalePrepPage(Tab):
                 quantity_text = str(quantity)
                 if quantity.is_integer():
                     quantity_text = str(int(quantity))
-                stocks_quantity_cell = SpreadsheetCell(row = row_count, col = self.total_shares_cell.col, text = quantity_text, value = quantity, align_right = True)
+                stocks_quantity_cell = SpreadsheetCell(row = row_count, col = self.total_shares_cell.col, text = quantity_text, value = int(quantity), align_right = True)
 
                 # set last price
                 try:
@@ -3223,46 +3227,110 @@ class SalePrepPage(Tab):
                 except Exception, exception:
                     print line_number(), exception
 
-                # set market value cell
-                try:
-                    stocks_market_value = float(quantity) * float(stocks_last_price)
-                    stocks_market_value_cell = SpreadsheetCell(row = row_count, col = self.market_value_cell.col, text = config.locale.currency(stocks_market_value, grouping = True), value = stocks_market_value, align_right = True)
-                except Exception, exception:
-                    print line_number(), exception
+                # set capital gains
+                if cost_basis_per_share:
+                    # this needs to be set via a row dict, which may not exist on startup
+                    try:
+                        this_row = self.rows_dict.get(str(row_count))
+                    except:
+                        this_row = None
+                    if this_row:
+                        try:
+                            sale_value = row_obj.cell_dict.get(str(self.sale_value_cell.col)).value
+                        except:
+                            pass
+                        if sale_value is not None:
+                            stocks_capital_gains = float(sale_value - cost_basis_per_share)
+                            if stocks_capital_gains < 0.:
+                                stocks_capital_gains = 0.
+                                stocks_capital_gains_cell = SpreadsheetCell(row = row_count, col = self.capital_gains_cell.col, text = config.locale.currency(stocks_capital_gains, grouping = True), value = stocks_capital_gains, align_right = True)
+                # set carryover reduction
+                if self.carryover_input_cell.value:
+                    if stocks_capital_gains:
+                        if self.carryover_input_cell.value > stocks_capital_gains:
+                            new_carryover_value = self.carryover_input_cell.value - stocks_capital_gains
+                            self.carryover_input_cell.value = new_carryover_value
+                            reduction = -(stocks_capital_gains)
+                        else:
+                            reduction = stocks_capital_gains - self.carryover_input_cell.value
+                            self.carryover_input_cell.value = 0.
+
+                        stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = config.locale.currency(reduction, grouping = True), value = reduction)
+                    else:
+                        stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = "", value = None)
+                else:
+                    stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = "", value = None)
+
+
 
                 # set row
-                # this is an odd way of doing things, but i've encountered what appears to be a major bug
-                # if you change, beware...
-                if cost_basis_per_share and stocks_last_price:
-                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
-                        str(stocks_ticker_cell.col): stocks_ticker_cell,
-                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
-                        str(stocks_quantity_cell.col): stocks_quantity_cell,
-                        str(stocks_cost_basis_cell.col): stocks_cost_basis_cell,
-                        str(stocks_last_price_cell.col): stocks_last_price_cell,
-                        str(stocks_market_value_cell): stocks_market_value_cell,
-                        })
+                if cost_basis_per_share and stocks_last_price and stocks_capital_gains:
+                    #print line_number(), ticker, "3: cost_basis_per_share and stocks_last_price and stocks_capital_gains"
+                    try:
+                        this_row = self.rows_dict.get(str(row_count))
+                    except Exception as e:
+                        print line_number(), e
+                    if not this_row:
+                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                    this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
+                    this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
+                    this_row.cell_dict[stocks_capital_gains_cell.col] = stocks_capital_gains_cell
+                    this_row.cell_dict[stocks_capital_gains_adjustment_cell.col] = stocks_capital_gains_adjustment_cell
+
+                elif cost_basis_per_share and stocks_last_price:
+                    #print line_number(), ticker, "2: cost_basis_per_share and stocks_last_price"
+                    try:
+                        this_row = self.rows_dict.get(str(row_count))
+                    except Exception as e:
+                        print line_number(), e
+                    if not this_row:
+                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                    this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
+                    this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
+                    #print line_number(), this_row.cell_dict
+
                 elif cost_basis_per_share:
-                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
-                        str(stocks_ticker_cell.col): stocks_ticker_cell,
-                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
-                        str(stocks_quantity_cell.col): stocks_quantity_cell,
-                        str(stocks_cost_basis_cell.col): stocks_cost_basis_cell,
-                        })
+                    #print line_number(), ticker, "cost_basis_per_share"
+                    try:
+                        this_row = self.rows_dict.get(str(row_count))
+                    except Exception as e:
+                        print line_number(), e
+                    if not this_row:
+                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                    this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
                 elif stocks_last_price:
-                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
-                        str(stocks_ticker_cell.col): stocks_ticker_cell,
-                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
-                        str(stocks_quantity_cell.col): stocks_quantity_cell,
-                        str(stocks_last_price_cell.col): stocks_last_price_cell,
-                        str(stocks_market_value_cell): stocks_market_value_cell,
-                        })
+                    #print line_number(), ticker, "stocks_last_price"
+                    try:
+                        this_row = self.rows_dict.get(str(row_count))
+                    except Exception as e:
+                        print line_number(), e
+                    if not this_row:
+                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                    this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
+
                 else:
-                    this_row = SpreadsheetRow(row_count, name = stock.symbol, cell_dict = {
-                        str(stocks_ticker_cell.col): stocks_ticker_cell,
-                        str(stocks_firm_name_cell.col): stocks_firm_name_cell,
-                        str(stocks_quantity_cell.col): stocks_quantity_cell,
-                        })
+                    #print line_number(), ticker, "else"
+                    try:
+                        this_row = self.rows_dict.get(str(row_count))
+                    except Exception as e:
+                        print line_number(), e
+                    if not this_row:
+                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
 
 
                 self.rows_dict[str(row_count)] = this_row
@@ -3272,9 +3340,108 @@ class SalePrepPage(Tab):
         # iterate over cells to fill in grid
         for row, row_obj in self.rows_dict.iteritems():
             for col_num, cell_obj in row_obj.cell_dict.iteritems():
+                #print line_number()
+                #print cell_obj.row, cell_obj.col, cell_obj.text
                 self.grid.SetCellValue(cell_obj.row, cell_obj.col, cell_obj.text)
                 if cell_obj.align_right:
                     self.grid.SetCellAlignment(cell_obj.row, cell_obj.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+                if cell_obj.text_color:
+                    self.grid.SetCellTextColour(cell_obj.row, cell_obj.col, cell_obj.text_color)
+
+        total_sale_value = None
+        total_sale_value_relevant = True
+        total_commission_loss = None
+        total_capital_gains = None
+        total_capital_gains_relevant = True
+
+        ### Set Totals ###
+        # set total sale
+        for row, row_obj in self.rows_dict.iteritems():
+            cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
+            if cell_obj:
+                if cell_obj.text is not None and cell_obj.text is not "":
+                    # set total sale
+                    if total_sale_value_relevant:
+                        row_sale_value_cell = row_obj.cell_dict.get(self.sale_value_cell.col)
+                        if row_sale_value_cell:
+                            if row_sale_value_cell.value is not None and row_sale_value_cell.value is not "":
+                                if total_sale_value is None:
+                                    total_sale_value = 0.
+                                total_sale_value += float(row_sale_value_cell.value)
+                            else:
+                                total_sale_value = None
+                                total_sale_value_relevant = False
+        if total_sale_value is not None:
+            self.grid.SetCellValue(self.totals_cell.row, self.sale_value_cell.col, config.locale.currency(total_sale_value, grouping = True))
+            self.grid.SetCellAlignment(self.totals_cell.row, self.sale_value_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+        else:
+            self.grid.SetCellValue(self.totals_cell.row, self.sale_value_cell.col, "")
+
+        # set total commission
+        if config.DEFAULT_COMMISSION:
+            num_trades = 0.
+            for row, row_obj in self.rows_dict.iteritems():
+                cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
+                if cell_obj:
+                    if cell_obj.text is not None and cell_obj.text is not "":
+                        # set stocks with commission
+                        num_trades += 1
+        if config.DEFAULT_COMMISSION and num_trades:
+            total_commission_loss = num_trades * config.DEFAULT_COMMISSION
+            self.grid.SetCellValue(self.totals_cell.row, self.commission_cell.col, config.locale.currency(total_commission_loss, grouping = True))
+            self.grid.SetCellAlignment(self.totals_cell.row, self.commission_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+        else:
+            self.grid.SetCellValue(self.totals_cell.row, self.commission_cell.col, "")
+
+        # set captial gains
+        for row, row_obj in self.rows_dict.iteritems():
+            cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
+            if cell_obj:
+                if cell_obj.text is not None and cell_obj.text is not "":
+                    # set total sale
+                    if total_capital_gains_relevant:
+                        capital_gains_cell = row_obj.cell_dict.get(self.capital_gains_cell.col)
+                        if capital_gains_cell:
+                            if capital_gains_cell.value is not None and capital_gains_cell.value is not "":
+                                if total_capital_gains is None:
+                                    total_capital_gains = 0.
+                                total_capital_gains += float(capital_gains_cell.value)
+                            else:
+                                total_capital_gains = None
+                                total_capital_gains_relevant = False
+        if total_capital_gains is not None:
+            self.grid.SetCellValue(self.totals_cell.row, self.capital_gains_cell.col, config.locale.currency(total_capital_gains, grouping = True))
+            self.grid.SetCellAlignment(self.totals_cell.row, self.capital_gains_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+        else:
+            self.grid.SetCellValue(self.totals_cell.row, self.capital_gains_cell.col, "")
+
+        # carryover adjustments
+        if self.carryover_input_cell.value and total_capital_gains:
+            adjusted_capital_gains = max(total_capital_gains - self.carryover_input_cell.value, 0.)
+            self.grid.SetCellValue(self.totals_cell.row, self.carryover_input_cell.col, config.locale.currency(adjusted_capital_gains, grouping = True))
+            self.grid.SetCellAlignment(self.totals_cell.row, self.carryover_input_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+        else:
+            self.grid.SetCellValue(self.totals_cell.row, self.carryover_input_cell.col, "")
+
+        if self.carryover_input_cell.value and total_capital_gains:
+            adjustment_left = self.carryover_input_cell.value
+            for row, row_obj in sorted(self.rows_dict.iteritems()):
+                cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
+                if cell_obj:
+                    if cell_obj.text is not None and cell_obj.text is not "":
+                        # set capital gains adjustment
+                        capital_gains_cell = row_obj.cell_dict.get(self.capital_gains_cell.col)
+                        if capital_gains_cell:
+                            if capital_gains_cell.value and adjustment_left:
+                                adjusted_capital_gains = max(capital_gains_cell.value - adjustment_left, 0.)
+                                adjustment_left = max(adjustment_left - capital_gains_cell.value, 0.)
+
+                                self.grid.SetCellValue(cell_obj.row, self.carryover_input_cell.col, config.locale.currency(adjusted_capital_gains, grouping = True))
+                                self.grid.SetCellAlignment(cell_obj.row, self.carryover_input_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+                            else:
+                                self.grid.SetCellValue(cell_obj.row, self.carryover_input_cell.col, config.locale.currency(capital_gains_cell.value, grouping = True))
+                                self.grid.SetCellAlignment(cell_obj.row, self.carryover_input_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
 
         self.grid.AutoSizeColumns()
 
@@ -3282,29 +3449,108 @@ class SalePrepPage(Tab):
         row = event.GetRow()
         column = event.GetCol()
         value = self.grid.GetCellValue(row, column)
+        value = utils.strip_string_whitespace(value)
+
+        if int(row) == self.carryover_input_cell.row and int(column) == self.carryover_input_cell.col:
+            # updating carryover losses
+            value = value.replace("$", "")
+            try:
+                value = float(value)
+            except:
+                print line_number(), "Error: invalid carryover input."
+                return
+            self.carryover_input_cell.text = value
+            self.carryover_input_cell.value = value
+
+            self.saved_text.Hide()
+            self.save_button.Show()
+            self.exportSaleCandidates("event")
+            self.spreadSheetFill("event")
+            return
+
         num_shares = str(self.grid.GetCellValue(row, self.total_shares_cell.col))
         num_shares = num_shares.replace(",","")
-        value = utils.strip_string_whitespace(value)
 
         sale_value = None
         percent_to_commission = None
 
         row_obj = self.rows_dict.get(str(row))
+        if row_obj:
+            print line_number()
+            print row_obj.cell_dict
+            for ref, cell_obj in row_obj.cell_dict.iteritems():
+                print cell_obj.text
         stocks_ticker_cell = row_obj.cell_dict.get(str(self.ticker_cell.col))
         if stocks_ticker_cell:
             ticker = stocks_ticker_cell.text
         else:
-            ticker = None
-        stocks_price_cell = row_obj.cell_dict.get(str(self.price_cell.col))
-        if stocks_price_cell:
-            price = stocks_price_cell.value
-        else:
-            price = None
+            ticker = str(self.grid.GetCellValue(row, self.ticker_cell.col))
+            if not ticker:
+                print line_number()
+                print "Error: something went wrong here"
 
+
+        print line_number()
+        print ticker
         stock = utils.return_stock_by_symbol(ticker)
         if not stock:
             print line_number(), "Error, stock %s doesn't appear to exist" % ticker
             return
+
+        stocks_price_cell = row_obj.cell_dict.get(str(self.price_cell.col))
+        if stocks_price_cell:
+            price = stocks_price_cell.value
+        else:
+            try:
+                price = float(str(getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME)).replace("$", "").replace(",",""))
+            except:
+                price = None
+
+        stocks_num_of_shares_cell = row_obj.cell_dict.get(str(self.num_of_shares_cell.col))
+        stocks_percent_of_shares_cell = row_obj.cell_dict.get(str(self.percent_of_shares_cell.col))
+        stocks_num_of_shares_copy_cell = row_obj.cell_dict.get(str(self.number_of_shares_copy_cell.col))
+        stocks_percent_of_shares_copy_cell = row_obj.cell_dict.get(str(self.percent_of_shares_copy_cell.col))
+        stocks_sale_check_cell = row_obj.cell_dict.get(str(self.sale_check_cell.col))
+        stocks_sale_value_cell = row_obj.cell_dict.get(str(self.sale_value_cell.col))
+        stocks_percent_to_commission_cell = row_obj.cell_dict.get(str(self.commission_cell.col))
+        stocks_cost_basis_per_share_cell = row_obj.cell_dict.get(str(self.cost_basis_cell.col))
+        stocks_capital_gains_cell = row_obj.cell_dict.get(str(self.capital_gains_cell.col))
+
+        #print line_number()
+        #print stocks_num_of_shares_cell
+        #print stocks_percent_of_shares_cell
+        #print stocks_num_of_shares_copy_cell
+
+        if not stocks_num_of_shares_cell:
+            stocks_num_of_shares_cell = SpreadsheetCell(row = row, col = self.num_of_shares_cell.col, align_right = True)
+            row_obj.cell_dict[self.num_of_shares_cell.col] = stocks_num_of_shares_cell
+        if not stocks_percent_of_shares_cell:
+            stocks_percent_of_shares_cell = SpreadsheetCell(row = row, col = self.percent_of_shares_cell.col, align_right = True)
+            row_obj.cell_dict[self.percent_of_shares_cell.col] = stocks_percent_of_shares_cell
+        if not stocks_num_of_shares_copy_cell:
+            stocks_num_of_shares_copy_cell = SpreadsheetCell(row = row, col = self.number_of_shares_copy_cell.col, align_right = True)
+            row_obj.cell_dict[self.number_of_shares_copy_cell.col] = stocks_num_of_shares_copy_cell
+        if not stocks_percent_of_shares_copy_cell:
+            stocks_percent_of_shares_copy_cell = SpreadsheetCell(row = row, col = self.percent_of_shares_copy_cell.col, align_right = True)
+            row_obj.cell_dict[self.percent_of_shares_copy_cell.col] = stocks_percent_of_shares_copy_cell
+        if not stocks_sale_check_cell:
+            stocks_sale_check_cell = SpreadsheetCell(row = row, col = self.sale_check_cell.col)
+            row_obj.cell_dict[self.sale_check_cell.col] = stocks_sale_check_cell
+        if not stocks_sale_value_cell:
+            stocks_sale_value_cell = SpreadsheetCell(row = row, col = self.sale_value_cell.col, align_right = True)
+            row_obj.cell_dict[self.sale_value_cell.col] = stocks_sale_value_cell
+        if not stocks_percent_to_commission_cell:
+            stocks_percent_to_commission_cell = SpreadsheetCell(row = row, col = self.commission_cell.col, align_right = True)
+            row_obj.cell_dict[self.commission_cell.col] = stocks_percent_to_commission_cell
+        if not stocks_cost_basis_per_share_cell:
+            stocks_cost_basis_per_share_cell = SpreadsheetCell(row = row, col = self.cost_basis_cell.col, align_right = True)
+            row_obj.cell_dict[self.cost_basis_cell.col] = stocks_cost_basis_per_share_cell
+        if not stocks_capital_gains_cell:
+            stocks_capital_gains_cell = SpreadsheetCell(row = row, col = self.capital_gains_cell.col, align_right = True)
+            row_obj.cell_dict[self.capital_gains_cell.col] = stocks_capital_gains_cell
+
+        print row_obj.cell_dict
+
 
         if column == self.num_of_shares_cell.col: # sell by number
             try:
@@ -3314,30 +3560,54 @@ class SalePrepPage(Tab):
                 number_of_shares_to_sell = None
                 #self.setGridError(row) # this should actually be changed below
             #print line_number(), "# of stocks to sell changed"
-            self.grid.SetCellValue(row, self.percent_of_shares_cell.col, "")
+
+            # blank percentage of shares col
+            #self.grid.SetCellValue(row, self.percent_of_shares_cell.col, "")
+            stocks_percent_of_shares_cell.text = ""
+            stocks_percent_of_shares_cell.value = None
 
             if str(number_of_shares_to_sell).isdigit() and float(num_shares) >= float(number_of_shares_to_sell) and float(number_of_shares_to_sell) != 0.:
                 # No input errors
-                self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
-                percent_of_total_holdings = round(100 * float(number_of_shares_to_sell)/float(num_shares))
-                self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, ("%d" % percent_of_total_holdings) + "%")
+                #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
+                stocks_num_of_shares_cell.text = str(number_of_shares_to_sell)
+                stocks_num_of_shares_cell.value = number_of_shares_to_sell
+
+                stocks_num_of_shares_copy_cell.text = str(number_of_shares_to_sell)
+                stocks_num_of_shares_copy_cell.value = number_of_shares_to_sell
+
+                percent_of_total_holdings = float(number_of_shares_to_sell)/float(num_shares)
+                percent_of_total_holdings_text = str(int(round(100 * percent_of_total_holdings))) + "%"
+                #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, ("%d" % percent_of_total_holdings) + "%")
+                stocks_percent_of_shares_copy_cell.text = percent_of_total_holdings_text
+                stocks_percent_of_shares_copy_cell.value = percent_of_total_holdings
+
                 if float(num_shares) == float(number_of_shares_to_sell):
-                    self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
-                    self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    #self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
+                    stocks_sale_check_cell.text = "All"
+                    #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    stocks_sale_check_cell.text_color = "black"
                 else:
-                    self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
-                    self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    #self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
+                    stocks_sale_check_cell.text = "Some"
+                    #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    stocks_sale_check_cell.text_color = "black"
 
             elif value == "" or number_of_shares_to_sell == 0:
                 # if zero
-                self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
-                self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
-                self.grid.SetCellValue(row, self.sale_check_cell.col, "")
-                self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
-
+                #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+                stocks_num_of_shares_cell.text = ""
+                stocks_num_of_shares_cell.value = 0.
+                #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
+                stocks_percent_of_shares_cell.text = ""
+                stocks_percent_of_shares_cell.value = None
+                #self.grid.SetCellValue(row, self.sale_check_cell.col, "")
+                stocks_sale_check_cell.text = ""
+                #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                stocks_sale_check_cell.text_color = "black"
             else:
                 # Bad input
-                self.setGridError(row)
+                self.setGridError(row, number = number_of_shares_to_sell)
+                return
 
         if column == self.percent_of_shares_cell.col: # by % of stock held
             if "%" in value:
@@ -3346,79 +3616,154 @@ class SalePrepPage(Tab):
                     value = float(value)/100
                 except Exception, exception:
                     print line_number(), exception
-                    self.setGridError(row)
+                    self.setGridError(row, percentage = value)
                     return
             else:
                 try:
                     value = float(value)
-                    if value > 1:
+                    if value >= 1:
                         value = value / 100
                 except Exception, exception:
                     print line_number(), exception
                     if value != "":
-                        self.setGridError(row)
+                        self.setGridError(row, percentage = value)
                         return
             percent_of_holdings_to_sell = value
-            self.grid.SetCellValue(row, self.num_of_shares_cell.col, "")
+
+            if float(value).is_integer():
+                value = int(value)
+            stocks_percent_of_shares_cell.text = str(value*100) + "%"
+            stocks_percent_of_shares_cell.value = value
+            #self.grid.SetCellValue(row, self.num_of_shares_cell.col, "")
+            stocks_num_of_shares_cell.text = ""
+            stocks_num_of_shares_cell.value = None
 
             # if empty
             if percent_of_holdings_to_sell == "" or percent_of_holdings_to_sell == 0:
-                self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
-                self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
-                self.grid.SetCellValue(row, self.sale_check_cell.col, "")
-                self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+                stocks_num_of_shares_copy_cell.text = ""
+                stocks_num_of_shares_copy_cell.value = 0
+                #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
+                stocks_percent_of_shares_copy_cell = ""
+                stocks_percent_of_shares_copy_cell = None
+                #self.grid.SetCellValue(row, self.sale_check_cell.col, "")
+                #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                stocks_sale_check_cell.text = ""
+                stocks_sale_check_cell.text_color = "black"
 
             elif percent_of_holdings_to_sell <= 1:
-                self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "%d%%" % round(percent_of_holdings_to_sell * 100))
+                #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "%d%%" % round(percent_of_holdings_to_sell * 100))
+                stocks_percent_of_shares_copy_cell.text = str(percent_of_holdings_to_sell * 100) + "%"
+                stocks_percent_of_shares_copy_cell.value = percent_of_holdings_to_sell
 
                 number_of_shares_to_sell = int(math.floor( int(num_shares) * percent_of_holdings_to_sell ) )
-                self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
+                #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
+                stocks_num_of_shares_copy_cell.text = str(number_of_shares_to_sell)
+                stocks_num_of_shares_copy_cell.value = number_of_shares_to_sell
+
 
                 if int(num_shares) == int(number_of_shares_to_sell):
-                    self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
-                    self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    #self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
+                    #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    stocks_sale_check_cell.text = "All"
+                    stocks_sale_check_cell.text_color = "black"
                 else:
-                    self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
-                    self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    #self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
+                    #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
+                    stocks_sale_check_cell.text = "Some"
+                    stocks_sale_check_cell.text_color = "black"
             else:
-                self.setGridError(row)
-        if price:
+                self.setGridError(row, percentage = percent_of_holdings_to_sell)
+                return
+
+        if price is not None:
             sale_value = float(number_of_shares_to_sell) * float(price)
+
+            stocks_sale_value_cell.text = config.locale.currency(sale_value, grouping = True)
+            stocks_sale_value_cell.value = sale_value
             if sale_value:
-                percent_to_commission = 100 * self.commission/sale_value
+                percent_to_commission = self.commission/sale_value
             else:
                 percent_to_commission = 0
 
-        if sale_value:
-            self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
-        if percent_to_commission:
-            self.grid.SetCellValue(row, self.commission_cell.col, ("%.2f" % percent_to_commission) + "%")
+            if percent_to_commission:
+                stocks_percent_to_commission_cell.text = ("%.2f" % float(percent_to_commission * 100)) + "%"
+                stocks_percent_to_commission_cell.value = percent_to_commission
 
-        cost_basis_per_share_cell = row_obj.cell_dict.get(self.cost_basis_cell.col)
-        if cost_basis_per_share_cell:
-            cost_basis_per_share = cost_basis_per_share_cell.value
-        else:
-            cost_basis_per_share = None
 
-        if cost_basis_per_share:
+        #if sale_value:
+        #    self.grid.SetCellValue(row, self.sale_value_cell.col, "$%.2f" % sale_value)
+        #if percent_to_commission:
+        #    self.grid.SetCellValue(row, self.commission_cell.col, ("%.2f" % percent_to_commission) + "%")
+
+
+
+        cost_basis_per_share = utils.return_cost_basis_per_share(row_obj.account, stock.symbol)
+        if cost_basis_per_share is not None:
+            stocks_cost_basis_per_share_cell.text = config.locale.currency(cost_basis_per_share, grouping = True)
+            stocks_cost_basis_per_share_cell.value = cost_basis_per_share
+
+        if cost_basis_per_share is not None and price is not None:
             capital_gain_per_share = max(price - cost_basis_per_share, 0.)
-            capital_gains = capital_gain_per_share * number_of_shares_to_sell
-            self.grid.SetCellValue(row, self.fifo_cell.col, "$%.2f" % capital_gains)
-            self.grid.SetCellAlignment(row, self.fifo_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
-
+            capital_gains = (capital_gain_per_share * number_of_shares_to_sell) - float(config.DEFAULT_COMMISSION)
+            capital_gains = max(capital_gains, 0.)
+            #self.grid.SetCellValue(row, self.capital_gains_cell.col, "$%.2f" % capital_gains)
+            #self.grid.SetCellAlignment(row, self.capital_gains_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+            stocks_capital_gains_cell.text = config.locale.currency(capital_gains, grouping = True)
+            stocks_capital_gains_cell.value = capital_gains
 
         self.saved_text.Hide()
         self.save_button.Show()
         self.exportSaleCandidates("event")
+        self.spreadSheetFill("event")
 
-    def setGridError(self, row):
-        self.grid.SetCellValue(row, self.sale_check_cell.col, "Error")
-        self.grid.SetCellTextColour(row, self.sale_check_cell.col, "red")
 
-        self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
-        self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
-        self.grid.SetCellValue(row, self.sale_value_cell.col, "")
-        self.grid.SetCellValue(row, self.commission_cell.col, "")
+    def setGridError(self, row, number = None, percentage = None):
+        row_obj = self.rows_dict.get(str(row))
+
+        stocks_num_of_shares_copy_cell = row_obj.cell_dict.get(str(self.number_of_shares_copy_cell.col))
+        stocks_percent_of_shares_copy_cell = row_obj.cell_dict.get(str(self.percent_of_shares_copy_cell.col))
+        stocks_sale_check_cell = row_obj.cell_dict.get(str(self.sale_check_cell.col))
+        stocks_sale_value_cell = row_obj.cell_dict.get(str(self.sale_value_cell.col))
+        stocks_percent_to_commission_cell = row_obj.cell_dict.get(str(self.commission_cell.col))
+        stocks_capital_gains_cell = row_obj.cell_dict.get(str(self.capital_gains_cell.col))
+
+
+
+        if stocks_num_of_shares_copy_cell:
+            stocks_num_of_shares_copy_cell.text = ""
+            stocks_num_of_shares_copy_cell.value = None
+        if stocks_percent_of_shares_copy_cell:
+            stocks_percent_of_shares_copy_cell.text = ""
+            stocks_percent_of_shares_copy_cell.value = None
+
+        stocks_sale_check_cell = SpreadsheetCell(row = row, col = self.sale_check_cell.col, text = "Error", text_color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
+        row_obj.cell_dict[self.sale_check_cell.col] = stocks_sale_check_cell
+
+        if stocks_sale_value_cell:
+            stocks_sale_value_cell.text = ""
+            stocks_sale_value_cell.value = None
+        if stocks_percent_to_commission_cell:
+            stocks_percent_to_commission_cell.text = ""
+            stocks_percent_to_commission_cell.value = None
+        if stocks_capital_gains_cell:
+            stocks_capital_gains_cell.text = ""
+            stocks_capital_gains_cell.value = None
+
+        if number:
+            stocks_num_of_shares_cell = SpreadsheetCell(row = row, col = self.num_of_shares_cell.col, text = str(number), text_color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX, align_right = True)
+            row_obj.cell_dict[self.num_of_shares_cell.col] = stocks_num_of_shares_cell
+        if percentage:
+            stocks_percent_of_shares_cell = SpreadsheetCell(row = row, col = self.percent_of_shares_cell.col, text = str(percentage), text_color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX, align_right = True)
+            row_obj.cell_dict[self.percent_of_shares_cell.col] = stocks_percent_of_shares_cell
+        #self.grid.SetCellValue(row, self.sale_check_cell.col, "Error")
+        #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "red")
+
+        #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+        #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
+        #self.grid.SetCellValue(row, self.sale_value_cell.col, "")
+        #self.grid.SetCellValue(row, self.commission_cell.col, "")
+        self.spreadSheetFill("event")
 
     def setNoGridError(self, row):
         self.grid.SetCellValue(row, self.sale_check_cell.col, "")
