@@ -1,4 +1,4 @@
-import locale, sys
+import locale, sys, threading
 ### Editable globals that may improve your performance ###
 locale.setlocale(locale.LC_ALL, "") # this can be changed to show currency formats differently.
 currency_symbol = "$"
@@ -321,6 +321,15 @@ HELD_STOCK_TICKER_LIST = []
 
 CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
 
+TIMER_THREAD_ON = False
+def TIMER_PRINT():
+	if TIMER_THREAD_ON:
+		sys.stdout.write('.')
+		sys.stdout.flush()
+		threading.Thread(target = TIMER_THREAD).run()
+def TIMER_THREAD():
+	dot = threading.Timer(1., TIMER_PRINT)
+	dot.start()
 
 
 

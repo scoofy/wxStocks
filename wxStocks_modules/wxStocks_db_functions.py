@@ -38,8 +38,8 @@ encryption_strength_path = 'wxStocks_data/encryption_strength.txt'
 
 ####################### Data Loading ###############################################
 def load_all_data():
-	load_GLOBAL_TICKER_LIST()
 	load_GLOBAL_STOCK_DICT()
+	load_GLOBAL_TICKER_LIST()
 	load_DATA_ABOUT_PORTFOLIOS()
 	load_GLOBAL_STOCK_SCREEN_DICT()
 	load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
@@ -149,7 +149,9 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
 	if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
 		config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
 def load_GLOBAL_STOCK_DICT():
-	print line_number(), "Loading GLOBAL_STOCK_DICT: this may take a couple of minutes..."
+	print line_number(),
+	sys.stdout.write("Loading GLOBAL_STOCK_DICT: this may take a couple of minutes.")
+	sys.stdout.flush()
 	try:
 		pickled_file = open(all_stocks_path, 'rb')
 		stock_dict = pickle.load(pickled_file)
@@ -171,7 +173,7 @@ def save_GLOBAL_STOCK_DICT():
 	# save the attribute set when doing this
 	save_GLOBAL_ATTRIBUTE_SET()
 def load_GLOBAL_ATTRIBUTE_SET():
-	print line_number(), "Loading GLOBAL_ATTRIBUTE_SET: this may take a couple of minutes..."
+	print line_number(), "Loading GLOBAL_ATTRIBUTE_SET"
 	try:
 		pickled_file = open(all_attributes_path, 'rb')
 		attribute_set = pickle.load(pickled_file)

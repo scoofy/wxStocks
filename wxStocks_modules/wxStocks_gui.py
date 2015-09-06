@@ -996,7 +996,7 @@ class XlsImportPage(Tab):
         confirm.ShowModal()
 
     def import_AAII_files(self, event):
-        print line_number, "Remove argument below this line after debugging"
+        print line_number(), "Remove argument below this line after debugging"
         path = None
         aaii_data_folder_dialogue = wx.DirDialog(self, "Choose a directory:")
         if aaii_data_folder_dialogue.ShowModal() == wx.ID_OK:
@@ -1357,7 +1357,7 @@ class PortfolioAccountTab(Tab):
                         print line_number(), e, "invalid entry"
                         return
                 else:
-                    print line_number, e
+                    print line_number(), e
                     return
             if not self.portfolio_obj:
                 self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
@@ -2536,7 +2536,7 @@ class CustomAnalysisPage(Tab):
             self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
         self.screen_drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
-                                     choices=self.existing_screen_name_list,
+                                     choices=sorted(self.existing_screen_name_list),
                                      style = wx.TE_READONLY
                                      )
 
@@ -2590,6 +2590,7 @@ class CustomAnalysisPage(Tab):
                                           size=(-1,-1)
                                           )
         self.analyse.Bind(wx.EVT_BUTTON, self.loadCustomSpreadsheet, self.analyse)
+        self.analyse.Hide()
 
 
         self.all_stocks_currently_included = []
@@ -2627,6 +2628,7 @@ class CustomAnalysisPage(Tab):
         except Exception, e:
             print line_number(), e
         self.clear_button.Hide()
+        self.analyse.Hide()
 
     def loadAllStocks(self, event):
         self.all_stocks_currently_included = utils.return_all_stocks()
@@ -2665,6 +2667,7 @@ class CustomAnalysisPage(Tab):
                                     )
         self.ticker_sizer.Add(self.ticker_display, 1, wx.BOTTOM|wx.EXPAND)
         self.ticker_display.Show()
+        self.analyse.Show()
         self.clear_button.Show()
 
 
@@ -2680,7 +2683,7 @@ class CustomAnalysisPage(Tab):
 
         self.screen_drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
-                                     choices=self.existing_screen_name_list,
+                                     choices=sorted(self.existing_screen_name_list),
                                      style = wx.TE_READONLY
                                      )
 

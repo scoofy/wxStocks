@@ -9,7 +9,7 @@ print "Startup may take a few moments..."
 import wx #, numpy, pycrypto, simplecrypt
 
 # Standard Libraries
-import sys, inspect, hashlib
+import sys, inspect, hashlib, threading
 
 # Internal libraries
 import wxStocks_modules.wxStocks_db_functions as db
@@ -60,15 +60,18 @@ if config.ENCRYPTION_POSSIBLE:
 	config.PASSWORD = hashlib.sha256(password).hexdigest()
 	print "\n"
 ################################################################################################
-
 # Load data
+config.TIMER_THREAD_ON = True
+
+config.TIMER_THREAD()
 db.load_all_data()
+
+config.TIMER_THREAD_ON = False
 
 ### START ###################################################################
 def main():
 	app = wx.App()
-	gui.MainFrame(size=(1020,800), #style = wx.MINIMIZE_BOX | wx.CLOSE_BOX
-			  ).Show()
+	gui.MainFrame().Show()
 	app.MainLoop()
 main()
 
