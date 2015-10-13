@@ -529,6 +529,20 @@ class TickerPage(Tab):
 
     def downloadTickers(self):
         print line_number(), "Begin ticker download..."
+        ticker_list_without_prices = scrape.nasdaq_full_ticker_list_downloader()
+        for data in ticker_list_without_prices:
+            if data[2].upper() in [x.upper() for x in config.STOCK_EXCHANGE_LIST]:
+                stock = db.create_new_Stock_if_it_doesnt_exist(data[0])
+                stock.firm_name = data[1]
+                stock.Exchange_na = data[2]
+                stock.etf_na = data[3]
+
+                print line_number()
+                for attribute in dir(stock):
+                    if not attribute.startswith("__"):
+                        print attribute, getattr(stock, attribute), "\n"
+
+        print line_number(), "Begin price data download..."
         ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
         db.save_GLOBAL_STOCK_DICT()
 
@@ -1376,7 +1390,17 @@ class PortfolioAccountTab(Tab):
 
             stock = utils.return_stock_by_symbol(ticker)
             if not stock:
-                print line_number(), "stock %s does not appear to exist" % ticker
+                print line_number(), "stock %s does not appear to exist, do you want to update..." % ticker
+                confirm_update = self.confirmUpdateMissingStock()
+                if confirm_update:
+                    db.create_new_Stock_if_it_doesnt_exist(ticker)
+                    scrape.scrape_loop_for_missing_portfolio_stocks(ticker_list = [ticker])
+                    time.sleep(config.SCRAPE_SLEEP_TIME * 2)
+                    stock = utils.return_stock_by_symbol(ticker)
+                else:
+                    # cancel adding stock
+                    print line_number(), "Canceling portfolio update"
+                    return
 
             if shares:
                 try:
@@ -1401,6 +1425,37 @@ class PortfolioAccountTab(Tab):
         self.cost_basis_input.SetValue("")
         self.share_input.SetValue("")
 
+
+
+    def confirmUpdateMissingStock(self):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to make a request from Yahoo Finance. If you do this too often they may temporarily block your IP address. This will require an update delay to prevent rate limiting.",
+                                   'Confirm Update Stock Data?',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+        return yesNoAnswer == wx.ID_YES
+    def confirmUpdateMultipleMissingStocks(self):
+        confirm = wx.MessageDialog(None,
+                                   "Some of the stocks you are updating cannot be updated via Nasdaq. You are about to make a request from Yahoo Finance. If you do this too often they may temporarily block your IP address. This will require an update delay to prevent rate limiting.",
+                                   'Confirm Update Stock Data?',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+        return yesNoAnswer == wx.ID_YES
+
     def confirmUpdatePrices(self, event):
         confirm = wx.MessageDialog(None,
                                    "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.",
@@ -1420,9 +1475,30 @@ class PortfolioAccountTab(Tab):
 
     def updatePrices(self):
         print line_number(), "Begin ticker download..."
-        ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
 
-        self.spreadSheetFill()
+        ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
+        current_time = time.time()
+
+        tickers_that_need_yql_update = []
+
+        for ticker in self.portfolio_obj.stock_shares_dict:
+            stock = config.GLOBAL_STOCK_DICT.get(ticker)
+            if stock:
+                last_update_for_last_close = utils.return_last_close_and_last_update_tuple(stock)[1]
+                if (current_time - last_update_for_last_close) < config.PORTFOLIO_PRICE_REFRESH_TIME:
+                    #fresh data
+                    pass
+                else:
+                    #update
+                    tickers_that_need_yql_update.append(stock.symbol)
+
+        if tickers_that_need_yql_update:
+            confirm = self.confirmUpdateMultipleMissingStocks()
+            print line_number(), tickers_that_need_yql_update
+            if confirm:
+                scrape.scrape_loop_for_missing_portfolio_stocks(ticker_list = tickers_that_need_yql_update, update_regardless_of_recent_updates = True)
+
+        self.spreadSheetFill(self.portfolio_obj)
 
         db.save_GLOBAL_STOCK_DICT()
 
@@ -1495,27 +1571,60 @@ class PortfolioAccountTab(Tab):
 
     def deleteAccountList(self):
         '''delete account'''
+
+        try:
+            # Reset to default name in data about portfolios
+            default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
+            if self.portfolio_id < 10:
+                portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
+            else:
+                portfolio_name = "%dth" % (self.portfolio_id+1)
+            if self.portfolio_id in range(len(default_portfolio_names)):
+                portfolio_name = default_portfolio_names[self.portfolio_id]
+            config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
+        except Exception as e:
+            print line_number(), e
+
+
         # password = ""
         # if config.ENCRYPTION_POSSIBLE:
         #   password = self.get_password()
-        db.delete_portfolio_object(self.portfolio_id) #, password = password)
 
 
-        # Reset to default name in data about portfolios
-        default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
-        if self.portfolio_id < 10:
-            portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
-        else:
-            portfolio_name = "%dth" % (self.portfolio_id+1)
-        if self.portfolio_id in range(len(default_portfolio_names)):
-            portfolio_name = default_portfolio_names[self.portfolio_id]
-        config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
+
         # password = ""
         # if config.ENCRYPTION_POSSIBLE:
         #   password = self.get_password()
+
+        deleted = db.delete_portfolio_object(self.portfolio_id) #, password = password)
+
+        if not deleted:
+            print line_number(), "Trying to remove default portfolio."
+            print line_number(), config.DATA_ABOUT_PORTFOLIOS
+            try:
+                print line_number(), self.portfolio_id
+                portfolio_to_remove_index = self.portfolio_id - 1 # can't have a zero tab number i think
+                del config.DATA_ABOUT_PORTFOLIOS[1][portfolio_to_remove_index] # see if index is out of range
+                config.DATA_ABOUT_PORTFOLIOS[0] = config.DATA_ABOUT_PORTFOLIOS[0] - 1
+                print line_number(), "Delete success."
+                print line_number(), config.DATA_ABOUT_PORTFOLIOS
+                deleted = True
+            except Exception as e:
+                print line_number(), e
+                print line_number(), "Something weird is going on with deleting a portfolio."
+
         db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
 
         self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
+
+        if deleted:
+            confirm = wx.MessageDialog(self,
+                             "The number of portfolios has changed. The change will be applied the next time you launch this program.",
+                             'Restart Required',
+                             style = wx.ICON_EXCLAMATION
+                             )
+            confirm.ShowModal()
+            confirm.Destroy()
 
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
@@ -5054,11 +5163,10 @@ def create_account_spread_sheet(
             screen_grid.SetCellAlignment(row_count, 2, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
 
 
-        try:
-            last_close = float(getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME))
-            last_update_for_last_close = stock.last_nasdaq_scrape_update
-        except:
-            last_close = None
+        last_close_and_update_tuple = utils.return_last_close_and_last_update_tuple(stock)
+
+        last_close = last_close_and_update_tuple[0]
+        last_update_for_last_close = last_close_and_update_tuple[1]
         if last_close:
             if (current_time - last_update_for_last_close) < config.PORTFOLIO_PRICE_REFRESH_TIME:
                 screen_grid.SetCellValue(row_count, 3, config.locale.currency(last_close, grouping = True))

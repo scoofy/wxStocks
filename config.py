@@ -3,7 +3,7 @@ import locale, sys, threading
 locale.setlocale(locale.LC_ALL, "") # this can be changed to show currency formats differently.
 currency_symbol = "$"
 
-STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex" if desired, non-american exchanges will not function at this point.
+STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex", "BATS", "NYSEArca", "NYSEmkt", if desired, non-american exchanges will not function at this point.
 
 DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "Exchange_na"
 SECONDARY_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
@@ -36,7 +36,7 @@ TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE = ONE_DAY * 2 # 48 hours
 # This is how long the program will reject rescraping stocks when looking for stocks that were not saved successfully.
 TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST = ONE_DAY * 15 # 15 days
 
-PORTFOLIO_PRICE_REFRESH_TIME = ONE_DAY * 3 # 3 days
+PORTFOLIO_PRICE_REFRESH_TIME = ONE_DAY
 
 DEFAULT_ROWS_ON_SALE_PREP_PAGE = 9
 DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
@@ -45,15 +45,19 @@ DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS = 6
 # these will depend on your preferred data sources
 DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastSale_na"
 DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = "AverageDailyVolume_yf"
+DEFAULT_LAST_UPDATE = "last_nasdaq_scrape_update"
 #--
 SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastTradePriceOnly_yf"
-SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
+SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = None
+SECONDARY_LAST_UPDATE = "last_yql_basic_scrape_update"
 #---
-TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
-TERTIARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
+TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = None
+TERTIARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = None
+TERTIARY_LAST_UPDATE = None
 #----
-QUATERNARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = ""
-QUATERNARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = ""
+QUATERNARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = None
+QUATERNARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = None
+QUATERNARY_LAST_UPDATE = None
 #-------------------------------------------------
 
 
@@ -320,6 +324,9 @@ TICKER_AND_ATTRIBUTE_TO_UPDATE_TUPLE_LIST = []
 HELD_STOCK_TICKER_LIST = []
 
 CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
+
+SCRAPE_LOOP_STARTED = 0.0
+SCRAPE_LOOP_QUEUE = [] # for "scrape_loop_for_missing_portfolio_stocks()" in scrapers
 
 TIMER_THREAD_ON = False
 def TIMER_PRINT():

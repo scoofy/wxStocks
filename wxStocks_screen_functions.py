@@ -1,5 +1,5 @@
 # Add screen functions below:
-# You can also edit this file (wxStocks_screen_functions.py) in your own text editor. 
+# You can also edit this file (wxStocks_screen_functions.py) in your own text editor.
 
 ########################################### instructions #######################################################
 # functions should be of the following form:
@@ -17,7 +17,7 @@
 #		# or a simpler version like:
 #
 #		result_bool = stock.attribute > some_test
-#		
+#
 #		# Just make sure the return value is a boolean so you can...
 #
 #		return result_bool
@@ -51,9 +51,27 @@ def return_stocks_with_pe_less_than_10(stock):
 		#print line_number(),e
 	return False
 
+def forbes_99_tickers(stock):
+	'''forbes 99'''
+	from wxStocks_modules import wxStocks_utilities as utils
+	the_stock = None
+	ticker_text = open("forbes_99_tickers.txt", 'rb')
+	for line in ticker_text:
+		print str(utils.strip_string_whitespace(line))
+		if stock.ticker == str(utils.strip_string_whitespace(line)):
+			the_stock = stock
+	return the_stock is not None
 
-
-
+def jas_tickers(stock):
+	'''jas tickers'''
+	from wxStocks_modules import wxStocks_utilities as utils
+	the_stock = None
+	ticker_text = open("jas_tickers.txt", 'rb')
+	for line in ticker_text:
+		print str(utils.strip_string_whitespace(line))
+		if stock.ticker == str(utils.strip_string_whitespace(line)):
+			the_stock = stock
+	return the_stock is not None
 
 
 

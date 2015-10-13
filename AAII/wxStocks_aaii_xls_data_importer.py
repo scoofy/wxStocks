@@ -46,7 +46,12 @@ def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 6048
 	#data_directory = os.path.join(great_grandparent_directory, "AAII_data_import_folder")
 	data_directory = str(path)
 
-	aaii_filenames = [filename for filename in os.listdir(data_directory) if os.path.isfile(os.path.join(data_directory, filename)) and filename not in ["!.gitignore", ".DS_Store"] and "_Key.XLS" not in filename]
+	aaii_filenames = [filename for filename in os.listdir(data_directory)
+						if os.path.isfile(os.path.join(data_directory, filename))
+						and filename not in ["!.gitignore", ".DS_Store"]
+						and "_Key.XLS" not in filename
+						and ( filename.endswith("xls") or filename.endswith("XLS") )
+						]
 	print line_number(), aaii_filenames
 
 	expired_data = []
