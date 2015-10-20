@@ -28,7 +28,7 @@ def return_percentile_rank(stock_list, attribute_name_str, stock_symbol=None, re
         sort_list.sort(key = lambda x: x[1], reverse=reverse) # False -> highest ranking ends last, i.e. closer to 100%
 
     if len(stock_list) != len(sort_list):
-        print "Error: Some Stocks not included in margin rank function, cannot calculate"
+        print line_number(), "Error: Some Stocks not included in margin rank function, cannot calculate"
         return
 
     percentile_dict = {}
@@ -54,8 +54,8 @@ def return_aaii_formula_standard_deviation_of_each_stock_in_group(stock_list, fo
         not_none = value is not None
         avg_value = None
         standard_deviation = None
-        
-        stock_tuple = FormulaResult(ticker = ticker, 
+
+        stock_tuple = FormulaResult(ticker = ticker,
                                     value = value,
                                     not_none = not_none,
                                     avg_value = avg_value,
@@ -68,7 +68,7 @@ def return_aaii_formula_standard_deviation_of_each_stock_in_group(stock_list, fo
             not_none_value_list.append(stock_tuple.value)
     avg_value = np.mean(not_none_value_list)
     standard_deviation = np.std(not_none_value_list)
-    print "\n" * 5
+    print line_number(), "\n" * 5
     print 'avg_value:', avg_value
     print 'standard_deviation', standard_deviation
     print "\n"

@@ -540,7 +540,7 @@ class TickerPage(Tab):
                 print line_number()
                 for attribute in dir(stock):
                     if not attribute.startswith("__"):
-                        print attribute, getattr(stock, attribute), "\n"
+                        print line_number(), attribute, getattr(stock, attribute), "\n"
 
         print line_number(), "Begin price data download..."
         ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
@@ -831,7 +831,7 @@ class YqlScrapePage(Tab):
             self.progress_bar.SetValue(100)
             return
         else:
-            print "ready to loop again"
+            print line_number(), "ready to loop again"
             timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
             timer.start()
 
@@ -1015,7 +1015,7 @@ class XlsImportPage(Tab):
         aaii_data_folder_dialogue = wx.DirDialog(self, "Choose a directory:")
         if aaii_data_folder_dialogue.ShowModal() == wx.ID_OK:
             path = aaii_data_folder_dialogue.GetPath()
-            print path
+            print line_number(), path
         aaii_data_folder_dialogue.Destroy()
         if path:
             aaii.import_aaii_files_from_data_folder(path=path, time_until_data_needs_update = 100000000000)
@@ -1045,7 +1045,7 @@ class PortfolioPage(Tab):
                     portfolio_name = "%dth" % (i+1)
                 if i in range(len(default_portfolio_names)):
                     portfolio_name = default_portfolio_names[i]
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
                 portfolio_account.title = portfolio_name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 
@@ -1071,7 +1071,7 @@ class PortfolioPage(Tab):
                     portfolios_that_already_exist.append(portfolio_name)
                     need_to_save = True
 
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1))
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
                 portfolio_account.title = portfolio_name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
             if need_to_save == True:
@@ -1085,11 +1085,12 @@ class PortfolioPage(Tab):
 
         print line_number(), "PortfolioPage loaded"
 class PortfolioAccountTab(Tab):
-    def __init__(self, parent, tab_number):
+    def __init__(self, parent, tab_number, portfolio_name):
         self.title = None
         tab_panel = wx.Panel.__init__(self, parent, tab_number)
 
         self.portfolio_id = tab_number
+        self.name = portfolio_name
         #print line_number(), "self.portfolio_id =", self.portfolio_id
         self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
 
@@ -1301,10 +1302,19 @@ class PortfolioAccountTab(Tab):
 
         if ticker:
             self.ticker_input.SetValue(ticker)
+        else:
+            self.ticker_input.SetValue("")
+
         if shares:
             self.share_input.SetValue(shares)
-        if cost_basis:
+        else:
+            self.share_input.SetValue("")
+
+        if cost_basis and not cash:
             self.cost_basis_input.SetValue(cost_basis)
+        else:
+            self.cost_basis_input.SetValue("")
+
         if cash:
             self.ticker_input.SetValue("")
             self.share_input.SetValue("")
@@ -1348,9 +1358,9 @@ class PortfolioAccountTab(Tab):
                 portfolio_import_function = triple.function
 
     def updateManually(self, event):
-        ticker = self.ticker_input.GetValue()
+        ticker = utils.strip_string_whitespace(self.ticker_input.GetValue())
         cost_basis_or_cash = self.cost_basis_input.GetValue()
-        shares = self.share_input.GetValue()
+        shares = str(self.share_input.GetValue()).replace(",", "")
 
         if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
             # basically if the entered data cannot be parsed
@@ -1359,27 +1369,14 @@ class PortfolioAccountTab(Tab):
         if cost_basis_or_cash and not (ticker or shares):
             # User is updating cash in account
             cash = cost_basis_or_cash
-            try:
-                cash = float(cash)
-            except Exception, e:
-                if "$" or "," in cash:
-                    cash = cash.replace("$", "")
-                    cash = cash.replace(",", "")
-                    try:
-                        cash = float(cash)
-                    except Exception, e:
-                        print line_number(), e, "invalid entry"
-                        return
-                else:
-                    print line_number(), e
-                    return
+            cash = utils.money_text_to_float(cash)
             if not self.portfolio_obj:
-                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
+                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id, name = self.name)
             self.portfolio_obj.available_cash = cash
         else:
             # updating an individual stock
             if not self.portfolio_obj:
-                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id)
+                self.portfolio_obj = db.create_new_Account_if_one_doesnt_exist(self.portfolio_id, name = self.name)
 
             cost_basis = cost_basis_or_cash
 
@@ -1390,12 +1387,10 @@ class PortfolioAccountTab(Tab):
 
             stock = utils.return_stock_by_symbol(ticker)
             if not stock:
-                print line_number(), "stock %s does not appear to exist, do you want to update..." % ticker
-                confirm_update = self.confirmUpdateMissingStock()
+                print line_number(), "stock with ticker %s does not appear to exist, do you want to create it?" % ticker
+                confirm_update = self.confirmCreateMissingStock(ticker)
                 if confirm_update:
                     db.create_new_Stock_if_it_doesnt_exist(ticker)
-                    scrape.scrape_loop_for_missing_portfolio_stocks(ticker_list = [ticker])
-                    time.sleep(config.SCRAPE_SLEEP_TIME * 2)
                     stock = utils.return_stock_by_symbol(ticker)
                 else:
                     # cancel adding stock
@@ -1410,13 +1405,8 @@ class PortfolioAccountTab(Tab):
                     print line_number(), e, "Error: shares data is improperly formatted"
 
             if cost_basis:
-                if "$" in str(cost_basis):
-                    cost_basis = cost_basis.replace("$", "")
-                try:
-                    cost_basis = float(cost_basis)
-                    self.portfolio_obj.cost_basis_dict[ticker] = cost_basis
-                except:
-                    pass
+                cost_basis = utils.money_text_to_float(cost_basis)
+                self.portfolio_obj.cost_basis_dict[ticker] = cost_basis
 
 
         db.save_portfolio_object(self.portfolio_obj)
@@ -1426,7 +1416,21 @@ class PortfolioAccountTab(Tab):
         self.share_input.SetValue("")
 
 
-
+    def confirmCreateMissingStock(self, ticker):
+        ticker = ticker.upper()
+        confirm = wx.MessageDialog(None,
+                                   "Stock with ticker %s does not appear to exist, do you want to create a stock with ticker %s?" % (ticker, ticker),
+                                   'Create Stock With Ticker %s?' % ticker,
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Create"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+        return yesNoAnswer == wx.ID_YES
     def confirmUpdateMissingStock(self):
         confirm = wx.MessageDialog(None,
                                    "You are about to make a request from Yahoo Finance. If you do this too often they may temporarily block your IP address. This will require an update delay to prevent rate limiting.",
@@ -1485,12 +1489,17 @@ class PortfolioAccountTab(Tab):
             stock = config.GLOBAL_STOCK_DICT.get(ticker)
             if stock:
                 last_update_for_last_close = utils.return_last_close_and_last_update_tuple(stock)[1]
-                if (current_time - last_update_for_last_close) < config.PORTFOLIO_PRICE_REFRESH_TIME:
-                    #fresh data
-                    pass
+                if last_update_for_last_close:
+                    if (current_time - last_update_for_last_close) < config.PORTFOLIO_PRICE_REFRESH_TIME:
+                        #fresh data
+                        pass
+                    else:
+                        #update
+                        tickers_that_need_yql_update.append(stock.symbol)
                 else:
                     #update
                     tickers_that_need_yql_update.append(stock.symbol)
+
 
         if tickers_that_need_yql_update:
             confirm = self.confirmUpdateMultipleMissingStocks()
@@ -1529,15 +1538,17 @@ class PortfolioAccountTab(Tab):
                         new_portfolio_names.append(new_name)
                     else:
                         new_portfolio_names.append(i)
+
+                self.name = new_name
+                self.portfolio_obj.name = new_name
                 config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
 
-                print ""
                 print line_number(), "This file opening needs to be removed."
                 # password = ""
                 # if config.ENCRYPTION_POSSIBLE:
                 #   password = self.get_password()
                 db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-                print ""
+                db.save_portfolio_object(self.portfolio_obj)
                 print line_number(), config.DATA_ABOUT_PORTFOLIOS
                 confirm = wx.MessageDialog(self,
                                          "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
@@ -1820,7 +1831,7 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker":
             return
-        print "basic yql scrape"
+        print line_number(), "basic yql scrape"
         chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape = scrape.prepareYqlScrape([str(ticker).upper()])
         chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
         data = scrape.executeYqlScrapePartOne(chunk_list, 0)
@@ -1831,7 +1842,7 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker":
             return
-        print "scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes."
+        print line_number(), "scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes."
         scrape_balance_sheet_income_statement_and_cash_flow( [str(ticker).upper()] )
         self.createOneStockSpreadSheet(event = "")
 
@@ -1839,7 +1850,7 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker":
             return
-        print "about to scrape"
+        print line_number(), "about to scrape"
         scrape_analyst_estimates( [str(ticker).upper()] )
         self.createOneStockSpreadSheet(event = "")
 ###
@@ -2565,8 +2576,7 @@ class CustomAnalysisMetaPage(Tab):
         # for triple in self.user_created_function_page_triples:
         #    for attribute in dir(triple):
         #        if not attribute.startswith("_"):
-        #            print getattr(triple, attribute)
-        #    print ""
+        #            print line_number(), getattr(triple, attribute)
         for triple in self.user_created_function_page_triples:
             self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
             doc_string = triple.doc
@@ -2750,7 +2760,7 @@ class CustomAnalysisPage(Tab):
         try:
             self.ticker_display.Destroy()
         except Exception, e:
-            print e
+            print line_number(), e
 
         if not stock_list:
             stock_list = self.all_stocks_currently_included
@@ -2830,7 +2840,7 @@ class CustomAnalysisPage(Tab):
         try:
             self.custom_spreadsheet.Destroy()
         except Exception, e:
-            print e
+            print line_number(), e
 
         list_of_spreadsheet_cells = process_user_function.process_custom_analysis_spreadsheet_data(self.all_stocks_currently_included, self.custom_spreadsheet_builder)
         #print line_number(), list_of_spreadsheet_cells
@@ -3105,7 +3115,7 @@ class SalePrepPage(Tab):
                     error = self.grid.GetCellValue(row_num, column_num - 1) # error column is one less than stock column
                     if error != "Error":
                         error = None
-                    #print not_empty
+                    print line_number(), not_empty
                     if not_empty and not error:
                         ticker = str(self.grid.GetCellValue(row_num, self.ticker_cell.col))
                         number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, self.number_of_shares_copy_cell.col))
@@ -3114,9 +3124,9 @@ class SalePrepPage(Tab):
                     elif error:
                         print line_number(), "ERROR: Could not save sell list. There are errors in quantity syntax."
                         return
-
         for i in sell_tuple_list:
             print line_number(), i
+
 
         # Here, i'm not sure whether to save to file or not (currently not saving to file, obviously)
         relevant_portfolios_list = []
@@ -3130,7 +3140,7 @@ class SalePrepPage(Tab):
                                                                 relevant_portfolios_list,
                                                                 sell_tuple_list
                                                                 ]
-        print config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
+        print line_number(), config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
         self.saved_text.Show()
 
         trade_page = config.GLOBAL_PAGES_DICT.get(config.TRADE_PAGE_UNIQUE_ID).obj
@@ -3167,7 +3177,7 @@ class SalePrepPage(Tab):
         # This function has been deactivated, unfortunately it causes too many false positives...
 
         # color = self.grid.GetCellBackgroundColour(event.GetRow(), event.GetCol())
-        # print color
+        # print line_number(), color
         # print type(color)
         # print "---------"
         # if color != (255, 255, 255, 255):
@@ -3334,7 +3344,7 @@ class SalePrepPage(Tab):
 
                 # set last price
                 try:
-                    stocks_last_price = float(getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME))
+                    stocks_last_price = float(utils.return_last_price_if_possible(stock))
                     stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
                 except Exception, exception:
                     print line_number(), exception
@@ -3614,7 +3624,7 @@ class SalePrepPage(Tab):
             price = stocks_price_cell.value
         else:
             try:
-                price = float(str(getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME)).replace("$", "").replace(",",""))
+                price = float(utils.return_last_price_if_possible(stock))
             except:
                 price = None
 
@@ -3661,7 +3671,7 @@ class SalePrepPage(Tab):
             stocks_capital_gains_cell = SpreadsheetCell(row = row, col = self.capital_gains_cell.col, align_right = True)
             row_obj.cell_dict[self.capital_gains_cell.col] = stocks_capital_gains_cell
 
-        print row_obj.cell_dict
+        print line_number(), row_obj.cell_dict
 
 
         if column == self.num_of_shares_cell.col: # sell by number
@@ -3826,8 +3836,8 @@ class SalePrepPage(Tab):
 
         self.saved_text.Hide()
         self.save_button.Show()
-        self.exportSaleCandidates("event")
         self.spreadSheetFill("event")
+        self.exportSaleCandidates("event")
 
 
     def setGridError(self, row, number = None, percentage = None):
@@ -3886,7 +3896,6 @@ class TradePage(Tab):
         self.title = "Trade"
         self.uid = config.TRADE_PAGE_UNIQUE_ID
         self.parent = parent
-        self.default_last_trade_price_attribute_name = config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME
         self.default_average_daily_volume_attribute_name = config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME
 
 
@@ -3947,10 +3956,12 @@ class TradePage(Tab):
         print line_number(), "TradePage loaded"
 
     def updateStocksWithErrors(self, event):
+        utils.remove_list_duplicates(self.stocks_to_update)
         if not self.stocks_to_update:
             self.update_stocks_button.Hide()
             return
         if len(self.stocks_to_update) > config.SCRAPE_CHUNK_LENGTH:
+            print line_number(), "You should be able to remove this prompt by using newer scraping functions here."
             error_message = wx.MessageDialog(None,
                                    "The number of stocks to scrape is too large. Please use the Scrape tab to perform a full scrape.",
                                    'Scrape Too Large',
@@ -4011,6 +4022,7 @@ class TradePage(Tab):
             self.updateGrid("event", cursor_positon = (0, 0))
             self.stock_update_pending_text.Hide()
             print line_number(), "finished!"
+            self.newGridFill()
         else:
             for chunk in ticker_chunk_list:
                 for ticker in chunk:
@@ -4074,13 +4086,13 @@ class TradePage(Tab):
         self.buy_candidate_tuples = []
         for row in (range(buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1)):
             #print line_number()
-            #print row
+            #print line_number(), row
             if row > self.default_rows_above_buy_candidates and grid.GetCellBackgroundColour(row, self.default_buy_candidate_column) in [self.default_buy_candidate_color, self.default_not_entered_buy_candidate_color]:
                 #print line_number()
-                #print row
+                #print line_number(),  row
                 ticker = grid.GetCellValue(row, self.default_buy_candidate_column)
                 #print line_number()
-                #print ticker
+                #print line_number(), ticker
                 if ticker:
                     stock = utils.return_stock_by_symbol(ticker)
                     if stock:
@@ -4105,11 +4117,11 @@ class TradePage(Tab):
         self.newGridFill(cursor_positon = cursor_positon)
 
     def newGridFill(self, cursor_positon = (0,0)):
-        #print line_number() cursor_positon
+        #print line_number(), cursor_positon
         size = (1000, 650)
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            #print line_number() width, height
+            #print line_number(), width, height
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except:
             pass
@@ -4130,7 +4142,7 @@ class TradePage(Tab):
             num_rows += config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
         except Exception, exception:
             print line_number(), exception
-            print "Error in loading trade grid, num_rows will be reset to zero."
+            print line_number(), "Error in loading trade grid, num_rows will be reset to zero."
             num_rows = 0
 
         num_rows = max(num_rows, self.default_min_rows, (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 2))
@@ -4150,7 +4162,7 @@ class TradePage(Tab):
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
 
-        #print self.buy_candidates
+        #print line_number(), self.buy_candidates
         for column_num in range(self.default_columns):
             for row_num in range(num_rows):
                 if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,14]:
@@ -4330,8 +4342,15 @@ class TradePage(Tab):
                 spreadsheet_cell_list.append(number_of_shares_to_sell_cell)
 
                 try:
-                    avg_daily_volume = getattr(stock, self.default_average_daily_volume_attribute_name)
-                    volume_cell = SpreadsheetCell(row = correct_row, col = this_column_number + 2, text = str(avg_daily_volume), value = avg_daily_volume, align_right = True)
+                    avg_daily_volume = utils.return_daily_volume_if_possible(stock)
+                    if not avg_daily_volume:
+                        avg_daily_volume = "Update Volume"
+                        color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX
+                        self.stocks_to_update.append(stock.ticker)
+                        self.update_stocks_button.Show()
+                    else:
+                        color = None
+                    volume_cell = SpreadsheetCell(row = correct_row, col = this_column_number + 2, text = str(avg_daily_volume), value = avg_daily_volume, align_right = True, text_color = color)
                     spreadsheet_cell_list.append(volume_cell)
                 except Exception, exception:
                     print line_number(), exception
@@ -4350,9 +4369,23 @@ class TradePage(Tab):
                 for ticker, quantity in account.stock_shares_dict.iteritems():
                     stock = utils.return_stock_by_symbol(ticker)
                     quantity = float(str(quantity).replace(",",""))
-                    last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
-                    value_of_held_stock = last_price * quantity
-                    total_asset_value += value_of_held_stock
+                    last_price = utils.return_last_price_if_possible(stock)
+                    try:
+                        last_price = float(last_price)
+                        value_of_held_stock = last_price * quantity
+                        total_asset_value += value_of_held_stock
+                    except Exception as e:
+                        print line_number(), e
+                        print "No last price:", last_price, type(last_price)
+                        try:
+                            print "quantity", quantity, type(quantity)
+                        except:
+                            print "no quantity!"
+                        try:
+                            print "value_of_held_stock:", value_of_held_stock, type(value_of_held_stock)
+                        except:
+                            print "No value_of_held_stock available"
+                        print "total_asset_value:", total_asset_value, type(total_asset_value)
 
             total_asset_value_cell = SpreadsheetCell(row = total_asset_value_row, col = this_column_number, text = config.locale.currency(total_asset_value, grouping = True), value = total_asset_value, align_right = True)
             spreadsheet_cell_list.append(total_asset_value_cell)
@@ -4365,9 +4398,15 @@ class TradePage(Tab):
                 ticker = stock_tuple[0]
                 number_of_shares_to_sell = int(stock_tuple[1])
                 stock = utils.return_stock_by_symbol(ticker)
-                last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
-                value_of_single_stock_to_sell = last_price * number_of_shares_to_sell
-                value_of_all_stock_to_sell += value_of_single_stock_to_sell
+                last_price = utils.return_last_price_if_possible(stock)
+                try:
+                    value_of_single_stock_to_sell = float(last_price) * float(number_of_shares_to_sell)
+                    value_of_all_stock_to_sell += value_of_single_stock_to_sell
+                except Exception as e:
+                    print line_number(), e
+                    print "No last price:", last_price, type(last_price)
+                    print "number_of_shares_to_sell:", number_of_shares_to_sell, type(number_of_shares_to_sell)
+                    print "value_of_all_stock_to_sell:", value_of_all_stock_to_sell, type(value_of_all_stock_to_sell)
             surplus_cash_cell = SpreadsheetCell(row = approximate_surplus_cash_row, col = this_column_number, text = config.locale.currency(value_of_all_stock_to_sell, grouping = True), value = value_of_all_stock_to_sell, align_right = True)
             spreadsheet_cell_list.append(surplus_cash_cell)
 
@@ -4440,8 +4479,7 @@ class TradePage(Tab):
                             spreadsheet_cell_list.append(company_to_buy_firm_name)
 
                         try:
-                            last_price = float(getattr(stock, self.default_last_trade_price_attribute_name))
-
+                            last_price = float(utils.return_last_price_if_possible(stock))
                             company_to_buy_price = SpreadsheetCell(row = row_num, col = column_num + 2, text = config.locale.currency(last_price, grouping = True), value = last_price, align_right = True)
                             spreadsheet_cell_list.append(company_to_buy_price)
 
@@ -4513,7 +4551,7 @@ class TradePage(Tab):
                     stock = utils.return_stock_by_symbol(ticker)
                     if stock:
                         quantity = int(quantity)
-                        cost = float(getattr(stock, self.default_last_trade_price_attribute_name)) * quantity
+                        cost = float(utils.return_last_price_if_possible(stock)) * quantity
 
                         total_buy_cost += cost
                         cost_cell = SpreadsheetCell(row = row_num, col = buy_cost_column, text = config.locale.currency(cost, grouping = True), value = cost, align_right = True)
@@ -4554,7 +4592,7 @@ class TradePage(Tab):
 
         # Finally, set cell values in list:
         for cell in spreadsheet_cell_list:
-            #print cell
+            #print line_number(), cell
             new_grid.SetCellValue(cell.row, cell.col, cell.text)
             if cell.align_right:
                 new_grid.SetCellAlignment(cell.row, cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
@@ -5118,6 +5156,7 @@ def create_account_spread_sheet(
                 stock_list.append(stock)
         else:
             print line_number(), "Ticker:", ticker, "not found..."
+    stock_list.sort(key = lambda x: x.ticker)
 
     attribute_list = ['symbol', 'firm_name', "Shares Held", "Last Close", "Value", "Cost Basis", "Change"]
 
@@ -5276,7 +5315,7 @@ def create_spread_sheet_for_one_stock(
     stock = utils.return_stock_by_symbol(ticker)
 
     if not stock:
-        print 'Ticker "%s" does not appear to have basic data' % ticker
+        print line_number(), 'Ticker "%s" does not appear to have basic data' % ticker
         return
 
     attribute_list = []
@@ -5292,7 +5331,7 @@ def create_spread_sheet_for_one_stock(
                         num_attributes += 1
                         attribute_list.append(str(attribute))
                     else:
-                        print "%s.%s" % (ticker, attribute), "is a duplicate"
+                        print line_number(), "%s.%s" % (ticker, attribute), "is a duplicate"
 
 
     if num_rows < num_attributes:

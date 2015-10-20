@@ -66,7 +66,7 @@ def neff_3yr_H_x2yield(Stock): # john's formula
 	try:
 		eps = float(Stock.EPS_Growth_3yr_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "%s is missing required data" % (Stock.symbol)
 		print "Stock.EPS_Cont_Growth_3yr_aa"
 		return None
@@ -74,7 +74,7 @@ def neff_3yr_H_x2yield(Stock): # john's formula
 	try:
 		dividend_yield = float(Stock.Yield_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "%s is missing required data" % (Stock.symbol)
 		print "Stock.Yield_aa"
 		dividend_yield = 0.
@@ -82,7 +82,7 @@ def neff_3yr_H_x2yield(Stock): # john's formula
 	try:
 		pe = float(Stock.PE_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "%s is missing required data" % (Stock.symbol)
 		print "Stock.PE_aa"
 		return None
@@ -99,7 +99,7 @@ def neff_ratio(Stock, period): # period is either "F" (future) or "H" (historica
 		try:
 			eps = float(Stock.EPS_Growth_Est_aa)
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			print line_number(), "%s is missing required data" % (Stock.symbol)
 			print "Stock.EPS_Growth_Est_aa"
 			return None
@@ -107,14 +107,14 @@ def neff_ratio(Stock, period): # period is either "F" (future) or "H" (historica
 		try:
 			eps = float(Stock.EPS_Cont_Growth_5yr_aa)
 		except Exception, exception:
-			print exception
+			print line_number(), exception
 			print line_number(), "%s is missing required data" % (Stock.symbol)
 			print "Stock.EPS_Cont_Growth_5yr_aa"
 			return None
 	try:
 		dividend_yield = float(Stock.Yield_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "%s is missing required data" % (Stock.symbol)
 		print "Stock.Yield_aa"
 		dividend_yield = 0.
@@ -122,7 +122,7 @@ def neff_ratio(Stock, period): # period is either "F" (future) or "H" (historica
 	try:
 		pe = float(Stock.PE_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "%s is missing required data" % (Stock.symbol)
 		print "Stock.PE_aa"
 		return None
@@ -168,7 +168,7 @@ def neff_TTM_historical(Stock, diluted=False, dividend_multiplier = 3.):
 			eps_continuing_growth = float(Stock.EPS_Dil_Cont_Growth_12m_aa)#/100.
 		pe = float(Stock.PE_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "%s is missing required data: .PE_aa, .EPS_Cont_Growth_12m_aa, or .EPS_Dil_Cont_Growth_12m_aa" % (Stock.symbol)
 		print ".PE_aa:", Stock.PE_aa
 		print ".EPS_Cont_Growth_12m_aa:", Stock.EPS_Cont_Growth_12m_aa
@@ -251,9 +251,9 @@ def roePercentDev(Stock):
 
 		return ROEsig2mu
 	except Exception, exception:
-		print "roePercentDev has failed due to the following exception:"
-		print exception
-		print "the equation will return None"
+		print line_number(), "roePercentDev has failed due to the following exception:"
+		print line_number(), exception
+		print line_number(), "the equation will return None"
 		return None
 
 def price_to_book_growth(Stock):
@@ -280,10 +280,10 @@ def price_to_book_growth(Stock):
 		price_growth_to_book_growth = (price_year_1/price_year_3)/(bvps_year_1/bvps_year_3)
 		return price_growth_to_book_growth
 	except Exception, exception:
-		print "price_to_book_growth has failed due to the following exception:"
-		print exception
-		print "the equation will return None"
-		print "this equation is incomplete, view notes for more details"
+		print line_number(), "price_to_book_growth has failed due to the following exception:"
+		print line_number(), exception
+		print line_number(), "the equation will return None"
+		print line_number(), "this equation is incomplete, view notes for more details"
 		return None
 def price_to_range(Stock):
 	'''
@@ -407,9 +407,9 @@ def longTermDebtToEquity(Stock):
 		long_term_debt_to_equity = float(Stock.LT_Debt_to_equity_Q1_aa)
 		return long_term_debt_to_equity
 	except Exception, exception:
-		print "longTermDebtToEquity has failed due to the following exception:"
-		print exception
-		print "the equation will return None"
+		print line_number(), "longTermDebtToEquity has failed due to the following exception:"
+		print line_number(), exception
+		print line_number(), "the equation will return None"
 		return None
 
 def invtory2sales(Stock):
@@ -498,7 +498,7 @@ def neffCf3Year(Stock, dividend_multiplier = None):
 	try:
 		cash_flow_growth = float(Stock.Free_Cash_Flow_Growth_3yr_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "Warning: %s is missing required data" % (Stock.symbol)
 		print "Stock.Free_Cash_Flow_Growth_3yr_aa"
 		print "It will  be set to 0.00"
@@ -513,7 +513,7 @@ def neffCf3Year(Stock, dividend_multiplier = None):
 	try:
 		price_to_fcfps = float(Stock.Price_to_FCFPS_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "Warning: %s is missing required data" % (Stock.symbol)
 		print "Stock.Price_to_FCFPS_aa"
 		print "It cannot be set to 0, will return none as undefined"
@@ -535,7 +535,7 @@ def neffCf5Year(Stock, dividend_multiplier = 2.):
 	try:
 		cash_flow_growth = float(Stock.Free_Cash_Flow_Growth_5yr_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "Warning: %s is missing required data" % (Stock.symbol)
 		print "Stock.Free_Cash_Flow_Growth_5yr_aa"
 		print "It will  be set to 0.00"
@@ -550,7 +550,7 @@ def neffCf5Year(Stock, dividend_multiplier = 2.):
 	try:
 		price_to_fcfps = float(Stock.Price_to_FCFPS_aa)
 	except Exception, exception:
-		print exception
+		print line_number(), exception
 		print line_number(), "Warning: %s is missing required data" % (Stock.symbol)
 		print "Stock.Price_to_FCFPS_aa"
 		print "It cannot be set to 0, will return none as undefined"

@@ -484,10 +484,10 @@ def load_DATA_ABOUT_PORTFOLIOS():
     #print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
     load_all_portfolio_objects()
 
-def create_new_Account_if_one_doesnt_exist(portfolio_id):
+def create_new_Account_if_one_doesnt_exist(portfolio_id, name = None):
     portfolio_obj = load_portfolio_object(portfolio_id)
     if not portfolio_obj:
-        portfolio_obj = wxStocks_classes.Account(portfolio_id)
+        portfolio_obj = wxStocks_classes.Account(portfolio_id, name = name)
     save_portfolio_object(portfolio_obj)
     return portfolio_obj
 

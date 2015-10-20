@@ -126,6 +126,59 @@ def return_last_close_and_last_update_tuple(stock_obj):
                     last_update_for_last_close = None
     return [last_close, last_update_for_last_close]
 
+def money_text_to_float(string_with_non_float_chars):
+    output_float_text = ""
+    for char in string_with_non_float_chars:
+        if char.isdigit() or char in [".", u"."]:
+            output_float_text = output_float_text + char
+    if output_float_text:
+        output_float = float(output_float_text)
+        return output_float
+
+def return_last_price_if_possible(stock):
+    try:
+        last_price = getattr(stock, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME)
+    except:
+        last_price = None
+    if not last_price:
+        try:
+            last_price = getattr(stock, config.SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME)
+        except:
+            last_price = None
+        if not last_price:
+            try:
+                last_price = getattr(stock, config.TERTIARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME)
+            except:
+                last_price = None
+            if not last_price:
+                try:
+                    last_price = getattr(stock, config.QUATERNARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME)
+                except:
+                    last_price = None
+    return last_price
+
+def return_daily_volume_if_possible(stock):
+    try:
+        volume = getattr(stock, config.DEFAULT_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME)
+    except:
+        volume = None
+    if not volume:
+        try:
+            volume = getattr(stock, config.SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME)
+        except:
+            volume = None
+        if not volume:
+            try:
+                volume = getattr(stock, config.TERTIARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME)
+            except:
+                volume = None
+            if not volume:
+                try:
+                    volume = getattr(stock, config.QUATERNARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME)
+                except:
+                    volume = None
+    return volume
+
 ####################### Stock utility functions #################################################
 def stock_value_is_negative(stock_obj, attribute_str):
     try:
