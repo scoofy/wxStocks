@@ -448,5 +448,84 @@ def return_dictionary_of_object_attributes_and_values(obj):
         #   print attribute, ":", obj_attribute_value_dict[attribute]
 
         return obj_attribute_value_dict
+
+def update_all_grids_after_new_data_download():
+    refresh_all_portfolio_spreadsheets()
+    refresh_all_stocks_page_spreadsheet()
+    refresh_one_stock_data_page_spreadsheet()
+    refresh_sale_prep_page_spreadsheet()
+    refresh_trade_page_spreadsheet()
+
+def refresh_all_portfolio_spreadsheets():
+    # refresh portfolios
+    portfolio_main_tab_ref = config.GLOBAL_PAGES_DICT.get(config.PORTFOLIO_PAGE_UNIQUE_ID)
+    portfolio_main_tab_index = portfolio_main_tab_ref.index
+    possible_number_of_portfolios = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
+    print line_number()
+    for i in range(possible_number_of_portfolios):
+        portfolio_account_ref_str = str(portfolio_main_tab_index) + "." + str(i + 1)
+        print portfolio_account_ref_str
+        portfolio_account_ref = config.GLOBAL_PAGES_DICT.get(portfolio_account_ref_str)
+        if portfolio_account_ref:
+            if portfolio_account_ref.obj.portfolio_obj:
+                portfolio_grid_update_function = portfolio_account_ref.obj.spreadSheetFill(portfolio_account_ref.obj.portfolio_obj)
+                print line_number(), portfolio_account_ref.name, "has loaded a new spreadsheet"
+
+def refresh_all_stocks_page_spreadsheet():
+    # refresh all stock grid if it exists
+    all_stocks_page_ref = config.GLOBAL_PAGES_DICT.get(config.ALL_STOCKS_PAGE_UNIQUE_ID)
+    if all_stocks_page_ref:
+        if not all_stocks_page_ref.obj.first_spread_sheet_load:
+            all_stocks_page_ref.obj.spreadSheetFillAllStocks('event')
+            print line_number(), all_stocks_page_ref.name, "has loaded a new spreadsheet"
+        else:
+            print line_number(), "all_stocks_page_ref.obj has no loaded spreadsheet"
+
+def refresh_one_stock_data_page_spreadsheet():
+    # refresh one stock grid if it exists
+    one_stocks_data_page_ref = config.GLOBAL_PAGES_DICT.get(config.STOCK_DATA_PAGE_UNIQUE_ID)
+    if one_stocks_data_page_ref:
+        if one_stocks_data_page_ref.obj.current_ticker_viewed:
+            one_stocks_data_page_ref.obj.createOneStockSpreadSheet('event', current_ticker_viewed = one_stocks_data_page_ref.obj.current_ticker_viewed)
+            print line_number(), one_stocks_data_page_ref.name, "has loaded a new spreadsheet"
+        else:
+            print line_number(), "one_stocks_data_page_ref.obj has no loaded spreadsheet"
+
+def refresh_sale_prep_page_spreadsheet():
+    # refresh sale prep page
+    sale_prep_page_ref = config.GLOBAL_PAGES_DICT.get(config.SALE_PREP_PAGE_UNIQUE_ID)
+    if sale_prep_page_ref:
+        sale_prep_page_ref.obj.spreadSheetFill("event")
+        print line_number(), sale_prep_page_ref.name, "has loaded a new spreadsheet"
+
+def refresh_trade_page_spreadsheet():
+    # refresh Trade Page spreadsheet if it exists
+    trade_page_ref = config.GLOBAL_PAGES_DICT.get(config.TRADE_PAGE_UNIQUE_ID)
+    if trade_page_ref:
+        trade_page_ref.obj.newGridFill()
+        print line_number(), trade_page_ref.name, "has loaded a new spreadsheet"
+
+
+
+
+
+
 ############################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

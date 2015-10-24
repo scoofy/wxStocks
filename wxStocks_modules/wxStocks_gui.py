@@ -124,7 +124,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         # here we add all pages to the config.GLOBAL_PAGES_DICT, adding both the index and the title as key values.
         self.set_config_GLOBAL_PAGES_DICT_key_value_pairs(self.notebook)
         config.GLOBAL_PAGES_DICT[self.uid] = self
-        config.GLOBAL_PAGES_DICT[0] = self
+        config.GLOBAL_PAGES_DICT["0"] = self
         config.GLOBAL_PAGES_DICT[self.title] = self
 
         print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
@@ -149,7 +149,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
             if float(page_index).is_integer():
                 page_index = int(page_index)
             page = PageReference(child.title, index = page_index, obj = child)
-            config.GLOBAL_PAGES_DICT[page_index] = page
+            config.GLOBAL_PAGES_DICT[str(page_index)] = page
             page_index = float(page_index)
             config.GLOBAL_PAGES_DICT[child.title] = page
             try: # main page (find these in the config file)
@@ -333,7 +333,18 @@ class WelcomePage(Tab):
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position - 30))
 
+        self.function_to_test = utils.update_all_grids_after_new_data_download
+        self.test_function_button = wx.Button(self, label="Execute", pos=(10, 10), size=(-1,-1))
+        self.test_function_button.Bind(wx.EVT_BUTTON, self.testFunction, self.test_function_button)
+
+
         print line_number(), "WelcomePage loaded"
+
+    def testFunction(self, event):
+        try:
+            self.function_to_test()
+        except Exception as e:
+            print line_number(), e
 
     def resetPasswordPrep(self, event):
         self.reset_password_button.Hide()
@@ -1257,6 +1268,12 @@ class PortfolioAccountTab(Tab):
                                  )
         confirm.ShowModal()
         confirm.Destroy()
+
+    def fillSpreadsheetWithCurrentPortfolio(self):
+        portfolio_obj = self.portfolio_obj
+        if portfolio_obj:
+            self.spreadSheetFill(portfolio_obj = portfolio_obj)
+
     def spreadSheetFill(self, portfolio_obj):
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
@@ -1345,6 +1362,8 @@ class PortfolioAccountTab(Tab):
         # this is used in sale prep page:
         config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
 
+        utils.refresh_sale_prep_page_spreadsheet()
+
         print line_number(), "Portfolio CSV import complete."
 
     def updateAccountViaCSV(self, event):
@@ -1356,6 +1375,7 @@ class PortfolioAccountTab(Tab):
             # in case doc string is too many characters...
             elif self.portfolio_import_name == triple.name:
                 portfolio_import_function = triple.function
+        utils.refresh_sale_prep_page_spreadsheet()
 
     def updateManually(self, event):
         ticker = utils.strip_string_whitespace(self.ticker_input.GetValue())
@@ -1414,6 +1434,7 @@ class PortfolioAccountTab(Tab):
         self.ticker_input.SetValue("")
         self.cost_basis_input.SetValue("")
         self.share_input.SetValue("")
+        utils.refresh_sale_prep_page_spreadsheet()
 
 
     def confirmCreateMissingStock(self, ticker):
@@ -1784,6 +1805,9 @@ class StockDataPage(Tab):
                                           pos=(430,5),
                                           size=(-1,-1)
                                           )
+
+        self.current_ticker_viewed = None
+
         update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
 
         update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
@@ -1799,8 +1823,12 @@ class StockDataPage(Tab):
         scrape.scrape_all_additional_data_prep([ticker])
         self.createOneStockSpreadSheet("event")
 
-    def createOneStockSpreadSheet(self, event):
-        ticker = self.ticker_input.GetValue()
+    def createOneStockSpreadSheet(self, event, current_ticker_viewed = None):
+        if not current_ticker_viewed:
+            ticker = self.ticker_input.GetValue() # if loading via text input
+        else:
+            ticker = current_ticker_viewed # if reloading spreadsheet
+
         if str(ticker) == "ticker" or not ticker:
             return
 
@@ -1826,6 +1854,7 @@ class StockDataPage(Tab):
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.screen_grid = new_grid
+        self.current_ticker_viewed = ticker.upper()
 
     def update_yql_basic_data(self, event):
         ticker = self.ticker_input.GetValue()
@@ -3194,7 +3223,7 @@ class SalePrepPage(Tab):
         except Exception, exception:
             pass
             #print line_number(), exception
-        #self.rows_dict = {}
+
         relevant_portfolios_list = []
         for i in range(len(self.checkbox_list)):
             box = self.checkbox_list[i]
@@ -3305,165 +3334,184 @@ class SalePrepPage(Tab):
             portfolio_num += 1
             row_count += 1
 
-            for ticker, quantity in account.stock_shares_dict.iteritems():
-                stocks_last_price = None
-                sale_value = None
-                stocks_capital_gains = None
+            for ticker in sorted(account.stock_shares_dict):
+                row_obj_already_exists = False
+                row_obj = self.rows_dict.get(str(ticker)+str(relevant_portfolios_list.index(account)))
+                if row_obj:
+                    row_obj.row = row_count
+                    row_obj_already_exists = True
+                else:
+                    quantity = account.stock_shares_dict.get(ticker)
+                    stocks_last_price = None
+                    sale_value = None
+                    stocks_capital_gains = None
 
 
-                #print line_number()
-                #print ticker
-                # set all cell values for stock
-                stock = utils.return_stock_by_symbol(ticker)
+                    #print line_number()
+                    #print ticker
+                    # set all cell values for stock
+                    stock = utils.return_stock_by_symbol(ticker)
 
-                if not stock:
-                    print line_number(), "Stock %s does not appear to exist" % ticker
-                    continue
-                # set ticker cell
-                stocks_ticker_cell = SpreadsheetCell(row = row_count, col = self.ticker_cell.col, text = stock.symbol, stock = stock)
-                # return and set cost basis per share
-                cost_basis_per_share = utils.return_cost_basis_per_share(account, stock.symbol)
-                if cost_basis_per_share:
-                    try:
-                        cost_basis_per_share = str(cost_basis_per_share).replace("$", "").replace(",","")
-                        if cost_basis_per_share:
-                            cost_basis_per_share = float(cost_basis_per_share)
-                            stocks_cost_basis_cell = SpreadsheetCell(row = row_count, col = self.cost_basis_cell.col, text = config.locale.currency(cost_basis_per_share, grouping = True), value = (cost_basis_per_share), align_right = True)
-                    except Exception as e:
-                        print line_number(), e
-                        cost_basis_per_share = None
+                    if not stock:
+                        print line_number(), "Stock %s does not appear to exist" % ticker
+                        continue
+                    # set account index cell
+                    account_index_cell = SpreadsheetCell(row = row_count, col = self.first_cell.col, text = str(relevant_portfolios_list.index(account)), text_color = "white")
 
-                # set firm name cell
-                stocks_firm_name_cell = SpreadsheetCell(row = row_count, col = self.name_cell.col, text = stock.firm_name, value = stock.firm_name)
-
-                # set quantity cell
-                quantity_text = str(quantity)
-                if quantity.is_integer():
-                    quantity_text = str(int(quantity))
-                stocks_quantity_cell = SpreadsheetCell(row = row_count, col = self.total_shares_cell.col, text = quantity_text, value = int(quantity), align_right = True)
-
-                # set last price
-                try:
-                    stocks_last_price = float(utils.return_last_price_if_possible(stock))
-                    stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
-                except Exception, exception:
-                    print line_number(), exception
-
-                # set capital gains
-                if cost_basis_per_share:
-                    # this needs to be set via a row dict, which may not exist on startup
-                    try:
-                        this_row = self.rows_dict.get(str(row_count))
-                    except:
-                        this_row = None
-                    if this_row:
+                    # set ticker cell
+                    stocks_ticker_cell = SpreadsheetCell(row = row_count, col = self.ticker_cell.col, text = stock.symbol, stock = stock)
+                    # return and set cost basis per share
+                    cost_basis_per_share = utils.return_cost_basis_per_share(account, stock.symbol)
+                    if cost_basis_per_share:
                         try:
-                            sale_value = row_obj.cell_dict.get(str(self.sale_value_cell.col)).value
-                        except:
-                            pass
-                        if sale_value is not None:
-                            stocks_capital_gains = float(sale_value - cost_basis_per_share)
-                            if stocks_capital_gains < 0.:
-                                stocks_capital_gains = 0.
-                                stocks_capital_gains_cell = SpreadsheetCell(row = row_count, col = self.capital_gains_cell.col, text = config.locale.currency(stocks_capital_gains, grouping = True), value = stocks_capital_gains, align_right = True)
-                # set carryover reduction
-                if self.carryover_input_cell.value:
-                    if stocks_capital_gains:
-                        if self.carryover_input_cell.value > stocks_capital_gains:
-                            new_carryover_value = self.carryover_input_cell.value - stocks_capital_gains
-                            self.carryover_input_cell.value = new_carryover_value
-                            reduction = -(stocks_capital_gains)
-                        else:
-                            reduction = stocks_capital_gains - self.carryover_input_cell.value
-                            self.carryover_input_cell.value = 0.
+                            cost_basis_per_share = str(cost_basis_per_share).replace("$", "").replace(",","")
+                            if cost_basis_per_share:
+                                cost_basis_per_share = float(cost_basis_per_share)
+                                stocks_cost_basis_cell = SpreadsheetCell(row = row_count, col = self.cost_basis_cell.col, text = config.locale.currency(cost_basis_per_share, grouping = True), value = (cost_basis_per_share), align_right = True)
+                        except Exception as e:
+                            print line_number(), e
+                            cost_basis_per_share = None
 
-                        stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = config.locale.currency(reduction, grouping = True), value = reduction)
+                    # set firm name cell
+                    stocks_firm_name_cell = SpreadsheetCell(row = row_count, col = self.name_cell.col, text = stock.firm_name, value = stock.firm_name)
+
+                    # set quantity cell
+                    quantity_text = str(quantity)
+                    if quantity.is_integer():
+                        quantity_text = str(int(quantity))
+                    stocks_quantity_cell = SpreadsheetCell(row = row_count, col = self.total_shares_cell.col, text = quantity_text, value = int(quantity), align_right = True)
+
+                    # set last price
+                    try:
+                        stocks_last_price = float(utils.return_last_price_if_possible(stock))
+                        stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
+                    except Exception, exception:
+                        print line_number(), exception
+
+                    # set capital gains
+                    if cost_basis_per_share:
+                        # this needs to be set via a row dict, which may not exist on startup
+                        try:
+                            this_row = self.rows_dict.get(str(row_count))
+                        except:
+                            this_row = None
+                        if this_row:
+                            try:
+                                sale_value = row_obj.cell_dict.get(str(self.sale_value_cell.col)).value
+                            except:
+                                pass
+                            if sale_value is not None:
+                                stocks_capital_gains = float(sale_value - cost_basis_per_share)
+                                if stocks_capital_gains < 0.:
+                                    stocks_capital_gains = 0.
+                                    stocks_capital_gains_cell = SpreadsheetCell(row = row_count, col = self.capital_gains_cell.col, text = config.locale.currency(stocks_capital_gains, grouping = True), value = stocks_capital_gains, align_right = True)
+                    # set carryover reduction
+                    if self.carryover_input_cell.value:
+                        if stocks_capital_gains:
+                            if self.carryover_input_cell.value > stocks_capital_gains:
+                                new_carryover_value = self.carryover_input_cell.value - stocks_capital_gains
+                                self.carryover_input_cell.value = new_carryover_value
+                                reduction = -(stocks_capital_gains)
+                            else:
+                                reduction = stocks_capital_gains - self.carryover_input_cell.value
+                                self.carryover_input_cell.value = 0.
+
+                            stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = config.locale.currency(reduction, grouping = True), value = reduction)
+                        else:
+                            stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = "", value = None)
                     else:
                         stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = "", value = None)
-                else:
-                    stocks_capital_gains_adjustment_cell = SpreadsheetCell(row = row_count, col = self.adjusted_cap_gains_cell.col, text = "", value = None)
 
 
 
-                # set row
-                if cost_basis_per_share and stocks_last_price and stocks_capital_gains:
-                    #print line_number(), ticker, "3: cost_basis_per_share and stocks_last_price and stocks_capital_gains"
-                    try:
-                        this_row = self.rows_dict.get(str(row_count))
-                    except Exception as e:
-                        print line_number(), e
-                    if not this_row:
-                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
-                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
-                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
-                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
-                    this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
-                    this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
-                    this_row.cell_dict[stocks_capital_gains_cell.col] = stocks_capital_gains_cell
-                    this_row.cell_dict[stocks_capital_gains_adjustment_cell.col] = stocks_capital_gains_adjustment_cell
+                    # set row
+                    if cost_basis_per_share and stocks_last_price and stocks_capital_gains:
+                        #print line_number(), ticker, "3: cost_basis_per_share and stocks_last_price and stocks_capital_gains"
+                        try:
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                        except Exception as e:
+                            print line_number(), e
+                        if not this_row:
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                        this_row.cell_dict[account_index_cell.col] = account_index_cell
+                        this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                        this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                        this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                        this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
+                        this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
+                        this_row.cell_dict[stocks_capital_gains_cell.col] = stocks_capital_gains_cell
+                        this_row.cell_dict[stocks_capital_gains_adjustment_cell.col] = stocks_capital_gains_adjustment_cell
 
-                elif cost_basis_per_share and stocks_last_price:
-                    #print line_number(), ticker, "2: cost_basis_per_share and stocks_last_price"
-                    try:
-                        this_row = self.rows_dict.get(str(row_count))
-                    except Exception as e:
-                        print line_number(), e
-                    if not this_row:
-                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
-                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
-                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
-                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
-                    this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
-                    this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
-                    #print line_number(), this_row.cell_dict
+                    elif cost_basis_per_share and stocks_last_price:
+                        #print line_number(), ticker, "2: cost_basis_per_share and stocks_last_price"
+                        try:
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                        except Exception as e:
+                            print line_number(), e
+                        if not this_row:
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                        this_row.cell_dict[account_index_cell.col] = account_index_cell
+                        this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                        this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                        this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                        this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
+                        this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
+                        #print line_number(), this_row.cell_dict
 
-                elif cost_basis_per_share:
-                    #print line_number(), ticker, "cost_basis_per_share"
-                    try:
-                        this_row = self.rows_dict.get(str(row_count))
-                    except Exception as e:
-                        print line_number(), e
-                    if not this_row:
-                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
-                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
-                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
-                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
-                    this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
-                elif stocks_last_price:
-                    #print line_number(), ticker, "stocks_last_price"
-                    try:
-                        this_row = self.rows_dict.get(str(row_count))
-                    except Exception as e:
-                        print line_number(), e
-                    if not this_row:
-                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
-                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
-                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
-                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
-                    this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
+                    elif cost_basis_per_share:
+                        #print line_number(), ticker, "cost_basis_per_share"
+                        try:
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                        except Exception as e:
+                            print line_number(), e
+                        if not this_row:
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                        this_row.cell_dict[account_index_cell.col] = account_index_cell
+                        this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                        this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                        this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                        this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
+                    elif stocks_last_price:
+                        #print line_number(), ticker, "stocks_last_price"
+                        try:
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                        except Exception as e:
+                            print line_number(), e
+                        if not this_row:
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                        this_row.cell_dict[account_index_cell.col] = account_index_cell
+                        this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                        this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                        this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                        this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
 
-                else:
-                    #print line_number(), ticker, "else"
-                    try:
-                        this_row = self.rows_dict.get(str(row_count))
-                    except Exception as e:
-                        print line_number(), e
-                    if not this_row:
-                        this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
-                    this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
-                    this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
-                    this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
+                    else:
+                        #print line_number(), ticker, "else"
+                        try:
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                        except Exception as e:
+                            print line_number(), e
+                        if not this_row:
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                        this_row.cell_dict[account_index_cell.col] = account_index_cell
+                        this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
+                        this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
+                        this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
 
 
-                self.rows_dict[str(row_count)] = this_row
+                    self.rows_dict[str(stock.symbol) + str(relevant_portfolios_list.index(account))] = this_row
                 this_row = None
                 stock = None
                 row_count += 1
         # iterate over cells to fill in grid
-        for row, row_obj in self.rows_dict.iteritems():
+        for ticker, row_obj in self.rows_dict.iteritems():
             for col_num, cell_obj in row_obj.cell_dict.iteritems():
                 #print line_number()
                 #print cell_obj.row, cell_obj.col, cell_obj.text
+
+                # check if row moved:
+                if cell_obj.row != row_obj.row:
+                    cell_obj.row = row_obj.row
                 self.grid.SetCellValue(cell_obj.row, cell_obj.col, cell_obj.text)
                 if cell_obj.align_right:
                     self.grid.SetCellAlignment(cell_obj.row, cell_obj.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
@@ -3478,7 +3526,7 @@ class SalePrepPage(Tab):
 
         ### Set Totals ###
         # set total sale
-        for row, row_obj in self.rows_dict.iteritems():
+        for ticker, row_obj in self.rows_dict.iteritems():
             cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
             if cell_obj:
                 if cell_obj.text is not None and cell_obj.text is not "":
@@ -3517,7 +3565,7 @@ class SalePrepPage(Tab):
             self.grid.SetCellValue(self.totals_cell.row, self.commission_cell.col, "")
 
         # set captial gains
-        for row, row_obj in self.rows_dict.iteritems():
+        for ticker, row_obj in self.rows_dict.iteritems():
             cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
             if cell_obj:
                 if cell_obj.text is not None and cell_obj.text is not "":
@@ -3567,7 +3615,7 @@ class SalePrepPage(Tab):
 
         self.grid.AutoSizeColumns()
 
-    def updateGrid(self, event):
+    def updateGrid(self, event, refresh = None):
         row = event.GetRow()
         column = event.GetCol()
         value = self.grid.GetCellValue(row, column)
@@ -3590,13 +3638,15 @@ class SalePrepPage(Tab):
             self.spreadSheetFill("event")
             return
 
+        ticker = str(self.grid.GetCellValue(row, self.ticker_cell.col))
+        account_index = str(self.grid.GetCellValue(row, self.first_cell.col))
         num_shares = str(self.grid.GetCellValue(row, self.total_shares_cell.col))
         num_shares = num_shares.replace(",","")
 
         sale_value = None
         percent_to_commission = None
 
-        row_obj = self.rows_dict.get(str(row))
+        row_obj = self.rows_dict.get(str(ticker)+str(account_index))
         if row_obj:
             print line_number()
             print row_obj.cell_dict
