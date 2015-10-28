@@ -333,7 +333,7 @@ class WelcomePage(Tab):
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position - 30))
 
-        self.function_to_test = utils.update_all_grids_after_new_data_download
+        self.function_to_test = utils.update_all_dynamic_grids
         self.test_function_button = wx.Button(self, label="Execute", pos=(10, 10), size=(-1,-1))
         self.test_function_button.Bind(wx.EVT_BUTTON, self.testFunction, self.test_function_button)
 
@@ -1233,7 +1233,7 @@ class PortfolioAccountTab(Tab):
             Account_object.cost_basis_dict.pop(stock.symbol, None)
             Account_object.stock_shares_dict.pop(stock.symbol, None)
         db.save_portfolio_object(Account_object)
-        self.spreadSheetFill(Account_object)
+        utils.update_all_dynamic_grids()
 
         self.ticker_input.SetValue("")
         self.cost_basis_input.SetValue("")
@@ -1362,7 +1362,7 @@ class PortfolioAccountTab(Tab):
         # this is used in sale prep page:
         config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
 
-        utils.refresh_sale_prep_page_spreadsheet()
+        utils.update_all_dynamic_grids()
 
         print line_number(), "Portfolio CSV import complete."
 
@@ -1375,7 +1375,8 @@ class PortfolioAccountTab(Tab):
             # in case doc string is too many characters...
             elif self.portfolio_import_name == triple.name:
                 portfolio_import_function = triple.function
-        utils.refresh_sale_prep_page_spreadsheet()
+        utils.update_all_dynamic_grids()
+
 
     def updateManually(self, event):
         ticker = utils.strip_string_whitespace(self.ticker_input.GetValue())
@@ -1434,7 +1435,7 @@ class PortfolioAccountTab(Tab):
         self.ticker_input.SetValue("")
         self.cost_basis_input.SetValue("")
         self.share_input.SetValue("")
-        utils.refresh_sale_prep_page_spreadsheet()
+        utils.update_all_dynamic_grids()
 
 
     def confirmCreateMissingStock(self, ticker):
@@ -1528,8 +1529,9 @@ class PortfolioAccountTab(Tab):
             if confirm:
                 scrape.scrape_loop_for_missing_portfolio_stocks(ticker_list = tickers_that_need_yql_update, update_regardless_of_recent_updates = True)
 
-        self.spreadSheetFill(self.portfolio_obj)
+        utils.update_all_dynamic_grids()
 
+        print line_number(), "Not sure if necessary, but saving here after update."
         db.save_GLOBAL_STOCK_DICT()
 
         #self.saveTickerDataAsStocks(ticker_data) # no longer used
@@ -1661,7 +1663,7 @@ class PortfolioAccountTab(Tab):
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
             self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-            self.spreadSheetFill(self.portfolio_obj)
+            utils.update_all_dynamic_grids()
         return
 ###
 class ViewDataPage(Tab):
@@ -3146,10 +3148,11 @@ class SalePrepPage(Tab):
                         error = None
                     print line_number(), not_empty
                     if not_empty and not error:
-                        ticker = str(self.grid.GetCellValue(row_num, self.ticker_cell.col))
-                        number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, self.number_of_shares_copy_cell.col))
-                        sell_tuple = (ticker, number_of_shares_to_sell)
-                        sell_tuple_list.append(sell_tuple)
+                        if int(not_empty):
+                            ticker = str(self.grid.GetCellValue(row_num, self.ticker_cell.col))
+                            number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, self.number_of_shares_copy_cell.col))
+                            sell_tuple = (ticker, number_of_shares_to_sell)
+                            sell_tuple_list.append(sell_tuple)
                     elif error:
                         print line_number(), "ERROR: Could not save sell list. There are errors in quantity syntax."
                         return
@@ -3647,11 +3650,11 @@ class SalePrepPage(Tab):
         percent_to_commission = None
 
         row_obj = self.rows_dict.get(str(ticker)+str(account_index))
-        if row_obj:
-            print line_number()
-            print row_obj.cell_dict
-            for ref, cell_obj in row_obj.cell_dict.iteritems():
-                print cell_obj.text
+        #if row_obj:
+        #    print line_number()
+        #    print row_obj.cell_dict
+        #    for ref, cell_obj in row_obj.cell_dict.iteritems():
+        #        print cell_obj.text
         stocks_ticker_cell = row_obj.cell_dict.get(str(self.ticker_cell.col))
         if stocks_ticker_cell:
             ticker = stocks_ticker_cell.text
@@ -3721,7 +3724,7 @@ class SalePrepPage(Tab):
             stocks_capital_gains_cell = SpreadsheetCell(row = row, col = self.capital_gains_cell.col, align_right = True)
             row_obj.cell_dict[self.capital_gains_cell.col] = stocks_capital_gains_cell
 
-        print line_number(), row_obj.cell_dict
+        #print line_number(), row_obj.cell_dict
 
 
         if column == self.num_of_shares_cell.col: # sell by number
@@ -3812,43 +3815,38 @@ class SalePrepPage(Tab):
 
             # if empty
             if percent_of_holdings_to_sell == "" or percent_of_holdings_to_sell == 0:
-                #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, "")
+                number_of_shares_to_sell = 0
                 stocks_num_of_shares_copy_cell.text = ""
                 stocks_num_of_shares_copy_cell.value = 0
-                #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "")
                 stocks_percent_of_shares_copy_cell = ""
                 stocks_percent_of_shares_copy_cell = None
-                #self.grid.SetCellValue(row, self.sale_check_cell.col, "")
-                #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
                 stocks_sale_check_cell.text = ""
                 stocks_sale_check_cell.text_color = "black"
 
             elif percent_of_holdings_to_sell <= 1:
-                #self.grid.SetCellValue(row, self.percent_of_shares_copy_cell.col, "%d%%" % round(percent_of_holdings_to_sell * 100))
-                stocks_percent_of_shares_copy_cell.text = str(percent_of_holdings_to_sell * 100) + "%"
-                stocks_percent_of_shares_copy_cell.value = percent_of_holdings_to_sell
+
 
                 number_of_shares_to_sell = int(math.floor( int(num_shares) * percent_of_holdings_to_sell ) )
-                #self.grid.SetCellValue(row, self.number_of_shares_copy_cell.col, str(number_of_shares_to_sell))
                 stocks_num_of_shares_copy_cell.text = str(number_of_shares_to_sell)
                 stocks_num_of_shares_copy_cell.value = number_of_shares_to_sell
 
-
-                if int(num_shares) == int(number_of_shares_to_sell):
-                    #self.grid.SetCellValue(row, self.sale_check_cell.col, "All")
-                    #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
-                    stocks_sale_check_cell.text = "All"
-                    stocks_sale_check_cell.text_color = "black"
-                else:
-                    #self.grid.SetCellValue(row, self.sale_check_cell.col, "Some")
-                    #self.grid.SetCellTextColour(row, self.sale_check_cell.col, "black")
-                    stocks_sale_check_cell.text = "Some"
-                    stocks_sale_check_cell.text_color = "black"
+                if number_of_shares_to_sell:
+                    stocks_percent_of_shares_copy_cell.text = str(percent_of_holdings_to_sell * 100) + "%"
+                    stocks_percent_of_shares_copy_cell.value = percent_of_holdings_to_sell
+                    if int(num_shares) == int(number_of_shares_to_sell):
+                        stocks_sale_check_cell.text = "All"
+                        stocks_sale_check_cell.text_color = "black"
+                    else:
+                        stocks_sale_check_cell.text = "Some"
+                        stocks_sale_check_cell.text_color = "black"
+                else: # percentage is too small, because no shares can be sold at that percentage
+                    stocks_percent_of_shares_copy_cell.text = str(0.) + "%"
+                    stocks_percent_of_shares_copy_cell.value = 0.
             else:
                 self.setGridError(row, percentage = percent_of_holdings_to_sell)
                 return
 
-        if price is not None:
+        if price is not None and number_of_shares_to_sell:
             sale_value = float(number_of_shares_to_sell) * float(price)
 
             stocks_sale_value_cell.text = config.locale.currency(sale_value, grouping = True)
@@ -3875,14 +3873,15 @@ class SalePrepPage(Tab):
             stocks_cost_basis_per_share_cell.text = config.locale.currency(cost_basis_per_share, grouping = True)
             stocks_cost_basis_per_share_cell.value = cost_basis_per_share
 
-        if cost_basis_per_share is not None and price is not None:
-            capital_gain_per_share = max(price - cost_basis_per_share, 0.)
+        if cost_basis_per_share is not None and price is not None and number_of_shares_to_sell:
+            capital_gain_per_share = price - cost_basis_per_share
             capital_gains = (capital_gain_per_share * number_of_shares_to_sell) - float(config.DEFAULT_COMMISSION)
-            capital_gains = max(capital_gains, 0.)
             #self.grid.SetCellValue(row, self.capital_gains_cell.col, "$%.2f" % capital_gains)
             #self.grid.SetCellAlignment(row, self.capital_gains_cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
             stocks_capital_gains_cell.text = config.locale.currency(capital_gains, grouping = True)
             stocks_capital_gains_cell.value = capital_gains
+            if stocks_capital_gains_cell.value < 0:
+                stocks_capital_gains_cell.text_color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX
 
         self.saved_text.Hide()
         self.save_button.Show()

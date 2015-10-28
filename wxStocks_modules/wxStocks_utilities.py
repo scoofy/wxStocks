@@ -449,7 +449,7 @@ def return_dictionary_of_object_attributes_and_values(obj):
 
         return obj_attribute_value_dict
 
-def update_all_grids_after_new_data_download():
+def update_all_dynamic_grids():
     refresh_all_portfolio_spreadsheets()
     refresh_all_stocks_page_spreadsheet()
     refresh_one_stock_data_page_spreadsheet()
