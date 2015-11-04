@@ -505,9 +505,43 @@ def refresh_trade_page_spreadsheet():
         trade_page_ref.obj.newGridFill()
         print line_number(), trade_page_ref.name, "has loaded a new spreadsheet"
 
+def convert_wx_grid_data_to_html_table(wx_grid):
+    import pprint
 
+    data_list_for_export = []
 
+    num_cols = wx_grid.GetNumberCols()
+    num_rows = wx_grid.GetNumberRows()
+    if not (num_rows and num_cols):
+        return
+    for row in range(num_rows):
+        data_list_for_export.append([])
 
+    for row in range(num_rows):
+        for col in range(num_cols):
+            data = wx_grid.GetCellValue(row, col)
+            if data:
+                data_list_for_export[row].append(data)
+            else:
+                data_list_for_export[row].append("")
+
+    print line_number()
+    pprint.pprint(data_list_for_export)
+
+    html_head = "<!DOCTYPE html><html><head><style>table, th, td {border: 1px solid black; border-collapse: collapse;} td {padding: 5px;}</style></head><body><table>"
+    html_butt = "</table></body></html>"
+    html_body = ""
+
+    for row in data_list_for_export:
+        print line_number(), "row", row
+        html_body = html_body + "<tr>"
+        for col in row:
+            print line_number(), "col", str(col)
+            html_body = html_body + "<td>" + str(col) + "</td>"
+        html_body = html_body + "</tr>"
+    html = html_head + html_body + html_butt
+    pprint.pprint(html)
+    return html
 
 
 ############################################################################################

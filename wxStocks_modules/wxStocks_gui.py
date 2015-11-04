@@ -333,9 +333,9 @@ class WelcomePage(Tab):
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position - 30))
 
-        self.function_to_test = utils.update_all_dynamic_grids
-        self.test_function_button = wx.Button(self, label="Execute", pos=(10, 10), size=(-1,-1))
-        self.test_function_button.Bind(wx.EVT_BUTTON, self.testFunction, self.test_function_button)
+        #self.function_to_test = utils.OnSaveAs
+        #self.test_function_button = wx.Button(self, label="Execute", pos=(10, 10), size=(-1,-1))
+        #self.test_function_button.Bind(wx.EVT_BUTTON, self.OnSaveAs, self.test_function_button)
 
 
         print line_number(), "WelcomePage loaded"
@@ -3984,6 +3984,10 @@ class TradePage(Tab):
         self.clear_grid_button = wx.Button(self, label="Clear", pos=(900,0), size=(-1,-1))
         self.clear_grid_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_grid_button)
 
+        self.save_grid_button = wx.Button(self, label="Print", pos=(900,30), size=(-1,-1))
+        self.save_grid_button.Bind(wx.EVT_BUTTON, self.saveGridAs, self.save_grid_button)
+
+
         self.grid_list = []
 
         self.update_stocks_button = wx.Button(self, label="Update stocks with errors.", pos=(700,30), size=(-1,-1))
@@ -4659,6 +4663,20 @@ class TradePage(Tab):
         print line_number(), "number of grids created =", len(self.grid_list)
         new_grid.SetFocus()
         self.grid = new_grid
+
+    def saveGridAs(self, event):
+        html = utils.convert_wx_grid_data_to_html_table(self.grid)
+
+        saveFileDialog = wx.FileDialog(self, "Save Trade Prep to file", "", 'TradePrep%s' % str(time.strftime("%I.%M.%S%p")),
+                                       "HTML file|.html", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if saveFileDialog.ShowModal() == wx.ID_CANCEL:
+            return     # the user changed idea...
+        # save the current contents in the file
+        # this can be done with e.g. wxPython output streams:
+        output_file = open(saveFileDialog.GetPath(), "w")
+        output_file.write(html)
+        output_file.close()
+
 
 class UserFunctionsMetaPage(Tab):
     def __init__(self, parent):
