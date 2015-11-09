@@ -7,14 +7,14 @@
 #       4: Grid objects                                         #
 #################################################################
 import wx, numpy
-import config, threading, logging, sys, time, os, math
+import config, threading, logging, sys, time, os, math, webbrowser
 import inspect
 import pprint as pp
 
 from collections import namedtuple
 from wx.lib import sheet
 
-from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage
+from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage, ResearchPageRowDataList
 from wxStocks_default_functions import default_function_page_object_config as functions_config
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
@@ -104,6 +104,9 @@ class MainFrame(wx.Frame): # reorder tab postions here
 
         self.analyse_page = AnalysisPage(self.notebook)
         self.notebook.AddPage(self.analyse_page, self.analyse_page.title)
+
+        self.research_page = ResearchPage(self.notebook)
+        self.notebook.AddPage(self.research_page, self.research_page.title)
 
         self.sale_prep_page = SalePrepPage(self.notebook)
         self.notebook.AddPage(self.sale_prep_page, self.sale_prep_page.title)
@@ -207,6 +210,9 @@ class WelcomePage(Tab):
     \tRank:\t\t\t\t\t\tThis page allows you to rank stocks along certain criteria.
     \tCustom Analysis:\t\t\t\tThis page allows you to execute your own custom analysis.
     \t\t\t\t\t\t\t\t-  You can learn about programming and interfacing with wxStocks to do your own analysis in the Edit Functions section.
+
+    Research:\t\t\t\t\t\tDo your homework! This page allows you to easily access data for stocks you intend to buy or sell.
+    \t\t\t\t\t\t\t\tYou can add different buttons in the config page if you have other sources your prefer.
 
     Sale Prep:\t\t\t\t\t\tThis page allows you to estimate the amount of funds generated from a potential stock sale.
 
@@ -2213,7 +2219,7 @@ class RankPage(Tab):
         self.full_attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
 
         rank_page_text = wx.StaticText(self, -1,
-                             "Rank",
+                             self.title,
                              (10,10)
                              )
 
@@ -2952,6 +2958,185 @@ class CustomAnalysisPage(Tab):
                 if stock not in self.all_stocks_currently_included:
                     self.all_stocks_currently_included.append(stock)
         self.showStocksCurrentlyUsed()
+
+#### Research
+class ResearchPage(Tab):
+    def __init__(self, parent):
+        self.title = "Research"
+        self.panel_name = "Research"
+        wx.Panel.__init__(self, parent)
+        welcome_page_text = wx.StaticText(self, -1,
+                             self.title,
+                             (10,10)
+                             )
+
+        self.ticker_input = wx.TextCtrl(self, -1,
+                                   "",
+                                   (100, 8),
+                                   style=wx.TE_PROCESS_ENTER
+                                   )
+        self.ticker_input.SetHint("ticker")
+        self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.addStock, self.ticker_input)
+
+        self.add_stock_button = wx.Button(self,
+                                          label="add",
+                                          pos=(200,5),
+                                          size=(-1,-1)
+                                          )
+        self.add_stock_button.Bind(wx.EVT_BUTTON, self.addStock, self.add_stock_button)
+        self.remove_stock_button = wx.Button(self,
+                                          label="remove",
+                                          pos=(300,5),
+                                          size=(-1,-1)
+                                          )
+        self.remove_stock_button.Bind(wx.EVT_BUTTON, self.confirmRemove, self.remove_stock_button)
+
+        self.stock_list = []
+        self.rows_dict = {}
+
+        for ticker in ['googl', 'aapl', 'msft', 'gs', 'att', 'luv']:
+            self.stock_list.append(utils.return_stock_by_symbol(ticker))
+        self.bingbong = wx.Button(self,
+                                  label="Load examples for development",
+                                  pos=(400,5),
+                                  size=(-1,-1)
+                                  )
+        self.bingbong.Bind(wx.EVT_BUTTON, self.generateShownStockList, self.bingbong)
+
+
+        print line_number(), "ResearchPage loaded"
+
+    def addStock(self, event):
+        ticker = self.ticker_input.GetValue()
+
+        if str(ticker) == "ticker" or not ticker:
+            return
+
+        stock = utils.return_stock_by_symbol(ticker)
+        if not stock:
+            print line_number(), "Stock with symbol %s does not appear to exist" % ticker.upper()
+            return
+
+        self.stock_list.append(stock)
+        self.stock_list = utils.remove_list_duplicates(self.stock_list)
+        # remember to sort by symbol at the end of adding a stock!
+        self.stock_list.sort(key=lambda x: x.ticker)
+
+
+        self.generateShownStockList("event")
+        self.ticker_input.SetValue("")
+
+    def confirmRemove(self, event):
+        ticker = self.ticker_input.GetValue()
+
+        if str(ticker) == "ticker" or not ticker:
+            return
+
+        stock = utils.return_stock_by_symbol(ticker)
+        if not stock:
+            print line_number(), "Stock with symbol %s does not appear to exist" % ticker.upper()
+            return
+
+        confirm = wx.MessageDialog(None,
+                                   "You are about to remove %s from your research list. Are you sure you want to remove %s?" % (stock.ticker, stock.ticker),
+                                   'Remove %s' % stock.ticker,
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Remove"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.removeStock(stock)
+
+    def removeStock(self, stock):
+        self.stock_list.remove(stock)
+        self.generateShownStockList("event")
+        self.ticker_input.SetValue("")
+
+    def openButtonURL(self, event, row_obj, index):
+        index = str(index)
+        button_dict = getattr(row_obj, "button_dict" + index)
+        url = button_dict.get("url").replace(
+            config.RESEARCH_URL_SYMBOLS_TO_SWAP[0], row_obj.stock.ticker)#.replace(
+            #config.RESEARCH_URL_SYMBOLS_TO_SWAP[1], row_obj.stock.exchange)
+        webbrowser.open(url, new=1, autoraise=True)
+
+    def generateStockRow(self, index, stock=None):
+        row_object = ResearchPageRowDataList()
+        initial_button_offset = 150
+        vertical_offset_per_stock = 40
+        added_width = 0
+
+        if stock:
+            row_object.stock = stock
+            row_object.ticker_textctrl = wx.StaticText(self, -1,
+                             stock.ticker,
+                             (10, (index*vertical_offset_per_stock) + 50)
+                             )
+            row_object.button = wx.Button(self,
+                              label=str(index),
+                              pos=(60,(index*vertical_offset_per_stock) + 44),
+                              size=(-1,-1)
+                              )
+            row_object.firm_name_textctrl = wx.StaticText(self, -1,
+                             stock.firm_name,
+                             (10, (index*vertical_offset_per_stock) + 68),
+                             size = (100, -1)
+                             )
+            for button_dict in config.RESEARCH_PAGE_DICT_LIST:
+                button = None
+                button_index = config.RESEARCH_PAGE_DICT_LIST.index(button_dict)
+                button_width = button_dict.get("width")
+                if not button_width:
+                    button_width = -1
+                button = wx.Button(self,
+                              label=str(button_dict.get("button_text")),
+                              pos=(initial_button_offset + added_width, (index*vertical_offset_per_stock) + 44),
+                              size=(button_width, -1)
+                              )
+                added_width += button.GetSize()[0]
+
+                button.Bind(wx.EVT_BUTTON, lambda event, row_obj = row_object, index = button_index: self.openButtonURL(event, row_obj, index), button)
+                button_name_for_row_object = "button" + str(button_index) + ''.join(char for char in button_dict.get("button_text") if char.isalnum())
+                setattr(row_object, button_name_for_row_object, button)
+
+                button_dict_name = "button_dict" + str(button_index)
+                setattr(row_object, button_dict_name, button_dict)
+
+            self.rows_dict[str(index)] = row_object
+
+        else:
+            row_object.ticker_textctrl = wx.StaticText(self, -1,
+                             "Error, stock doesn't exist",
+                             (10, (index*vertical_offset_per_stock) + 50)
+                             )
+            self.rows_dict[str(index)] = row_object
+
+        return row_object
+
+    def generateShownStockList(self, event):
+        for i in range(len(self.rows_dict)):
+            row_obj = self.rows_dict.get(str(i))
+            for attribute in dir(row_obj):
+                if not attribute.startswith("__"):
+                    wx_obj = getattr(row_obj, attribute)
+                    wx_obj.Destroy()
+            del row_obj
+        self.rows_dict = {}
+
+        for index, stock in enumerate(self.stock_list):
+            row_obj = self.generateStockRow(index, stock=stock)
+            if stock:
+                row_obj.ticker_textctrl.SetLabel(stock.ticker)
+                row_obj.button.SetLabel(str(index))
+                row_obj.firm_name_textctrl.SetLabel(stock.firm_name)
+            else:
+                row_obj.ticker_textctrl.SetLabel("Error, stock doesn't exist")
+
+
+
+
 
 ####
 

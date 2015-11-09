@@ -334,9 +334,8 @@ class FunctionPage(object):
         self.save_function = save_function
         self.function_to_load_defaults = function_to_load_defaults
 
-
-
-
+class ResearchPageRowDataList(object):
+    pass
 
 
 
