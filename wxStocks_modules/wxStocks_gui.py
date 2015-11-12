@@ -7,7 +7,7 @@
 #       4: Grid objects                                         #
 #################################################################
 import wx, numpy
-import config, threading, logging, sys, time, os, math, webbrowser
+import config, threading, logging, sys, time, os, math, webbrowser, urllib2
 import inspect
 import pprint as pp
 
@@ -2994,6 +2994,8 @@ class ResearchPage(Tab):
         self.stock_list = []
         self.rows_dict = {}
 
+        self.generateGeneralResearchRow()
+
         for ticker in ['googl', 'aapl', 'msft', 'gs', 'att', 'luv']:
             self.stock_list.append(utils.return_stock_by_symbol(ticker))
         self.bingbong = wx.Button(self,
@@ -3057,14 +3059,71 @@ class ResearchPage(Tab):
     def openButtonURL(self, event, row_obj, index):
         index = str(index)
         button_dict = getattr(row_obj, "button_dict" + index)
-        url = button_dict.get("url").replace(
-            config.RESEARCH_URL_SYMBOLS_TO_SWAP[0], row_obj.stock.ticker)#.replace(
-            #config.RESEARCH_URL_SYMBOLS_TO_SWAP[1], row_obj.stock.exchange)
+        url = button_dict.get("url")
+        lambda_function = button_dict.get("lambda_function")
+
+        # Replace ticker
+        try:
+            stock = row_obj.stock
+        except:
+            stock = None
+        if stock:
+            ticker = stock.ticker
+            firm_name = stock.firm_name.replace(" ", "%20")
+            exchange = utils.return_stocks_exchange_if_possible(stock)
+            url = url % {"ticker": ticker, "exchange": exchange, "firm_name": firm_name}
+        if lambda_function:
+            url = lambda_function(url)
+        # Replace exchange if possible
         webbrowser.open(url, new=1, autoraise=True)
+
+    def generateGeneralResearchRow(self):
+        row_object = ResearchPageRowDataList()
+        initial_button_vertical_offset = 44
+        initial_button_horizontal_offset = 60
+        text_additional_vertical_offset = 6
+        added_width = 0
+
+        row_object.ticker_textctrl = wx.StaticText(self, -1,
+                             "General:",
+                             (10, initial_button_vertical_offset + text_additional_vertical_offset)
+                             )
+
+        for button_dict in config.GENERAL_RESEARCH_PAGE_DICT_LIST:
+            button = None
+            lambda_function = None
+            button_index = config.GENERAL_RESEARCH_PAGE_DICT_LIST.index(button_dict)
+            button_width = button_dict.get("width")
+            if not button_width:
+                button_width = -1
+            button = wx.Button(self,
+                          label=str(button_dict.get("button_text")),
+                          pos=(initial_button_horizontal_offset + added_width, (button_index) + initial_button_vertical_offset),
+                          size=(button_width, -1)
+                          )
+            added_width += button.GetSize()[0]
+
+            lambda_function = button_dict.get("lambda_function")
+            if lambda_function:
+                setattr(row_object, "lambda_function", lambda_function)
+
+            button.Bind(wx.EVT_BUTTON, lambda event, row_obj = row_object, index = button_index: self.openButtonURL(event, row_obj, index), button)
+            button_name_for_row_object = "button" + str(button_index) + ''.join(char for char in button_dict.get("button_text") if char.isalnum())
+            setattr(row_object, button_name_for_row_object, button)
+
+            button_dict_name = "button_dict" + str(button_index)
+            setattr(row_object, button_dict_name, button_dict)
+
+        return row_object
+
+
 
     def generateStockRow(self, index, stock=None):
         row_object = ResearchPageRowDataList()
-        initial_button_offset = 150
+        initial_button_horizontal_offset = 200
+        initial_button_vertical_offset = 80
+        text_additional_vertical_offset = 6
+        second_line_text_additional_offset = 18
         vertical_offset_per_stock = 40
         added_width = 0
 
@@ -3072,30 +3131,35 @@ class ResearchPage(Tab):
             row_object.stock = stock
             row_object.ticker_textctrl = wx.StaticText(self, -1,
                              stock.ticker,
-                             (10, (index*vertical_offset_per_stock) + 50)
+                             (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset)
                              )
             row_object.button = wx.Button(self,
                               label=str(index),
-                              pos=(60,(index*vertical_offset_per_stock) + 44),
+                              pos=(60,(index*vertical_offset_per_stock) + initial_button_vertical_offset),
                               size=(-1,-1)
                               )
             row_object.firm_name_textctrl = wx.StaticText(self, -1,
                              stock.firm_name,
-                             (10, (index*vertical_offset_per_stock) + 68),
+                             (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset + second_line_text_additional_offset),
                              size = (100, -1)
                              )
             for button_dict in config.RESEARCH_PAGE_DICT_LIST:
                 button = None
+                lambda_function = None
                 button_index = config.RESEARCH_PAGE_DICT_LIST.index(button_dict)
                 button_width = button_dict.get("width")
                 if not button_width:
                     button_width = -1
                 button = wx.Button(self,
                               label=str(button_dict.get("button_text")),
-                              pos=(initial_button_offset + added_width, (index*vertical_offset_per_stock) + 44),
+                              pos=(initial_button_horizontal_offset + added_width, (index*vertical_offset_per_stock) + initial_button_vertical_offset),
                               size=(button_width, -1)
                               )
                 added_width += button.GetSize()[0]
+
+                lambda_function = button_dict.get("lambda_function")
+                if lambda_function:
+                    setattr(row_object, "lambda_function", lambda_function)
 
                 button.Bind(wx.EVT_BUTTON, lambda event, row_obj = row_object, index = button_index: self.openButtonURL(event, row_obj, index), button)
                 button_name_for_row_object = "button" + str(button_index) + ''.join(char for char in button_dict.get("button_text") if char.isalnum())
@@ -3109,7 +3173,7 @@ class ResearchPage(Tab):
         else:
             row_object.ticker_textctrl = wx.StaticText(self, -1,
                              "Error, stock doesn't exist",
-                             (10, (index*vertical_offset_per_stock) + 50)
+                             (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset)
                              )
             self.rows_dict[str(index)] = row_object
 
@@ -3132,7 +3196,7 @@ class ResearchPage(Tab):
                 row_obj.button.SetLabel(str(index))
                 row_obj.firm_name_textctrl.SetLabel(stock.firm_name)
             else:
-                row_obj.ticker_textctrl.SetLabel("Error, stock doesn't exist")
+                row_obj.ticker_textctrl.SetLabel("Error, stock %s doesn't exist" % self.stock_list[index])
 
 
 

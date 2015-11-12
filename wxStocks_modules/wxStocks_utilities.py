@@ -179,6 +179,53 @@ def return_daily_volume_if_possible(stock):
                     volume = None
     return volume
 
+def return_stocks_exchange_if_possible(stock):
+    try:
+        exchange = getattr(row_obj.stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
+        if "nyse" in exchange.lower():
+            exchange = "NYSE"
+        elif "nasdaq" in exchange.lower():
+            exchange = "NASDAQ"
+    except:
+        try:
+            exchange = getattr(row_obj.stock, config.SECONDARY_STOCK_EXCHANGE_ATTRIBUTE)
+            if "nyse" in exchange.lower():
+                exchange = "NYSE"
+            elif "nasdaq" in exchange.lower():
+                exchange = "NASDAQ"
+        except:
+            try:
+                exchange = getattr(row_obj.stock, config.TERTIARY_STOCK_EXCHANGE_ATTRIBUTE)
+                if "nyse" in exchange.lower():
+                    exchange = "NYSE"
+                elif "nasdaq" in exchange.lower():
+                    exchange = "NASDAQ"
+            except:
+                try:
+                    exchange = getattr(row_obj.stock, config.QUATERNARY_STOCK_EXCHANGE_ATTRIBUTE)
+                    if "nyse" in exchange.lower():
+                        exchange = "NYSE"
+                    elif "nasdaq" in exchange.lower():
+                        exchange = "NASDAQ"
+                except:
+                    exchange = None
+    return exchange
+
+def return_stocks_website_if_possible(stock):
+    try:
+        website = str(getattr(row_obj.stock, config.DEFAULT_STOCK_WEBSITE_ATTRIBUTE))
+    except:
+        try:
+            website = str(getattr(row_obj.stock, config.SECONDARY_STOCK_WEBSITE_ATTRIBUTE))
+        except:
+            try:
+                website = str(getattr(row_obj.stock, config.TERTIARY_STOCK_WEBSITE_ATTRIBUTE))
+            except:
+                try:
+                    website = str(getattr(row_obj.stock, config.QUATERNARY_STOCK_WEBSITE_ATTRIBUTE))
+                except:
+                    website = None
+    return website
 ####################### Stock utility functions #################################################
 def stock_value_is_negative(stock_obj, attribute_str):
     try:
