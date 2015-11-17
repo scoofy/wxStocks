@@ -1947,6 +1947,8 @@ class ScreenPage(Tab):
 
         self.first_spread_sheet_load = True
 
+        self.ticker_col = 0
+
         print line_number(), "ScreenPage loaded"
 
     def screenStocks(self, event):
@@ -1973,6 +1975,7 @@ class ScreenPage(Tab):
         config.CURRENT_SCREEN_LIST = conforming_stocks
 
         self.createSpreadsheet(conforming_stocks)
+
         self.save_screen_button.Show()
 
 
@@ -2013,6 +2016,8 @@ class ScreenPage(Tab):
         ##
 
         self.screen_grid = new_grid
+        self.screen_grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, lambda event: self.addStockToResearchPage(event), self.screen_grid)
+
 
     def saveScreen(self, event):
         current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
@@ -2059,9 +2064,19 @@ class ScreenPage(Tab):
                 # Save SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
                 db.save_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
 
+                utils.update_all_screen_dropdowns_after_saving_a_new_screen()
+
                 self.save_screen_button.Hide()
                 save_popup.Destroy()
                 return
+
+    def addStockToResearchPage(self, event):
+        row = event.GetRow()
+        col = event.GetCol()
+        if int(col) == self.ticker_col:
+            ticker = self.screen_grid.GetCellValue(row, col)
+            utils.add_ticker_to_research_page(str(ticker))
+
 class SavedScreenPage(Tab):
     def __init__(self, parent):
         self.title = "View Saved Screens"
@@ -2082,7 +2097,7 @@ class SavedScreenPage(Tab):
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
-            self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+            self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)]
 
         self.drop_down = wx.ComboBox(self, value="",
                                      pos=(305, 6),
@@ -2096,7 +2111,9 @@ class SavedScreenPage(Tab):
         self.delete_screen_button.Hide()
 
         self.first_spread_sheet_load = True
-        self.screen_grid = None
+        self.spreadsheet = None
+
+        self.ticker_col = 0
 
         print line_number(), "SavedScreenPage loaded"
 
@@ -2141,7 +2158,7 @@ class SavedScreenPage(Tab):
         # Why did i put this here? Leave a note next time moron...
         time.sleep(2)
 
-        self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+        self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)]
 
 
         self.drop_down = wx.ComboBox(self,
@@ -2182,7 +2199,7 @@ class SavedScreenPage(Tab):
         size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            #print line_number(), width, height
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
@@ -2202,10 +2219,20 @@ class SavedScreenPage(Tab):
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
+        self.spreadsheet.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, lambda event: self.addStockToResearchPage(event), self.spreadsheet)
+
 
         self.spreadsheet.Show()
 
         self.delete_screen_button.Show()
+
+    def addStockToResearchPage(self, event):
+        row = event.GetRow()
+        col = event.GetCol()
+        if int(col) == self.ticker_col:
+            ticker = self.spreadsheet.GetCellValue(row, col)
+            utils.add_ticker_to_research_page(str(ticker))
+
 class RankPage(Tab):
     def __init__(self, parent):
         self.title = "Rank"
@@ -2247,7 +2274,7 @@ class RankPage(Tab):
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
-            self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
+            self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)] # add conditional to remove old screens
         self.drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
                                      choices=self.existing_screen_name_list,
@@ -2302,10 +2329,11 @@ class RankPage(Tab):
         self.rank_drop_down.Hide()
 
         self.fade_opacity = 255
-        self.screen_grid = None
         self.spreadsheet = None
 
         self.rank_name = None
+
+        self.ticker_col = 0
 
         print line_number(), "RankPage loaded"
 
@@ -2347,7 +2375,7 @@ class RankPage(Tab):
         size = config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            #print line_number(), width, height
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
@@ -2367,6 +2395,7 @@ class RankPage(Tab):
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
+        self.spreadsheet.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, lambda event: self.addStockToResearchPage(event), self.spreadsheet)
 
 
         self.clear_button.Show()
@@ -2407,6 +2436,7 @@ class RankPage(Tab):
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
         self.spreadsheet = new_grid
+        self.spreadsheet.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, lambda event: self.addStockToResearchPage(event), self.spreadsheet)
 
 
         ######################################
@@ -2468,7 +2498,7 @@ class RankPage(Tab):
         db.load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
-            self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+            self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)]
         self.drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
                                      choices=self.existing_screen_name_list,
@@ -2598,6 +2628,13 @@ class RankPage(Tab):
 
         self.sort_drop_down.SetStringSelection(sort_field)
 
+    def addStockToResearchPage(self, event):
+        row = event.GetRow()
+        col = event.GetCol()
+        if int(col) == self.ticker_col:
+            ticker = self.spreadsheet.GetCellValue(row, col)
+            utils.add_ticker_to_research_page(str(ticker))
+
 class CustomAnalysisMetaPage(Tab):
     def __init__(self, parent):
         self.title = "Custom Analysis"
@@ -2689,10 +2726,10 @@ class CustomAnalysisPage(Tab):
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
-            self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST] # add conditional to remove old screens
+            self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)] # add conditional to remove old screens
         self.screen_drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
-                                     choices=sorted(self.existing_screen_name_list),
+                                     choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
 
@@ -2834,12 +2871,12 @@ class CustomAnalysisPage(Tab):
         # Why did i put this here? Leave a note next time moron...
         time.sleep(2)
 
-        self.existing_screen_name_list = [i[0] for i in config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST]
+        self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)]
 
 
         self.screen_drop_down = wx.ComboBox(self,
                                      pos=(305, 6),
-                                     choices=sorted(self.existing_screen_name_list),
+                                     choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
 
@@ -2942,9 +2979,18 @@ class CustomAnalysisPage(Tab):
                 self.screen_grid.SetRowLabelValue(cell.row, cell.row_title)
             if cell.align_right:
                 self.screen_grid.SetCellAlignment(cell.row, cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
+
+        self.screen_grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, lambda event: self.addStockToResearchPage(event), self.screen_grid)
         self.screen_grid.AutoSizeColumns()
         # deal with colors and shit later, also held stocklist
         return self.screen_grid
+
+    def addStockToResearchPage(self, event):
+        row = event.GetRow()
+        col = event.GetCol()
+        # is there a way to draw out which cells are ticker cells using the function provided by users? Currently unsure.
+        ticker = self.screen_grid.GetCellValue(row, col)
+        utils.add_ticker_to_research_page(str(ticker))
 
     def loadAccount(self, event):
         account_name = self.accounts_drop_down.GetValue()
@@ -2964,6 +3010,7 @@ class ResearchPage(Tab):
     def __init__(self, parent):
         self.title = "Research"
         self.panel_name = "Research"
+        self.uid = config.RESEARCH_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         welcome_page_text = wx.StaticText(self, -1,
                              self.title,
@@ -2994,22 +3041,24 @@ class ResearchPage(Tab):
         self.stock_list = []
         self.rows_dict = {}
 
-        self.generateGeneralResearchRow()
-
-        for ticker in ['googl', 'aapl', 'msft', 'gs', 'att', 'luv']:
-            self.stock_list.append(utils.return_stock_by_symbol(ticker))
+        self.development_sample_stocks = ['googl', 'aapl', 'msft', 'gs', 'att', 'luv']
         self.bingbong = wx.Button(self,
                                   label="Load examples for development",
                                   pos=(400,5),
                                   size=(-1,-1)
                                   )
-        self.bingbong.Bind(wx.EVT_BUTTON, self.generateShownStockList, self.bingbong)
+        self.bingbong.Bind(wx.EVT_BUTTON, self.development_examples_load_into_page, self.bingbong)
 
 
         print line_number(), "ResearchPage loaded"
+    def development_examples_load_into_page(self, event):
+        for ticker in self.development_sample_stocks:
+            utils.add_ticker_to_research_page(ticker)
 
-    def addStock(self, event):
-        ticker = self.ticker_input.GetValue()
+
+    def addStock(self, event, ticker=None):
+        if not ticker:
+            ticker = self.ticker_input.GetValue()
 
         if str(ticker) == "ticker" or not ticker:
             return
@@ -3077,6 +3126,10 @@ class ResearchPage(Tab):
         # Replace exchange if possible
         webbrowser.open(url, new=1, autoraise=True)
 
+    def openWebsiteOnButtonClick(self, event, row_obj):
+        url = utils.return_stocks_website_if_possible(row_obj.stock)
+        webbrowser.open(url, new=1, autoraise=True)
+
     def generateGeneralResearchRow(self):
         row_object = ResearchPageRowDataList()
         initial_button_vertical_offset = 44
@@ -3120,7 +3173,8 @@ class ResearchPage(Tab):
 
     def generateStockRow(self, index, stock=None):
         row_object = ResearchPageRowDataList()
-        initial_button_horizontal_offset = 200
+        website_button_horizontal_offset = 60
+        initial_button_horizontal_offset = 144
         initial_button_vertical_offset = 80
         text_additional_vertical_offset = 6
         second_line_text_additional_offset = 18
@@ -3133,11 +3187,14 @@ class ResearchPage(Tab):
                              stock.ticker,
                              (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset)
                              )
-            row_object.button = wx.Button(self,
-                              label=str(index),
-                              pos=(60,(index*vertical_offset_per_stock) + initial_button_vertical_offset),
+            if utils.return_stocks_website_if_possible(stock):
+                row_object.website_button = wx.Button(self,
+                              label="website",
+                              pos=(website_button_horizontal_offset,(index*vertical_offset_per_stock) + initial_button_vertical_offset),
                               size=(-1,-1)
                               )
+                row_object.website_button.Bind(wx.EVT_BUTTON, lambda event, row_obj = row_object: self.openWebsiteOnButtonClick(event, row_obj), row_object.website_button)
+
             row_object.firm_name_textctrl = wx.StaticText(self, -1,
                              stock.firm_name,
                              (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset + second_line_text_additional_offset),
@@ -3169,13 +3226,8 @@ class ResearchPage(Tab):
                 setattr(row_object, button_dict_name, button_dict)
 
             self.rows_dict[str(index)] = row_object
-
         else:
-            row_object.ticker_textctrl = wx.StaticText(self, -1,
-                             "Error, stock doesn't exist",
-                             (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset)
-                             )
-            self.rows_dict[str(index)] = row_object
+            row_object = None
 
         return row_object
 
@@ -3184,19 +3236,16 @@ class ResearchPage(Tab):
             row_obj = self.rows_dict.get(str(i))
             for attribute in dir(row_obj):
                 if not attribute.startswith("__"):
-                    wx_obj = getattr(row_obj, attribute)
-                    wx_obj.Destroy()
+                    try:
+                        wx_obj = getattr(row_obj, attribute)
+                        wx_obj.Destroy()
+                    except:
+                        pass
             del row_obj
         self.rows_dict = {}
 
         for index, stock in enumerate(self.stock_list):
             row_obj = self.generateStockRow(index, stock=stock)
-            if stock:
-                row_obj.ticker_textctrl.SetLabel(stock.ticker)
-                row_obj.button.SetLabel(str(index))
-                row_obj.firm_name_textctrl.SetLabel(stock.firm_name)
-            else:
-                row_obj.ticker_textctrl.SetLabel("Error, stock %s doesn't exist" % self.stock_list[index])
 
 
 

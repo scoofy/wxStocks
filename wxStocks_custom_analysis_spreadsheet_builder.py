@@ -21,7 +21,7 @@ my_cell = Cell(
             text_color = None,
             font_size = None,
             bold = False,
-            function = None
+            function = None,
             )
 
 Import your own custom functions from the "functions_for_custom_analysis_go_in_here" folder.
@@ -31,6 +31,12 @@ def my_custom_spreadsheet():
     from functions_for_custom_analysis_go_in_here import your_file
     data = your_file.your_function()
 '''
+# Note, if you are adding a double click event into your analysis spreadsheets (you programming champ), you may run into errors, here is why:
+# There is a preset function in wxStocks_modules/wxStocks_gui.py in the CustomAnalysisPage object, in the create_custom_analysis_spread_sheet method
+# This preset event function on double click (search for: self.screen_grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK)
+# takes the text in that cell, and passes it to the add_ticker_to_research_page in wxStocks_modules/wxStocks_utilities.py,
+# which passes it to the research page for processing. If the text is a valid ticker it'll add that stock to the research page.
+# I'm not sure how to ensure that only valid ticker columns are allowed to be passed for custom spreadsheets, but for now i'll allow any cell to be double clicked.
 
 def rainbow_spreadsheet(stock_list):
     "rainbow sort"

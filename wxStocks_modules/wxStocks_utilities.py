@@ -181,28 +181,28 @@ def return_daily_volume_if_possible(stock):
 
 def return_stocks_exchange_if_possible(stock):
     try:
-        exchange = getattr(row_obj.stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
+        exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
         if "nyse" in exchange.lower():
             exchange = "NYSE"
         elif "nasdaq" in exchange.lower():
             exchange = "NASDAQ"
     except:
         try:
-            exchange = getattr(row_obj.stock, config.SECONDARY_STOCK_EXCHANGE_ATTRIBUTE)
+            exchange = getattr(stock, config.SECONDARY_STOCK_EXCHANGE_ATTRIBUTE)
             if "nyse" in exchange.lower():
                 exchange = "NYSE"
             elif "nasdaq" in exchange.lower():
                 exchange = "NASDAQ"
         except:
             try:
-                exchange = getattr(row_obj.stock, config.TERTIARY_STOCK_EXCHANGE_ATTRIBUTE)
+                exchange = getattr(stock, config.TERTIARY_STOCK_EXCHANGE_ATTRIBUTE)
                 if "nyse" in exchange.lower():
                     exchange = "NYSE"
                 elif "nasdaq" in exchange.lower():
                     exchange = "NASDAQ"
             except:
                 try:
-                    exchange = getattr(row_obj.stock, config.QUATERNARY_STOCK_EXCHANGE_ATTRIBUTE)
+                    exchange = getattr(stock, config.QUATERNARY_STOCK_EXCHANGE_ATTRIBUTE)
                     if "nyse" in exchange.lower():
                         exchange = "NYSE"
                     elif "nasdaq" in exchange.lower():
@@ -213,16 +213,16 @@ def return_stocks_exchange_if_possible(stock):
 
 def return_stocks_website_if_possible(stock):
     try:
-        website = str(getattr(row_obj.stock, config.DEFAULT_STOCK_WEBSITE_ATTRIBUTE))
+        website = str(getattr(stock, config.DEFAULT_STOCK_WEBSITE_ATTRIBUTE))
     except:
         try:
-            website = str(getattr(row_obj.stock, config.SECONDARY_STOCK_WEBSITE_ATTRIBUTE))
+            website = str(getattr(stock, config.SECONDARY_STOCK_WEBSITE_ATTRIBUTE))
         except:
             try:
-                website = str(getattr(row_obj.stock, config.TERTIARY_STOCK_WEBSITE_ATTRIBUTE))
+                website = str(getattr(stock, config.TERTIARY_STOCK_WEBSITE_ATTRIBUTE))
             except:
                 try:
-                    website = str(getattr(row_obj.stock, config.QUATERNARY_STOCK_WEBSITE_ATTRIBUTE))
+                    website = str(getattr(stock, config.QUATERNARY_STOCK_WEBSITE_ATTRIBUTE))
                 except:
                     website = None
     return website
@@ -237,6 +237,8 @@ def stock_value_is_negative(stock_obj, attribute_str):
     #print ""
     return str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
 ####################### Stock utility functions #################################################
+
+
 
 ### I don't think this is used any more
 def importSchwabCSV(csv_file):
@@ -496,6 +498,12 @@ def return_dictionary_of_object_attributes_and_values(obj):
 
         return obj_attribute_value_dict
 
+####################### utility functions involving pages #######################################
+def add_ticker_to_research_page(ticker):
+    research_page_ref = config.GLOBAL_PAGES_DICT.get(config.RESEARCH_PAGE_UNIQUE_ID)
+    research_page = research_page_ref.obj
+    research_page.addStock("event", ticker = ticker)
+
 def update_all_dynamic_grids():
     refresh_all_portfolio_spreadsheets()
     refresh_all_stocks_page_spreadsheet()
@@ -551,6 +559,28 @@ def refresh_trade_page_spreadsheet():
     if trade_page_ref:
         trade_page_ref.obj.newGridFill()
         print line_number(), trade_page_ref.name, "has loaded a new spreadsheet"
+
+def update_all_screen_dropdowns_after_saving_a_new_screen():
+    saved_screen_page_ref = config.GLOBAL_PAGES_DICT.get(config.SAVED_SCREEN_PAGE_UNIQUE_ID)
+    rank_page_ref = config.GLOBAL_PAGES_DICT.get(config.RANK_PAGE_UNIQUE_ID)
+
+    saved_screen_page_ref.obj.refreshScreens("event")
+    rank_page_ref.obj.refreshScreens("event")
+
+    # custom analysis pages are a bit more complicated
+    custom_analysis_meta_page_ref = config.GLOBAL_PAGES_DICT.get(config.CUSTOM_ANALYSE_META_PAGE_UNIQUE_ID)
+    custom_analysis_meta_page_index = custom_analysis_meta_page_ref.index
+    possible_number_of_analysis_pages = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
+    print line_number()
+    for i in range(possible_number_of_analysis_pages):
+        custom_analysis_page_ref_str = str(custom_analysis_meta_page_index) + str(i + 1)
+        print custom_analysis_page_ref_str
+        custom_analysis_page_ref = config.GLOBAL_PAGES_DICT.get(custom_analysis_page_ref_str)
+        if custom_analysis_page_ref:
+            print "success"
+            custom_analysis_page_ref.obj.refreshScreens("event")
+####################### end: utility functions involving pages #######################################
+
 
 def convert_wx_grid_data_to_html_table(wx_grid):
     #import pprint
