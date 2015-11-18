@@ -1,3 +1,5 @@
+![wxStocks](/wxStocks_logo.png?raw=true "wxStocks")
+
 This program is now in beta, but i'm still happy to accept any pull requests or suggestions if you want to help out.
 
 Disclaimer: This program comes as is, and probably has some errors in it. This software should not be used as financial advice or financial analysis, it is for educational use only. Consult a financial advisor before, after, and even while using this software. Double check any calculations done by this software, and review all the code for errors before using. By using this software you release the author(s) from any liability regarding the use of this software. Please don't sue me. Sorry about the massive disclaimer, but finance programs are fairly litigious business.
@@ -5,8 +7,6 @@ Disclaimer: This program comes as is, and probably has some errors in it. This s
 wxStocks is a investment analysis program that could help teach you to scrape, screen, sort, and prepare a portfolio for learning about buying and selling equities.
 
 Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool.
-
-![wxStocks](/wxStocks_logo.png?raw=true "wxStocks")
 
 Requirements: Python 2.X, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org)
 
