@@ -6,10 +6,7 @@ wxStocks is a investment analysis program that could help teach you to scrape, s
 
 Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool.
 
-![Portfolios](/wxStocks_portfolio.png?raw=true "Title")
-![Custom Analysis](/wxStocks_custom_analysis.png?raw=true "Title")
-![Sale Prep](/wxStocks_sale_prep.png?raw=true "Title")
-
+![wxStocks](/wxStocks_logo.png?raw=true "wxStocks")
 
 Requirements: Python 2.X, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org)
 
@@ -52,3 +49,9 @@ https://pypi.python.org/pypi/simple-crypt
 xlrd:
 
 https://pypi.python.org/pypi/xlrd
+
+Screenshots:
+
+![Portfolios](/wxStocks_portfolio.png?raw=true "Portfolios")
+![Custom Analysis](/wxStocks_custom_analysis.png?raw=true "Custom Analysis")
+![Sale Prep](/wxStocks_sale_prep.png?raw=true "Sale Prep")
