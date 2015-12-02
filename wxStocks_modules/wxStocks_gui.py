@@ -540,30 +540,30 @@ class TickerPage(Tab):
         #except AttributeError:
         #   pass
         confirm.Destroy()
+        self.file_display.Hide()
 
         if yesNoAnswer == wx.ID_YES:
-            self.downloadTickers()
+            download_tickers = threading.Thread(name="download tickers", target=self.downloadTickers)
+            download_tickers.start()
 
     def downloadTickers(self):
         print line_number(), "Begin ticker download..."
         ticker_list_without_prices = scrape.nasdaq_full_ticker_list_downloader()
+        uppercase_exchange_list = [x.upper() for x in config.STOCK_EXCHANGE_LIST]
         for data in ticker_list_without_prices:
-            if data[2].upper() in [x.upper() for x in config.STOCK_EXCHANGE_LIST]:
+            #print data
+            # The following line does:
+            # data[2] is exchange
+            if data[2].upper() in uppercase_exchange_list:
                 stock = db.create_new_Stock_if_it_doesnt_exist(data[0])
                 stock.firm_name = data[1]
                 stock.Exchange_na = data[2]
                 stock.etf_na = data[3]
 
-                print line_number()
-                for attribute in dir(stock):
-                    if not attribute.startswith("__"):
-                        print line_number(), attribute, getattr(stock, attribute), "\n"
-
         print line_number(), "Begin price data download..."
         ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
         db.save_GLOBAL_STOCK_DICT()
 
-        #self.saveTickerDataAsStocks(ticker_data) # no longer used
         self.showAllTickers()
         # Update scrape page
         scrape_page = config.GLOBAL_PAGES_DICT.get(config.YQL_SCRAPE_PAGE_UNIQUE_ID).obj

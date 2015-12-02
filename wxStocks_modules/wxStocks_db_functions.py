@@ -77,7 +77,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
     if symbol.isalpha():
         pass
     else:
-        print symbol
+        #print line_number(), symbol
         if "." in symbol:
             pass
         if "^" in symbol:

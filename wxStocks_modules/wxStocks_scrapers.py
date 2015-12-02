@@ -152,8 +152,7 @@ def nasdaq_full_ticker_list_downloader() : # from nasdaq.com
         try:
             ticker = data[1].replace("$", "^")
         except:
-            print line_number()
-            print data
+            print line_number(), data
         firm_name = data[2]
 
         exchange = None
@@ -169,7 +168,7 @@ def nasdaq_full_ticker_list_downloader() : # from nasdaq.com
         elif exchange_letter == "A":
             exchange = "NYSEmkt"
         else:
-            print data
+            print line_number(), data
 
         etf_bool = None
         etf_letter = data[5]
@@ -181,7 +180,7 @@ def nasdaq_full_ticker_list_downloader() : # from nasdaq.com
             pass
         else:
             #print ticker_titles
-            print data, ":", data[5]
+            print line_number(), data, ":", data[5]
 
         cqs_symbol = data[9]
         nasdaq_symbol = data[10]
