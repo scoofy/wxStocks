@@ -1,6 +1,6 @@
 import wx
 import config
-import inspect, logging, os, hashlib, getpass
+import inspect, logging, os, threading, hashlib, getpass
 import cPickle as pickle
 from modules.pybcrypt import bcrypt
 
@@ -165,11 +165,15 @@ def load_GLOBAL_STOCK_DICT():
             pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
     load_GLOBAL_ATTRIBUTE_SET()
 def save_GLOBAL_STOCK_DICT():
+    save_thread = threading.Thread(name = "saving", target = save_GLOBAL_STOCK_DICT_worker)
+    save_thread.start()
+
+def save_GLOBAL_STOCK_DICT_worker():
     print line_number(), "Saving GLOBAL_STOCK_DICT"
     stock_dict = config.GLOBAL_STOCK_DICT
     with open(all_stocks_path, 'wb') as output:
         pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
-
+    print line_number(), "GLOBAL_STOCK_DICT saved."
     # save the attribute set when doing this
     save_GLOBAL_ATTRIBUTE_SET()
 def load_GLOBAL_ATTRIBUTE_SET():
@@ -190,6 +194,8 @@ def save_GLOBAL_ATTRIBUTE_SET():
     attribute_set = config.GLOBAL_ATTRIBUTE_SET
     with open(all_attributes_path, 'wb') as output:
         pickle.dump(attribute_set, output, pickle.HIGHEST_PROTOCOL)
+    print line_number(), "GLOBAL_ATTRIBUTE_SET saved."
+
 ### Stock screen loading information
 def load_GLOBAL_STOCK_SCREEN_DICT():
     print line_number(), "Loading GLOBAL_STOCK_SCREEN_DICT"
