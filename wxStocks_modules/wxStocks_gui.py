@@ -339,6 +339,12 @@ class WelcomePage(Tab):
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position - 30))
 
+
+        self.delete_all_stock_data_horizontal_position = 835
+        self.delete_all_stock_data_vertical_position = 700
+        self.delete_all_stock_data = wx.Button(self, label="Delete All Stock Data", pos=(self.delete_all_stock_data_horizontal_position, self.delete_all_stock_data_vertical_position), size=(-1,-1))
+        self.delete_all_stock_data.Bind(wx.EVT_BUTTON, self.deleteAllStockData, self.delete_all_stock_data)
+
         #self.function_to_test = utils.OnSaveAs
         #self.test_function_button = wx.Button(self, label="Execute", pos=(10, 10), size=(-1,-1))
         #self.test_function_button.Bind(wx.EVT_BUTTON, self.OnSaveAs, self.test_function_button)
@@ -430,6 +436,33 @@ class WelcomePage(Tab):
         self.encryption_hardness_field.Hide()
 
         self.reset_password_button.Show()
+
+    def deleteAllStockData(self, event):
+        confirm = wx.MessageDialog(None,
+                                 "Caution! You are about to delete all saved stock data. Your portfolio and screen data will remain, but all stock data will be deleted. To avoid errors, the program will then update basic stock data, and shut down.",
+                                 'Delete All Stock Data?',
+                                 style = wx.YES_NO
+                                 )
+        confirm.SetYesNoLabels(("&Cancel"), ("&Yes, Delete All Stock Data and Restart"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+        if yesNoAnswer == wx.ID_NO:
+            self.deleteAllStockDataConfirm()
+
+    def deleteAllStockDataConfirm(self):
+        config.GLOBAL_TICKER_LIST = []
+        db.save_GLOBAL_TICKER_LIST()
+
+        config.GLOBAL_STOCK_DICT = {}
+        config.GLOBAL_ATTRIBUTE_SET = set([])
+        db.save_GLOBAL_STOCK_DICT()
+
+        print line_number(), "Data deleted."
+
+        ticker_page = config.GLOBAL_PAGES_DICT.get(config.TICKER_PAGE_UNIQUE_ID).obj
+        ticker_page.downloadTickers()
+
+        sys.exit()
 
     ######################### below is not used ###########################
     # def toggleEncryption(self, event):
