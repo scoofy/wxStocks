@@ -1823,6 +1823,24 @@ class StockDataPage(Tab):
                                           pos=(210,5),
                                           size=(-1,-1)
                                           )
+        load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
+
+
+        self.search_data = wx.TextCtrl(self, -1,
+                                   "",
+                                   (110, 31),
+                                   style=wx.TE_PROCESS_ENTER
+                                   )
+        self.search_data.SetHint("search data")
+        self.search_data.Bind(wx.EVT_KEY_UP, self.searchData)
+        self.search_button = wx.Button(self,
+                                         label="search",
+                                          pos=(210, 28),
+                                         size=(-1,-1)
+                                         )
+        self.search_button.Bind(wx.EVT_BUTTON, self.searchData, self.search_button)
+
+
         update_yql_basic_data_button = wx.Button(self,
                                          label="update basic data",
                                          pos=(300,5),
@@ -1839,7 +1857,6 @@ class StockDataPage(Tab):
         #                                 size=(-1,-1)
         #                                 )
 
-        load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
 
         update_additional_data_button = wx.Button(self,
                                           label="update additional data",
@@ -1848,6 +1865,7 @@ class StockDataPage(Tab):
                                           )
 
         self.current_ticker_viewed = None
+        self.current_search_term = None
 
         update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
 
@@ -1857,6 +1875,19 @@ class StockDataPage(Tab):
 
         print line_number(), "StockDataPage loaded"
 
+    def searchData(self, event, search_term = None):
+        current_ticker_viewed = self.current_ticker_viewed
+        if not current_ticker_viewed:
+            return
+
+        if not search_term:
+            search_term = self.search_data.GetValue() # if loading via text input
+        self.current_search_term = search_term
+
+        self.createOneStockSpreadSheet("event", current_ticker_viewed = current_ticker_viewed, search_term = search_term)
+
+
+
     def updateAdditionalDataForOneStock(self, event):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker" or not ticker:
@@ -1864,7 +1895,7 @@ class StockDataPage(Tab):
         scrape.scrape_all_additional_data_prep([ticker])
         self.createOneStockSpreadSheet("event")
 
-    def createOneStockSpreadSheet(self, event, current_ticker_viewed = None):
+    def createOneStockSpreadSheet(self, event, current_ticker_viewed = None, search_term = None):
         if not current_ticker_viewed:
             ticker = self.ticker_input.GetValue() # if loading via text input
         else:
@@ -1888,7 +1919,7 @@ class StockDataPage(Tab):
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer.AddSpacer(60)
 
-        new_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper(), size = size)
+        new_grid = create_spread_sheet_for_one_stock(self, str(ticker).upper(), size = size, search_term = search_term)
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
         self.SetSizer(self.inner_sizer)
@@ -5707,7 +5738,8 @@ def create_spread_sheet_for_one_stock(
     ticker,
     size = (980, 637),
     position = (0,60),
-    enable_editing = False
+    enable_editing = False,
+    search_term = None
     ):
 
     stock = utils.return_stock_by_symbol(ticker)
@@ -5725,6 +5757,14 @@ def create_spread_sheet_for_one_stock(
         for attribute in dir(stock):
             if not attribute.startswith('_'):
                 if attribute not in config.CLASS_ATTRIBUTES:
+                    if search_term: # this is for searching within stock data, will be None on normal load.
+                        if str(search_term).lower() in str(attribute).lower() or str(search_term).lower() in str(getattr(stock, attribute)).lower():
+                            pass
+                        else:
+                            if attribute in ['symbol', 'firm_name']:
+                                pass
+                            else:
+                                continue
                     if attribute not in attribute_list:
                         num_attributes += 1
                         attribute_list.append(str(attribute))

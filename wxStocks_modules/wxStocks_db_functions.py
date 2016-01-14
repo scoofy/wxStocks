@@ -170,10 +170,11 @@ def save_GLOBAL_STOCK_DICT():
 
 def save_GLOBAL_STOCK_DICT_worker():
     print line_number(), "Saving GLOBAL_STOCK_DICT"
-    stock_dict = config.GLOBAL_STOCK_DICT
+    stock_dict = config.GLOBAL_STOCK_DICT.copy()
     with open(all_stocks_path, 'wb') as output:
         pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
     print line_number(), "GLOBAL_STOCK_DICT saved."
+    stock_dict.clear()
     # save the attribute set when doing this
     save_GLOBAL_ATTRIBUTE_SET()
 def load_GLOBAL_ATTRIBUTE_SET():

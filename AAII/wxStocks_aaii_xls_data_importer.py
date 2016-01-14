@@ -186,9 +186,11 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 
 			new_attribute_name += new_char
 	if new_attribute_name:
-		return new_attribute_name
-	else:
-		return attribute_string
+		attribute_string = new_attribute_name
+
+	attribute_string = utils.remove_leading_underscores(attribute_string)
+	return attribute_string
+
 
 
 

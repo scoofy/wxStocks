@@ -327,6 +327,11 @@ def strip_list_whitespace(some_list):
 def strip_string_whitespace(some_string):
     stripped_string = " ".join(some_string.split())
     return stripped_string
+def remove_leading_underscores(some_string):
+    if some_string[0] in ["_", u"_"]:
+        some_string = some_string[1:]
+        remove_leading_underscores(some_string)
+    return some_string
 def time_since_creation(item_epoch_var):
     raw_secs = round(time.time())-round(item_epoch_var)
     #logging.warning(raw_secs)
