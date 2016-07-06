@@ -1,11 +1,15 @@
+import sys, os, time, datetime, subprocess, winsound
 from pywinauto.application import Application
-import sys, os, time, datetime
+from dbfread import DBF
+print "Stock Investor Pro Exporter\n"
+
+# Config
+user_id = "Default"
+open_save_folder = True
+
+# set paths
 si_path = "C:\Program Files (x86)\Stock Investor\Professional"
 os.chdir(si_path)
-
-user_id = "Matt"
-num_of_save_files = 16
-
 save_folder = "C:\Users\\" + user_id + "\Desktop\si_data_exports\\"
 if not os.path.exists(save_folder):
 	os.makedirs(save_folder)
@@ -14,23 +18,37 @@ todays_save_folder = save_folder + current_day + "\\"
 if not os.path.exists(todays_save_folder):
 	os.makedirs(todays_save_folder)
 
+# Gather custom view names
+si_view_name_file_path = "C:\Program Files (x86)\Stock Investor\Professional\User\usrpts.dbf"
+si_view_name_file_data = [x for x in DBF(si_view_name_file_path)]
+list_of_si_views = [str(x[u"NAME"]) for x in si_view_name_file_data]
+save_id_list = [x for x in list_of_si_views if not x.startswith("*")]
 
-save_id_list = [str(x) for x in range(num_of_save_files+1) if x != 0]
 
+
+# Launch Stock Investor Pro
 app = Application().Start(si_path + "\si.exe")
 sic = app.si9c000000
 sic.Wait('ready')
+sic.SetFocus()
 
+launch_success = False
 for second in range(60 *2): # 2 minutes
 	try:
 		menu = sic.Menu()
 		menu_items = menu.Items()
+		launch_success = True
 		break
 	except:
 		time.sleep(1)
+if not launch_success:
+	print "Something went wrong, stock investor pro did not launch properly."
+	print "\nExiting..."
+	sys.exit()
 
+# iterate over exporting views
 for save_id in save_id_list:
-	sic.SetFocus()	
+	sic.SetFocus()
 	menu = sic.Menu()
 	menu_items = menu.Items()
 	file_menu = menu_items[0]
@@ -72,7 +90,23 @@ for save_id in save_id_list:
 		print "\nExiting..."
 		sys.exit()
 
+# print success and open relevant folder, if set to do so
 print "\nLooks like everything saved successfully."
 print "Find your new data files at:", todays_save_folder
+if open_save_folder:
+	first_save_id_name_alphabetically = [x for x in sorted(save_id_list)][0]
+	subprocess.Popen(r'explorer /select,' + todays_save_folder + first_save_id_name_alphabetically.upper() + ".XLS")
+
+# play sound to indicate export was successful
+sounds = ["Windows Unlock.wav",
+		  "notify.wav",
+		  "Windows Proximity Notification.wav",
+		  "Windows Exclamation.wav",
+		  "tada.wav"
+		 ]
+sound = sounds[2]
+winsound.PlaySound("C:\Windows\Media\\"+sound, winsound.SND_FILENAME)
+
+# Close SIpro
 app.Kill_()
 
