@@ -159,7 +159,7 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 	acceptable_characters = list(string.letters + string.digits + "_")
 	unicode_acceptable_characters = []
 	for char in acceptable_characters:
-		unicode_acceptable_characters.append(unicode(char))
+		unicode_acceptable_characters.append(unicode(char.decode('utf-8', "replace")))
 	acceptable_characters = acceptable_characters + unicode_acceptable_characters
 	new_attribute_name = ""
 	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%", "#", u"#", ":", u":", "*", u"*"]
