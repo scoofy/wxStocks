@@ -21,6 +21,7 @@ import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
 import wxStocks_screen_functions as screen
 import wxStocks_meta_functions as meta
+import wxStocks_gui_position_index as gui_position
 import wxStocks_functions_that_process_user_functions as process_user_function
 import AAII.wxStocks_aaii_xls_data_importer as aaii
 #from AAII_functions import aaii_formulas
@@ -34,8 +35,8 @@ def line_number():
 
 class MainFrame(wx.Frame): # reorder tab postions here
     def __init__(self, *args, **kwargs):
-        wx.Frame.__init__(self, parent = None, id = wx.ID_ANY, title="wxStocks", pos = wx.DefaultPosition, size = (1020,800))
-        self.SetSizeHints(1020,800)
+        wx.Frame.__init__(self, parent = None, id = wx.ID_ANY, title="wxStocks", pos = wx.DefaultPosition, size = gui_position.MainFrame_size)
+        self.SetSizeHints(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1])
         self.title = "wxStocks"
         self.uid = config.MAIN_FRAME_UNIQUE_ID
 
@@ -181,7 +182,7 @@ class WelcomePage(Tab):
 
         welcome_page_text = wx.StaticText(self, -1,
                              "Welcome to wxStocks",
-                             (10,10)
+                             gui_position.WelcomePage_welcome_page_text
                              )
         instructions_text = '''
 
@@ -225,92 +226,53 @@ class WelcomePage(Tab):
 
         instructions = wx.StaticText(self, -1,
                                     instructions_text,
-                                    (10,20)
+                                    gui_position.WelcomePage_instructions
                                     )
 
-        # encryption_text_vertical_position = 550
-        # encryption_button_vertical_position = encryption_text_vertical_position - 5
-        # encryption_text_horizontal_position = 10
-        # encryption_button_horizontal_position = encryption_text_horizontal_position + 160
-
-        # self.turn_encryption_off_button = wx.Button(self, label="Turn encryption off.", pos=(encryption_button_horizontal_position, encryption_button_vertical_position), size=(-1,-1))
-        # self.turn_encryption_off_button.Bind(wx.EVT_BUTTON, self.toggleEncryption, self.turn_encryption_off_button)
-
-        # self.turn_encryption_on_button = wx.Button(self, label="Turn encryption on.", pos=(encryption_button_horizontal_position, encryption_button_vertical_position), size=(-1,-1))
-        # self.turn_encryption_on_button.Bind(wx.EVT_BUTTON, self.toggleEncryption, self.turn_encryption_on_button)
-
-
-
-        # self.encryption_message_default = "Encryption is turned "
-
-        # if config.ENCRYPTION_POSSIBLE:
-        #   self.encryption_status = "ON:"
-        #   try:
-        #       import Crypto
-        #       from modules.simplecrypt import encrypt, decrypt
-        #   except:
-        #       print line_number(), "Encryption not possible"
-        #       self.encryption_message_default = "Encryption is not possible. You should make sure pyCrypto and simplecrypt are installed to use encryption for your personal data."
-        #       self.encryption_status = ""
-        #       self.turn_encryption_off_button.Hide()
-        #   self.turn_encryption_on_button.Hide()
-        # else:
-        #   self.encryption_status = "OFF:"
-        #   try:
-        #       import Crypto
-        #       from modules.simplecrypt import encrypt, decrypt
-        #   except:
-        #       print line_number(), "Encryption not possible"
-        #       self.encryption_message_default = "Encryption is not possible. You should make sure pyCrypto and simplecrypt are installed to use encryption for your personal data."
-        #       self.encryption_status = ""
-        #       self.turn_encryption_on_button.Hide()
-        #   self.turn_encryption_off_button.Hide()
-
-
-        # self.encryption_message = wx.StaticText(self, -1,
-        #                           self.encryption_message_default + self.encryption_status,
-        #                           (encryption_text_horizontal_position, encryption_text_vertical_position)
-        #                           )
 
         self.reset_password_button = None
-        self.reset_password_button_horizontal_position = 5
-        self.reset_password_button_vertical_position = 700
+        self.reset_password_button_horizontal_position = gui_position.WelcomePage_reset_password_button[0]
+        self.reset_password_button_vertical_position = gui_position.WelcomePage_reset_password_button[1]
 
         if config.ENCRYPTION_POSSIBLE:
             self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
             self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
 
-        text_field_offset = 180
-        text_field_vertical_offset = -3
+        text_field_offset = gui_position.WelcomePage_text_field_offset
+        text_field_vertical_offset = gui_position.WelcomePage_text_field_vertical_offset
+        text_field_vertical_offset_small_bump = gui_position.WelcomePage_text_field_vertical_offset_small_bump
+        text_field_vertical_offset_medium_bump = gui_position.WelcomePage_text_field_vertical_offset_medium_bump
+        text_field_vertical_offset_large_bump = gui_position.WelcomePage_text_field_vertical_offset_large_bump
         current_password_text = "Current Password:"
         self.current_password_static_text = wx.StaticText(self, -1, current_password_text,
                                     (self.reset_password_button_horizontal_position,
-                                     self.reset_password_button_vertical_position + 30))
+                                     self.reset_password_button_vertical_position + text_field_vertical_offset_small_bump))
         self.current_password_field = wx.TextCtrl(self, -1, "",
                                        (self.reset_password_button_horizontal_position + text_field_offset,
-                                        self.reset_password_button_vertical_position + text_field_vertical_offset + 30),
+                                        self.reset_password_button_vertical_position + text_field_vertical_offset + text_field_vertical_offset_small_bump),
                                        style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
 
         new_password_text = "New Password:"
         self.new_password_static_text = wx.StaticText(self, -1, new_password_text,
                                     (self.reset_password_button_horizontal_position,
-                                     self.reset_password_button_vertical_position + 60))
+                                     self.reset_password_button_vertical_position + text_field_vertical_offset_medium_bump))
         self.new_password_field = wx.TextCtrl(self, -1, "",
                                    (self.reset_password_button_horizontal_position + text_field_offset,
-                                    self.reset_password_button_vertical_position + text_field_vertical_offset + 60),
+                                    self.reset_password_button_vertical_position + text_field_vertical_offset + text_field_vertical_offset_medium_bump),
                                    style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
 
         confirm_password_text = "Confirm New Password:"
         self.confirm_password_static_text = wx.StaticText(self, -1, confirm_password_text,
                                     (self.reset_password_button_horizontal_position,
-                                     self.reset_password_button_vertical_position + 90))
+                                     self.reset_password_button_vertical_position + text_field_vertical_offset_large_bump))
         self.confirm_new_password_field = wx.TextCtrl(self, -1, "",
                                            (self.reset_password_button_horizontal_position + text_field_offset,
-                                            self.reset_password_button_vertical_position + text_field_vertical_offset + 90),
+                                            self.reset_password_button_vertical_position + text_field_vertical_offset + text_field_vertical_offset_large_bump),
                                            style=wx.TE_PASSWORD ) #| wx.TE_PROCESS_ENTER)
 
 
         encryption_hardness_text = "Optional:\nEncryption Strength (1-24):"
+        encryption_bump = gui_position.WelcomePage_text_field_vertical_offset_encryption_bump
         optional_offset = 18
         self.encryption_hardness_static_text = wx.StaticText(self, -1, encryption_hardness_text,
                                     (self.reset_password_button_horizontal_position,
