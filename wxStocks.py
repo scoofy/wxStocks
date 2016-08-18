@@ -14,7 +14,7 @@ import sys, inspect, hashlib, threading
 # Internal libraries
 import wxStocks_modules.wxStocks_db_functions as db
 import wxStocks_modules.wxStocks_testing
-import wxStocks_modules.wxStocks_gui as gui
+# wxStocks_gui loaded below due to needing to get screen resolution from app
 
 # True globals are in config
 import config
@@ -71,6 +71,9 @@ config.TIMER_THREAD_ON = False
 ### START ###################################################################
 def main():
 	app = wx.App()
+	display_size = wx.DisplaySize()
+	config.DISPLAY_SIZE = display_size
+	import wxStocks_modules.wxStocks_gui as gui
 	gui.MainFrame().Show()
 	app.MainLoop()
 main()
