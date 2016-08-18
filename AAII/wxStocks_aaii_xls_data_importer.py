@@ -5,10 +5,13 @@ def line_number():
 	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
 
 try:
-	import modules.xlrd as xlrd # AAII is all excel files
+	import xlrd
 except:
-	print line_number(), "Error: xlrd is not installed"
-	sys.exit()
+	try:
+		import modules.xlrd as xlrd # AAII is all excel files
+	except:
+		print line_number(), "Error: xlrd is not installed"
+		sys.exit()
 
 from wxStocks_modules import wxStocks_utilities as utils
 from wxStocks_modules.wxStocks_classes import Stock, Account
@@ -66,54 +69,58 @@ def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 6048
 		print line_number(), "Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."
 		return
 
-	for filename in aaii_filenames:
-		print line_number(), "\n\nprocessing file %d of %d\n" % (aaii_filenames.index(filename)+1, len(aaii_filenames) )
+	for index, filename in enumerate(aaii_filenames):
+		#print line_number(), "\n\nprocessing file %d of %d\n" % (aaii_filenames.index(filename)+1, len(aaii_filenames) )
 		key_dict = process_aaii_xls_key_file(data_directory + "/" + filename[:-4] + "_Key.XLS")
-		process_aaii_xls_data_file(data_directory + "/" + filename, key_dict)
+		process_aaii_xls_data_file(data_directory + "/" + filename, key_dict, index, len(aaii_filenames))
 	db.save_GLOBAL_STOCK_DICT()
 	print line_number(), "AAII import complete."
 
 def process_aaii_xls_key_file(filename):
 	'grabs the long attribute names to map onto stock objects'
-	xlrd_workbook = xlrd.open_workbook(filename)
-	relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
+	spreadsheet = xlrd.open_workbook(filename, on_demand=0).sheet_by_index(0)
+	#xlrd_workbook = xlrd.open_workbook(filename)
+	#relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
+	#print relevant_spreadsheet_list
 
 	# only 1 sheet
-	if not len(relevant_spreadsheet_list) == 1:
-		print line_number(), ""
-		print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
-		print line_number(), "spreadsheet list > 1 sheet"
-		print line_number(), ""
-		return None
-	spreadsheet = relevant_spreadsheet_list[0]
+	#if not len(relevant_spreadsheet_list) == 1:
+	#	print line_number(), ""
+	#	print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
+	#	print line_number(), "spreadsheet list > 1 sheet"
+	#	print line_number(), ""
+	#	return None
+	#spreadsheet = relevant_spreadsheet_list[0]
 
 	spreadsheet_list_of_row_data = []
 	for i in range(spreadsheet.nrows):
 		row_list = spreadsheet.row_values(i)
 		spreadsheet_list_of_row_data.append(row_list)
 
+	spreadsheet_list_of_row_data = tuple(spreadsheet_list_of_row_data)
 	key_dict = {}
 	for row_list in spreadsheet_list_of_row_data[1:]:
-		key_dict[row_list[0]] = row_list[1]
+		key_dict[row_list[0]] = remove_inappropriate_characters_from_attribute_name(row_list[1])
 	#print line_number()
 	#pprint.pprint(key_dict)
 
 	return key_dict
 
-def process_aaii_xls_data_file(filename, key_dict):
+def process_aaii_xls_data_file(filename, key_dict, the_files_index_in_file_list, number_of_files_being_processed):
 	print line_number(), filename, "Start!"
-	xlrd_workbook = xlrd.open_workbook(filename)
-	relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
+	spreadsheet = xlrd.open_workbook(filename, on_demand=0).sheet_by_index(0)
+	#xlrd_workbook = xlrd.open_workbook(filename)
+	#relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
 	ticker_column_string = u"ticker"
 
 	# only 1 sheet
-	if not len(relevant_spreadsheet_list) == 1:
-		print line_number(), ""
-		print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
-		print line_number(), "spreadsheet list > 1 sheet"
-		print line_number(), ""
-		sys.exit()
-	spreadsheet = relevant_spreadsheet_list[0]
+	#if not len(relevant_spreadsheet_list) == 1:
+	#	print line_number(), ""
+	#	print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
+	#	print line_number(), "spreadsheet list > 1 sheet"
+	#	print line_number(), ""
+	#	sys.exit()
+	#spreadsheet = relevant_spreadsheet_list[0]
 
 	num_columns = spreadsheet.ncols
 	num_rows = spreadsheet.nrows
@@ -130,17 +137,39 @@ def process_aaii_xls_data_file(filename, key_dict):
 	#print line_number(), spreadsheet_list_of_row_data[0]
 
 	current_time = time.time()
-	for row_list in spreadsheet_list_of_row_data[1:]:
+
+	print "spreadsheet_list_of_row_data", len(spreadsheet_list_of_row_data[1:])
+	row_data_len = len(spreadsheet_list_of_row_data)
+	spreadsheet_list_of_row_data_attributes = tuple(spreadsheet_list_of_row_data[0])
+	spreadsheet_list_of_row_data_list = tuple(spreadsheet_list_of_row_data[1:])
+	start_time = time.time()
+	last_percent = 0
+	spent_time = 0
+	for row_list in spreadsheet_list_of_row_data_list:
+		raw_percent = float(spreadsheet_list_of_row_data_list.index(row_list))/row_data_len
+		percent = int(100*raw_percent)
+		percent_of_total_files_processed = float(the_files_index_in_file_list)/number_of_files_being_processed
+		percent_of_this_file_processed_of_all_files = raw_percent * (1./number_of_files_being_processed)
+		percent_of_entire_process = round(100*(percent_of_total_files_processed + percent_of_this_file_processed_of_all_files), 2)
+		whole_percent = int(percent)
+		if whole_percent > last_percent:
+			spent_time = int(time.time() - start_time)
+			last_percent = whole_percent 
+			print line_number(), spreadsheet_list_of_row_data_list.index(row_list), "of", row_data_len, "processing.", str(percent) + "%,", " of this file, which took", spent_time, "seconds.", str(percent_of_entire_process) + "%", "of total."
 		ticker = str(row_list[ticker_location])
+		#print line_number(), ticker
 		current_stock = db.create_new_Stock_if_it_doesnt_exist(ticker)
-		for attribute in spreadsheet_list_of_row_data[0]:
+		for attribute in spreadsheet_list_of_row_data_attributes:
+			#print line_number(), "stock attribute", spreadsheet_list_of_row_data[0].index(attribute), "of", len(spreadsheet_list_of_row_data[0])
 			# get the shortened attribute name here
-			attribute_index = spreadsheet_list_of_row_data[0].index(attribute)
+			attribute_index = spreadsheet_list_of_row_data_attributes.index(attribute)
+			#print line_number(), attribute
+			#print line_number(), attribute_index
 			if attribute_index == ticker_location:
 				continue
 			long_attribute_name = key_dict.get(attribute.upper())
 			#print line_number(), long_attribute_name
-			long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name)
+			#long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name) # added to keydict creation
 			#print line_number(), long_attribute_name
 			datum = row_list[attribute_index]
 			db.set_Stock_attribute(current_stock, long_attribute_name, datum, "_aa")
@@ -157,9 +186,7 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 	if "Inve$tWare" in attribute_string: # weird inve$tware names throwing errors below due to "$".
 		attribute_string = attribute_string.replace("Inve$tWare", "InvestWare")
 	acceptable_characters = list(string.letters + string.digits + "_")
-	unicode_acceptable_characters = []
-	for char in acceptable_characters:
-		unicode_acceptable_characters.append(unicode(char.decode('utf-8', "replace")))
+	unicode_acceptable_characters = [unicode(char.decode("utf-8", "ignore")) for char in acceptable_characters]
 	acceptable_characters = acceptable_characters + unicode_acceptable_characters
 	new_attribute_name = ""
 	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%", "#", u"#", ":", u":", "*", u"*"]
@@ -176,8 +203,8 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 					new_char = "_and_"
 				elif char in ["%", u"%"]:
 					new_char = "percent"
-				elif char in []:
-					new_char = "_"
+				elif char in ["'"]:
+					new_char = ""
 				else:
 					print line_number(), "Error:", char, ":", attribute_string
 					sys.exit()
