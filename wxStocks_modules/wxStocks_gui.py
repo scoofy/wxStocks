@@ -185,7 +185,6 @@ class WelcomePage(Tab):
                              gui_position.WelcomePage_welcome_page_text
                              )
         instructions_text = '''
-
     Instructions:   this program is essentially a work-flow following the tabs above.
     ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -224,7 +223,7 @@ class WelcomePage(Tab):
 
     '''
 
-        instructions = wx.StaticText(self, -1,
+        self.instructions = wx.StaticText(self, -1,
                                     instructions_text,
                                     gui_position.WelcomePage_instructions
                                     )
@@ -234,7 +233,8 @@ class WelcomePage(Tab):
         self.reset_password_button_horizontal_position = gui_position.WelcomePage_reset_password_button[0]
         self.reset_password_button_vertical_position = gui_position.WelcomePage_reset_password_button[1]
 
-        if config.ENCRYPTION_POSSIBLE:
+        if config.ENCRYPTION_POSSIBLE or True:
+            print line_number(), "FIX THIS DEBUG"
             self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
             self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
 
@@ -273,13 +273,13 @@ class WelcomePage(Tab):
 
         encryption_hardness_text = "Optional:\nEncryption Strength (1-24):"
         encryption_bump = gui_position.WelcomePage_text_field_vertical_offset_encryption_bump
-        optional_offset = 18
+        optional_offset = gui_position.WelcomePage_text_field_vertical_offset_optional_bump
         self.encryption_hardness_static_text = wx.StaticText(self, -1, encryption_hardness_text,
                                     (self.reset_password_button_horizontal_position,
-                                     self.reset_password_button_vertical_position + 120))
+                                     self.reset_password_button_vertical_position + encryption_bump))
         self.encryption_hardness_field = wx.TextCtrl(self, -1, "",
                                            (self.reset_password_button_horizontal_position + text_field_offset,
-                                            self.reset_password_button_vertical_position + text_field_vertical_offset + 120 + optional_offset),
+                                            self.reset_password_button_vertical_position + text_field_vertical_offset + encryption_bump + optional_offset),
                                            ) #style=wx.TE_PASSWORD | wx.TE_PROCESS_ENTER)
         self.encryption_hardness_field.SetHint("default = 8")
 
@@ -293,19 +293,33 @@ class WelcomePage(Tab):
         self.encryption_hardness_static_text.Hide()
         self.encryption_hardness_field.Hide()
 
-        self.reset_password_submit_button = wx.Button(self, label="Submit", pos=(self.reset_password_button_horizontal_position + text_field_offset + 10, self.reset_password_button_vertical_position), size=(-1,-1))
+        reset_password_bump = gui_position.WelcomePage_reset_password_bump
+        self.reset_password_submit_button = wx.Button(self,
+                                                      label="Submit",
+                                                      pos=(
+                                                            self.reset_password_button_horizontal_position + text_field_offset + reset_password_bump,
+                                                            self.reset_password_button_vertical_position
+                                                            ),
+                                                      size=(-1,-1))
         self.reset_password_submit_button.Bind(wx.EVT_BUTTON, self.resetPassword, self.reset_password_submit_button)
         self.reset_password_submit_button.Hide()
 
+        reset_password_negative_vertical_bump = gui_position.WelcomePage_reset_password_negative_vertical_bump
         self.password_reset_status_static_text = wx.StaticText(self, -1, "",
                                     (self.reset_password_button_horizontal_position,
-                                     self.reset_password_button_vertical_position - 30))
+                                     self.reset_password_button_vertical_position - reset_password_negative_vertical_bump))
 
 
-        self.delete_all_stock_data_horizontal_position = 835
-        self.delete_all_stock_data_vertical_position = 700
-        self.delete_all_stock_data = wx.Button(self, label="Delete All Stock Data", pos=(self.delete_all_stock_data_horizontal_position, self.delete_all_stock_data_vertical_position), size=(-1,-1))
-        self.delete_all_stock_data.Bind(wx.EVT_BUTTON, self.deleteAllStockData, self.delete_all_stock_data)
+        self.delete_all_stock_data_horizontal_position = gui_position.WelcomePage_delete_all_stock_data[0]
+        self.delete_all_stock_data_vertical_position = gui_position.WelcomePage_delete_all_stock_data[1]
+        self.delete_all_stock_data = wx.Button(self,
+                                               label="Delete All Stock Data",
+                                               pos=(self.delete_all_stock_data_horizontal_position,
+                                               self.delete_all_stock_data_vertical_position),
+                                               size=(-1,-1))
+        self.delete_all_stock_data.Bind(wx.EVT_BUTTON,
+                                        self.deleteAllStockData,
+                                        self.delete_all_stock_data)
 
         #self.function_to_test = utils.OnSaveAs
         #self.test_function_button = wx.Button(self, label="Execute", pos=(10, 10), size=(-1,-1))
@@ -322,6 +336,7 @@ class WelcomePage(Tab):
 
     def resetPasswordPrep(self, event):
         self.reset_password_button.Hide()
+        self.instructions.Hide()
 
         self.current_password_field.Clear()
         self.new_password_field.Clear()

@@ -50,19 +50,14 @@ QUATERNARY_STOCK_WEBSITE_ATTRIBUTE = user_data.QUATERNARY_STOCK_WEBSITE_ATTRIBUT
 #-------------------------------------------------
 
 SYSTEM = platform.system() # Detect OS
-print SYSTEM
-if SYSTEM == "Darwin":
-	# program was designed for OS X.
-	pass
-elif SYSTEM == "Windows":
-	# do something
-	pass
-elif SYSTEM == "Linux":
-	# do something
-	pass
-else:
+SYSTEM_INDEX = None
+try:
+	supported_systems = ["Darwin", "Linux", "Windows"]
+	SYSTEM_INDEX = supported_systems.index(SYSTEM)
+except Exception as e:
+	print e
 	print "This program has not be properly formatted for your OS. Edit the config file if needed."
-
+	sys.exit()
 
 IRRELEVANT_ATTRIBUTES = ["updated",
 	"epoch",
