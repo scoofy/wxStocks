@@ -3306,9 +3306,9 @@ class SalePrepPage(Tab):
         self.uid = config.SALE_PREP_PAGE_UNIQUE_ID
         self.parent = parent
         wx.Panel.__init__(self, parent)
-        trade_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              "Sale Prep",
-                             (10,10)
+                             gui_position.SalePrepPage.text
                              )
         self.ticker_list = []
         self.checkbox_list = []
@@ -3319,32 +3319,32 @@ class SalePrepPage(Tab):
             if not portfolio_exists:
                 continue
 
-            horizontal_offset = 0
+            horizontal_offset = gui_position.SalePrepPage.horizontal_offset
             if i>=5:
-                horizontal_offset = 200
+                horizontal_offset = gui_position.SalePrepPage.horizontal_offset_i_greater_than_n
             checkbox_to_add = wx.CheckBox(self, -1,
                                           config.PORTFOLIO_NAMES[i],
-                                          pos=((600+ horizontal_offset), (16*i)),
+                                          pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*i)),
                                           size=(-1,-1)
                                           )
             checkbox_to_add.SetValue(True)
             self.checkbox_list.append(checkbox_to_add)
 
-        line = wx.StaticLine(self, -1, pos=(0,83), size=(1000,-1))
+        line = wx.StaticLine(self, -1, pos=gui_position.SalePrepPage.line, size=gui_position.SalePrepPage.line_size)
 
-        refresh_button = wx.Button(self, label="Clear and Refresh Spreadsheet", pos=(110,5), size=(-1,-1))
+        refresh_button = wx.Button(self, label="Clear and Refresh Spreadsheet", pos=gui_position.SalePrepPage.refresh_button, size=(-1,-1))
         refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFill, refresh_button)
 
-        self.load_new_account_data_button = wx.Button(self, label="Refresh Accounts Data and Spreadsheet", pos=(110,30), size=(-1,-1))
+        self.load_new_account_data_button = wx.Button(self, label="Refresh Accounts Data and Spreadsheet", pos=gui_position.SalePrepPage.load_new_account_data_button, size=(-1,-1))
         self.load_new_account_data_button.Bind(wx.EVT_BUTTON, self.refreshAccountData, self.load_new_account_data_button)
 
-        self.save_button = wx.Button(self, label="Export for Trade Window", pos=(420,50), size=(-1,-1))
+        self.save_button = wx.Button(self, label="Export for Trade Window", pos=gui_position.SalePrepPage.save_button, size=(-1,-1))
         self.save_button.Bind(wx.EVT_BUTTON, self.exportSaleCandidates, self.save_button)
         self.save_button.Hide()
 
         self.saved_text = wx.StaticText(self, -1,
                                         "Data is now in memory.",
-                                        (433,55)
+                                        gui_position.SalePrepPage.saved_text
                                         )
         self.saved_text.Hide()
 
@@ -3541,7 +3541,7 @@ class SalePrepPage(Tab):
                 horizontal_offset = 200
             checkbox_to_add = wx.CheckBox(self, -1,
                                           config.PORTFOLIO_NAMES[i],
-                                          pos=((600 + horizontal_offset), (16*i)),
+                                          pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*i)),
                                           size=(-1,-1)
                                           )
 
@@ -3594,11 +3594,11 @@ class SalePrepPage(Tab):
                 print line_number(), exception
 
         # set size for grid
-        size = (800, 650)
+        size = gui_position.SalePrepPage.size
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
-            size = (width-20, height-128) # find the difference between the Frame and the grid size
+            size = (width-gui_position.SalePrepPage.width_adjust, height-gui_position.SalePrepPage.height_adjust) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
         self.sizer = None
@@ -3606,9 +3606,9 @@ class SalePrepPage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(83)
+        self.inner_sizer.AddSpacer(gui_position.SalePrepPage.AddSpacer)
 
-        new_grid = SalePrepGrid(self, -1, size=size, pos=(0,83))
+        new_grid = SalePrepGrid(self, -1, size=size, pos=gui_position.SalePrepPage.new_grid)
         new_grid.CreateGrid(num_rows, num_columns)
         new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
         #You need this code to resize
@@ -4296,7 +4296,7 @@ class TradePage(Tab):
         wx.Panel.__init__(self, parent)
         trade_page_text = wx.StaticText(self, -1,
                              "Set up trades",
-                             (10,10)
+                             gui_position.TradePage.trade_page_text
                              )
         self.ticker_list = []
 
@@ -4322,20 +4322,20 @@ class TradePage(Tab):
         #import_sale_candidates_button = wx.Button(self, label="Import sale candidates and refresh spreadsheet", pos=(0,30), size=(-1,-1))
         #import_sale_candidates_button.Bind(wx.EVT_BUTTON, self.importSaleCandidates, import_sale_candidates_button)
 
-        self.create_grid_button = wx.Button(self, label="Create grid", pos=(500,0), size=(-1,-1))
+        self.create_grid_button = wx.Button(self, label="Create grid", pos=gui_position.TradePage.create_grid_button, size=(-1,-1))
         self.create_grid_button.Bind(wx.EVT_BUTTON, self.makeGridOnButtonPush, self.create_grid_button)
         self.create_grid_button.Hide()
 
-        self.clear_grid_button = wx.Button(self, label="Clear", pos=(900,0), size=(-1,-1))
+        self.clear_grid_button = wx.Button(self, label="Clear", pos=gui_position.TradePage.clear_grid_button, size=(-1,-1))
         self.clear_grid_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_grid_button)
 
-        self.save_grid_button = wx.Button(self, label="Print", pos=(900,30), size=(-1,-1))
+        self.save_grid_button = wx.Button(self, label="Print", pos=gui_position.TradePage.save_grid_button, size=(-1,-1))
         self.save_grid_button.Bind(wx.EVT_BUTTON, self.saveGridAs, self.save_grid_button)
 
 
         self.grid_list = []
 
-        self.update_stocks_button = wx.Button(self, label="Update stocks with errors.", pos=(700,30), size=(-1,-1))
+        self.update_stocks_button = wx.Button(self, label="Update stocks with errors.", pos=gui_position.TradePage.update_stocks_button, size=(-1,-1))
         self.update_stocks_button.Bind(wx.EVT_BUTTON, self.updateStocksWithErrors, self.update_stocks_button)
         self.update_stocks_button.Hide()
         self.stocks_to_update = []
@@ -4343,7 +4343,7 @@ class TradePage(Tab):
 
         self.stock_update_pending_text = wx.StaticText(self, -1,
                              "Currently Updating Stocks",
-                             (700,30)
+                             gui_position.TradePage.stock_update_pending_text
                              )
         self.stock_update_pending_text.Hide()
 
@@ -4516,15 +4516,17 @@ class TradePage(Tab):
 
     def newGridFill(self, cursor_positon = (0,0)):
         #print line_number(), cursor_positon
-        size = (1000, 650)
+        size = gui_position.TradePage.newGridFill_size
+        width_adjust = gui_position.TradePage.width_adjust
+        height_adjust = gui_position.TradePage.height_adjust
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             #print line_number(), width, height
-            size = (width-20, height-128) # find the difference between the Frame and the grid size
+            size = (width-gui_position.TradePage.width_adjust, height-gui_position.TradePage.height_adjust) # find the difference between the Frame and the grid size
         except:
             pass
         # CREATE A GRID HERE
-        new_grid = TradeGrid(self, -1, size=size, pos=(0,83))
+        new_grid = TradeGrid(self, -1, size=size, pos=gui_position.TradePage.new_grid_position)
         # calc rows
 
         self.relevant_portfolio_name_list = []
@@ -4553,7 +4555,7 @@ class TradePage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(83)
+        self.inner_sizer.AddSpacer(gui_position.TradePage.newGridFill_AddSpacer)
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
         self.SetSizer(self.inner_sizer)
@@ -5059,27 +5061,27 @@ class UserFunctionsPage(Tab):
         self.parent = parent
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.AddSpacer(95)
+        self.sizer.AddSpacer(gui_position.UserFunctionsPage.AddSpacer)
 
         wx.Panel.__init__(self, parent)
 
-        self.general_text = wx.StaticText(self, -1, function_page_obj.general_text, (10,10))
-        self.additional_text = wx.StaticText(self, -1, function_page_obj.additional_text, (145,36))
+        self.general_text = wx.StaticText(self, -1, function_page_obj.general_text, gui_position.UserFunctionsPage.general_text)
+        self.additional_text = wx.StaticText(self, -1, function_page_obj.additional_text, (gui_position.UserFunctionsPage.additional_text))
 
-        self.save_button = wx.Button(self, label=function_page_obj.save_button_text, pos=(5, 30), size=(-1,-1))
+        self.save_button = wx.Button(self, label=function_page_obj.save_button_text, pos=gui_position.UserFunctionsPage.save_button, size=(-1,-1))
         self.save_button.Bind(wx.EVT_BUTTON, self.confirmSave, self.save_button)
 
-        self.reset_button = wx.Button(self, label=function_page_obj.reset_button_text, pos=(5, 60), size=(-1,-1))
+        self.reset_button = wx.Button(self, label=function_page_obj.reset_button_text, pos=gui_position.UserFunctionsPage.reset_button, size=(-1,-1))
         self.reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, self.reset_button)
 
         self.function_file_text = function_page_obj.function_that_loads_text_of_user_created_functions()
 
-        self.height_offset = 95
+        self.height_offset = gui_position.UserFunctionsPage.height_offset
 
         self.file_display = wx.TextCtrl(self, -1,
                                     self.function_file_text,
-                                    (10, self.height_offset),
-                                    size = (955, 580),
+                                    gui_position.UserFunctionsPage.file_display_position,
+                                    size = gui_position.UserFunctionsPage.file_display_size,
                                     style = wx.TE_MULTILINE ,
                                     )
 
@@ -5126,7 +5128,7 @@ class UserFunctionsPage(Tab):
         self.function_file_text = function_page_obj.function_to_load_defaults()
         function_page_obj.saveFunctionsFile(self.function_file_text)
 
-        size = (955, 580)
+        size = gui_position.UserFunctionsPage.resetToDefault_size
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - self.height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
@@ -5135,8 +5137,8 @@ class UserFunctionsPage(Tab):
 
         self.file_display = wx.TextCtrl(self, -1,
                                     self.function_file_text,
-                                    (10, self.height_offset),
-                                    size = size,
+                                    gui_position.UserFunctionsPage.file_display_position,
+                                    size = gui_position.UserFunctionsPage.file_display_size,
                                     style = wx.TE_MULTILINE ,
                                     )
         self.file_display.Show()

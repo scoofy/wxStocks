@@ -174,12 +174,49 @@ class ResearchPage(object):
     stock_default_vertical_offset = 10
 
 class SalePrepPage(object):
-    pass
-class TradePage(object):
-    pass
-class UserFunctionsPage(object):
-    pass
+    text = (10,10)
+    horizontal_offset = 0
+    horizontal_offset_i_greater_than_n = 200
+    checkbox_initial_offset = 600
+    checkbox_vertical_offset_factor = 16
+    line = (0,83)
+    line_size = (1000, -1)
+    refresh_button = (110,5)
+    load_new_account_data_button = (110,30)
+    save_button = (420,50)
+    saved_text = (433,55)
 
+    size = (800,650) #grid size
+    width_adjust = 20
+    height_adjust = 128
+    AddSpacer = 83
+    new_grid = (0,83)
+
+class TradePage(object):
+    trade_page_text = (10,10)
+    create_grid_button = (500,0)
+    clear_grid_button = (900,0)
+    save_grid_button = (900,30)
+    update_stocks_button = (700,30)
+    stock_update_pending_text = (700,30)
+
+    newGridFill_size = (1000,650)
+    width_adjust = 20
+    height_adjust = 128
+    new_grid_position = (0,83)
+    newGridFill_AddSpacer = 83
+
+class UserFunctionsPage(object):
+    AddSpacer = 95
+    general_text  = (10,10)
+    additional_text = (145,36)
+    save_button = (5,30)
+    reset_button = (5,60)
+    height_offset = 95
+    file_display_position = (10, height_offset)
+    file_display_size = (995,580)
+
+    resetToDefault_size = (995,580)
 
 
 
