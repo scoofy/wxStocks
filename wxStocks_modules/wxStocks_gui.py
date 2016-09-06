@@ -2895,10 +2895,12 @@ class CustomAnalysisPage(Tab):
             print line_number(), e
         #print line_number()
         #pp.pprint(config.GLOBAL_STOCK_DICT)
+        self.ticker_display_horizontal_offset = gui_position.CustomAnalysisPage.ticker_display_horizontal_offset
+        self.ticker_display_horizontal_size = gui_position.CustomAnalysisPage.ticker_display_horizontal_size
         self.ticker_display = wx.TextCtrl(self, -1,
                                     ticker_list_massive_str,
-                                    (3, height_offset),
-                                    size = (100, height),
+                                    (self.ticker_display_horizontal_offset, height_offset),
+                                    size = (self.ticker_display_horizontal_size, height),
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
         self.ticker_sizer.Add(self.ticker_display, 1, wx.BOTTOM|wx.EXPAND)
@@ -3055,14 +3057,14 @@ class ResearchPage(Tab):
         self.panel_name = "Research"
         self.uid = config.RESEARCH_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              self.title,
-                             (10,10)
+                             gui_position.ResearchPage.text
                              )
 
         self.ticker_input = wx.TextCtrl(self, -1,
                                    "",
-                                   (100, 8),
+                                   gui_position.ResearchPage.ticker_input,
                                    style=wx.TE_PROCESS_ENTER
                                    )
         self.ticker_input.SetHint("ticker")
@@ -3070,13 +3072,13 @@ class ResearchPage(Tab):
 
         self.add_stock_button = wx.Button(self,
                                           label="add",
-                                          pos=(200,5),
+                                          pos=gui_position.ResearchPage.add_stock_button,
                                           size=(-1,-1)
                                           )
         self.add_stock_button.Bind(wx.EVT_BUTTON, self.addStock, self.add_stock_button)
         self.remove_stock_button = wx.Button(self,
                                           label="remove",
-                                          pos=(300,5),
+                                          pos=gui_position.ResearchPage.remove_stock_button,
                                           size=(-1,-1)
                                           )
         self.remove_stock_button.Bind(wx.EVT_BUTTON, self.confirmRemove, self.remove_stock_button)
@@ -3087,7 +3089,7 @@ class ResearchPage(Tab):
         self.development_sample_stocks = ['googl', 'aapl', 'msft', 'gs', 'att', 'luv']
         self.bingbong = wx.Button(self,
                                   label="Load examples for development",
-                                  pos=(400,5),
+                                  pos=gui_position.ResearchPage.bingbong,
                                   size=(-1,-1)
                                   )
         self.bingbong.Bind(wx.EVT_BUTTON, self.development_examples_load_into_page, self.bingbong)
@@ -3175,14 +3177,15 @@ class ResearchPage(Tab):
 
     def generateGeneralResearchRow(self):
         row_object = ResearchPageRowDataList()
-        initial_button_vertical_offset = 44
-        initial_button_horizontal_offset = 60
-        text_additional_vertical_offset = 6
-        added_width = 0
+        research_initial_button_vertical_offset = gui_position.ResearchPage.research_initial_button_vertical_offset
+        research_initial_button_horizontal_offset = gui_position.ResearchPage.research_initial_button_horizontal_offset
+        research_text_additional_vertical_offset = gui_position.ResearchPage.research_text_additional_vertical_offset
+        research_added_width = gui_position.ResearchPage.research_added_width
+        research_default_horizontal_offset = gui_position.ResearchPage.research_default_horizontal_offset
 
         row_object.ticker_textctrl = wx.StaticText(self, -1,
                              "General:",
-                             (10, initial_button_vertical_offset + text_additional_vertical_offset)
+                             (research_default_horizontal_offset, research_initial_button_vertical_offset + research_text_additional_vertical_offset)
                              )
 
         for button_dict in config.GENERAL_RESEARCH_PAGE_DICT_LIST:
@@ -3194,10 +3197,10 @@ class ResearchPage(Tab):
                 button_width = -1
             button = wx.Button(self,
                           label=str(button_dict.get("button_text")),
-                          pos=(initial_button_horizontal_offset + added_width, (button_index) + initial_button_vertical_offset),
+                          pos=(research_initial_button_horizontal_offset + research_added_width, (button_index) + research_initial_button_vertical_offset),
                           size=(button_width, -1)
                           )
-            added_width += button.GetSize()[0]
+            research_added_width += button.GetSize()[0]
 
             lambda_function = button_dict.get("lambda_function")
             if lambda_function:
@@ -3216,31 +3219,32 @@ class ResearchPage(Tab):
 
     def generateStockRow(self, index, stock=None):
         row_object = ResearchPageRowDataList()
-        website_button_horizontal_offset = 60
-        initial_button_horizontal_offset = 144
-        initial_button_vertical_offset = 80
-        text_additional_vertical_offset = 6
-        second_line_text_additional_offset = 18
-        vertical_offset_per_stock = 40
-        added_width = 0
+        website_button_horizontal_offset = gui_position.ResearchPage.website_button_horizontal_offset
+        stock_initial_button_horizontal_offset = gui_position.ResearchPage.stock_initial_button_horizontal_offset
+        stock_initial_button_vertical_offset = gui_position.ResearchPage.stock_initial_button_vertical_offset
+        stock_text_additional_vertical_offset = gui_position.ResearchPage.stock_text_additional_vertical_offset
+        second_line_text_additional_offset = gui_position.ResearchPage.second_line_text_additional_offset
+        vertical_offset_per_stock = gui_position.ResearchPage.vertical_offset_per_stock
+        stock_added_width = gui_position.ResearchPage.stock_added_width
+        stock_default_vertical_offset = gui_position.ResearchPage.stock_default_vertical_offset
 
         if stock:
             row_object.stock = stock
             row_object.ticker_textctrl = wx.StaticText(self, -1,
                              stock.ticker,
-                             (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset)
+                             (stock_default_vertical_offset, (index*vertical_offset_per_stock) + stock_initial_button_vertical_offset + stock_text_additional_vertical_offset)
                              )
             if utils.return_stocks_website_if_possible(stock):
                 row_object.website_button = wx.Button(self,
                               label="website",
-                              pos=(website_button_horizontal_offset,(index*vertical_offset_per_stock) + initial_button_vertical_offset),
+                              pos=(website_button_horizontal_offset,(index*vertical_offset_per_stock) + stock_initial_button_vertical_offset),
                               size=(-1,-1)
                               )
                 row_object.website_button.Bind(wx.EVT_BUTTON, lambda event, row_obj = row_object: self.openWebsiteOnButtonClick(event, row_obj), row_object.website_button)
 
             row_object.firm_name_textctrl = wx.StaticText(self, -1,
                              stock.firm_name,
-                             (10, (index*vertical_offset_per_stock) + initial_button_vertical_offset + text_additional_vertical_offset + second_line_text_additional_offset),
+                             (stock_default_vertical_offset, (index*vertical_offset_per_stock) + stock_initial_button_vertical_offset + stock_text_additional_vertical_offset + second_line_text_additional_offset),
                              size = (100, -1)
                              )
             for button_dict in config.RESEARCH_PAGE_DICT_LIST:
@@ -3252,10 +3256,10 @@ class ResearchPage(Tab):
                     button_width = -1
                 button = wx.Button(self,
                               label=str(button_dict.get("button_text")),
-                              pos=(initial_button_horizontal_offset + added_width, (index*vertical_offset_per_stock) + initial_button_vertical_offset),
+                              pos=(stock_initial_button_horizontal_offset + stock_added_width, (index*vertical_offset_per_stock) + stock_initial_button_vertical_offset),
                               size=(button_width, -1)
                               )
-                added_width += button.GetSize()[0]
+                stock_added_width += button.GetSize()[0]
 
                 lambda_function = button_dict.get("lambda_function")
                 if lambda_function:

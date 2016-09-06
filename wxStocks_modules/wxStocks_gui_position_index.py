@@ -129,11 +129,11 @@ class RankPage(object):
 
 class CustomAnalysisPage(object):
     spreadsheet_size=(855,578)
-    spreadsheet_postion=(105,58)
+    spreadsheet_position=(105,58)
 
-    ticker_sizer_AddSpacer = spreadsheet_postion[1]
-    grid_sizer_AddSpacer = spreadsheet_postion[1]
-    height_offset = spreadsheet_postion[1]
+    ticker_sizer_AddSpacer = spreadsheet_position[1]
+    grid_sizer_AddSpacer = spreadsheet_position[1]
+    height_offset = spreadsheet_position[1]
 
     text = (10,10)
     refresh_screen_button = (110,5)
@@ -147,10 +147,32 @@ class CustomAnalysisPage(object):
     add_all_stocks_button = (710,31)
     analyse = (500,31)
 
+    ticker_display_horizontal_offset = 3
+    ticker_display_horizontal_size = 100
+
 
 
 class ResearchPage(object):
-    pass
+    text = (10,10)
+    ticker_input = (100, 8)
+    add_stock_button = (200,5)
+    remove_stock_button = (300,5)
+    bingbong = (400,5) #loads examples for development, i love them bingbongbrothers
+    research_initial_button_vertical_offset = 44
+    research_initial_button_horizontal_offset = 60
+    research_text_additional_vertical_offset = 6
+    research_added_width = 0
+    research_default_horizontal_offset = 10
+
+    website_button_horizontal_offset = 60
+    stock_initial_button_horizontal_offset = 144
+    stock_initial_button_vertical_offset = 80
+    stock_text_additional_vertical_offset = 6
+    second_line_text_additional_offset = 18
+    vertical_offset_per_stock = 40
+    stock_added_width = 0
+    stock_default_vertical_offset = 10
+
 class SalePrepPage(object):
     pass
 class TradePage(object):
