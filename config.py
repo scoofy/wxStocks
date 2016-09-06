@@ -49,11 +49,11 @@ QUATERNARY_STOCK_EXCHANGE_ATTRIBUTE = user_data.QUATERNARY_STOCK_EXCHANGE_ATTRIB
 QUATERNARY_STOCK_WEBSITE_ATTRIBUTE = user_data.QUATERNARY_STOCK_WEBSITE_ATTRIBUTE
 #-------------------------------------------------
 
-SYSTEM = platform.system() # Detect OS
-SYSTEM_INDEX = None
+OS_TYPE = platform.system() # Detect OS
+OS_TYPE_INDEX = None
 try:
-	supported_systems = ["Darwin", "Linux", "Windows"]
-	SYSTEM_INDEX = supported_systems.index(SYSTEM)
+	supported_os_types = ["Darwin", "Linux", "Windows"]
+	OS_TYPE_INDEX = supported_os_types.index(OS_TYPE)
 except Exception as e:
 	print e
 	print "This program has not be properly formatted for your OS. Edit the config file if needed."
@@ -177,7 +177,6 @@ FULL_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,637),(0,50)) # size=(width, height)
 RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((980,625),(0,60))
 RANK_PAGE_ATTRIBUTES_THAT_DO_NOT_SORT_REVERSED = ["symbol", "firm_name"]
 PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE = ((960,580),(0,50))
-CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE = ((855,578),(105,58))
 
 # Format below should match format here, otherwise errors! You may add fields, but ["button_text", "url", "width"] must exist.
 # [string, string with relevant swap above, int]

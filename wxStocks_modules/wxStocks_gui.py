@@ -182,7 +182,7 @@ class WelcomePage(Tab):
 
         welcome_page_text = wx.StaticText(self, -1,
                              "Welcome to wxStocks",
-                             gui_position.WelcomePage_welcome_page_text
+                             gui_position.WelcomePage.welcome_page_text
                              )
         instructions_text = '''
     Instructions:   this program is essentially a work-flow following the tabs above.
@@ -225,24 +225,24 @@ class WelcomePage(Tab):
 
         self.instructions = wx.StaticText(self, -1,
                                     instructions_text,
-                                    gui_position.WelcomePage_instructions
+                                    gui_position.WelcomePage.instructions
                                     )
 
 
         self.reset_password_button = None
-        self.reset_password_button_horizontal_position = gui_position.WelcomePage_reset_password_button[0]
-        self.reset_password_button_vertical_position = gui_position.WelcomePage_reset_password_button[1]
+        self.reset_password_button_horizontal_position = gui_position.WelcomePage.reset_password_button[0]
+        self.reset_password_button_vertical_position = gui_position.WelcomePage.reset_password_button[1]
 
         if config.ENCRYPTION_POSSIBLE or True:
             print line_number(), "FIX THIS DEBUG"
             self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
             self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
 
-        text_field_offset = gui_position.WelcomePage_text_field_offset
-        text_field_vertical_offset = gui_position.WelcomePage_text_field_vertical_offset
-        text_field_vertical_offset_small_bump = gui_position.WelcomePage_text_field_vertical_offset_small_bump
-        text_field_vertical_offset_medium_bump = gui_position.WelcomePage_text_field_vertical_offset_medium_bump
-        text_field_vertical_offset_large_bump = gui_position.WelcomePage_text_field_vertical_offset_large_bump
+        text_field_offset = gui_position.WelcomePage.text_field_offset
+        text_field_vertical_offset = gui_position.WelcomePage.text_field_vertical_offset
+        text_field_vertical_offset_small_bump = gui_position.WelcomePage.text_field_vertical_offset_small_bump
+        text_field_vertical_offset_medium_bump = gui_position.WelcomePage.text_field_vertical_offset_medium_bump
+        text_field_vertical_offset_large_bump = gui_position.WelcomePage.text_field_vertical_offset_large_bump
         current_password_text = "Current Password:"
         self.current_password_static_text = wx.StaticText(self, -1, current_password_text,
                                     (self.reset_password_button_horizontal_position,
@@ -272,8 +272,8 @@ class WelcomePage(Tab):
 
 
         encryption_hardness_text = "Optional:\nEncryption Strength (1-24):"
-        encryption_bump = gui_position.WelcomePage_text_field_vertical_offset_encryption_bump
-        optional_offset = gui_position.WelcomePage_text_field_vertical_offset_optional_bump
+        encryption_bump = gui_position.WelcomePage.text_field_vertical_offset_encryption_bump
+        optional_offset = gui_position.WelcomePage.text_field_vertical_offset_optional_bump
         self.encryption_hardness_static_text = wx.StaticText(self, -1, encryption_hardness_text,
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position + encryption_bump))
@@ -293,7 +293,7 @@ class WelcomePage(Tab):
         self.encryption_hardness_static_text.Hide()
         self.encryption_hardness_field.Hide()
 
-        reset_password_bump = gui_position.WelcomePage_reset_password_bump
+        reset_password_bump = gui_position.WelcomePage.reset_password_bump
         self.reset_password_submit_button = wx.Button(self,
                                                       label="Submit",
                                                       pos=(
@@ -304,14 +304,14 @@ class WelcomePage(Tab):
         self.reset_password_submit_button.Bind(wx.EVT_BUTTON, self.resetPassword, self.reset_password_submit_button)
         self.reset_password_submit_button.Hide()
 
-        reset_password_negative_vertical_bump = gui_position.WelcomePage_reset_password_negative_vertical_bump
+        reset_password_negative_vertical_bump = gui_position.WelcomePage.reset_password_negative_vertical_bump
         self.password_reset_status_static_text = wx.StaticText(self, -1, "",
                                     (self.reset_password_button_horizontal_position,
                                      self.reset_password_button_vertical_position - reset_password_negative_vertical_bump))
 
 
-        self.delete_all_stock_data_horizontal_position = gui_position.WelcomePage_delete_all_stock_data[0]
-        self.delete_all_stock_data_vertical_position = gui_position.WelcomePage_delete_all_stock_data[1]
+        self.delete_all_stock_data_horizontal_position = gui_position.WelcomePage.delete_all_stock_data[0]
+        self.delete_all_stock_data_vertical_position = gui_position.WelcomePage.delete_all_stock_data[1]
         self.delete_all_stock_data = wx.Button(self,
                                                label="Delete All Stock Data",
                                                pos=(self.delete_all_stock_data_horizontal_position,
@@ -503,17 +503,17 @@ class TickerPage(Tab):
         wx.Panel.__init__(self, parent)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.AddSpacer(88) # vertical offset
+        self.sizer.AddSpacer(gui_position.TickerPage.AddSpacer) # vertical offset
         self.SetSizer(self.sizer)
 
         text = wx.StaticText(self, -1,
                              "Welcome to the ticker page.",
-                             (10,10)
+                             gui_position.TickerPage.text
                              )
-        download_button = wx.Button(self, label="Download Tickers", pos=(5, 30), size=(-1,-1))
+        download_button = wx.Button(self, label="Download Tickers", pos=gui_position.TickerPage.download_button, size=(-1,-1))
         download_button.Bind(wx.EVT_BUTTON, self.confirmDownloadTickers, download_button)
 
-        refresh_button = wx.Button(self, label="Refresh", pos=(5, 60), size=(-1,-1))
+        refresh_button = wx.Button(self, label="Refresh", pos=gui_position.TickerPage.refresh_button, size=(-1,-1))
         refresh_button.Bind(wx.EVT_BUTTON, self.refreshTickers, refresh_button)
 
 
@@ -531,7 +531,7 @@ class TickerPage(Tab):
 
         more_text = wx.StaticText(self, -1,
                              "Currently downloads tickers from %s. To add or remove exchanges, edit the config file." % exchanges,
-                             (145,36)
+                             gui_position.TickerPage.more_text
                              )
 
         self.showAllTickers()
@@ -679,17 +679,17 @@ class YqlScrapePage(Tab):
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the scrape page",
-                             (10,10)
+                             gui_position.YqlScrapePage.text
                              )
-        self.scrape_button = wx.Button(self, label="Scrape YQL", pos=(5,100), size=(-1,-1))
+        self.scrape_button = wx.Button(self, label="Scrape YQL", pos=gui_position.YqlScrapePage.scrape_button, size=(-1,-1))
         self.scrape_button.Bind(wx.EVT_BUTTON, self.confirmScrape, self.scrape_button)
 
-        self.abort_scrape_button = wx.Button(self, label="Cancel Scrape", pos=(5,100), size=(-1,-1))
+        self.abort_scrape_button = wx.Button(self, label="Cancel Scrape", pos=gui_position.YqlScrapePage.abort_scrape_button, size=(-1,-1))
         self.abort_scrape_button.Bind(wx.EVT_BUTTON, self.abortScrape, self.abort_scrape_button)
         self.abort_scrape_button.Hide()
         self.abort_scrape = False
 
-        self.progress_bar = wx.Gauge(self, -1, 100, size=(995, -1), pos = (0, 200))
+        self.progress_bar = wx.Gauge(self, -1, 100, size=gui_position.YqlScrapePage.progress_bar_size, pos = gui_position.YqlScrapePage.progress_bar)
         self.progress_bar.Hide()
 
         self.numScrapedStocks = 0
@@ -702,18 +702,18 @@ class YqlScrapePage(Tab):
 
         self.total_relevant_tickers = wx.StaticText(self, -1,
                              label = "Total number of tickers = %d" % (self.numScrapedStocks + self.number_of_tickers_to_scrape),
-                             pos = (10,30)
+                             pos = gui_position.YqlScrapePage.total_relevant_tickers
                              )
         self.tickers_to_scrape = wx.StaticText(self, -1,
                              label = "Tickers that need to be scraped = %d" % self.number_of_tickers_to_scrape,
-                             pos = (10,50)
+                             pos = gui_position.YqlScrapePage.tickers_to_scrape
                              )
         sleep_time = config.SCRAPE_SLEEP_TIME
         scrape_time_secs = (self.number_of_tickers_to_scrape/config.SCRAPE_CHUNK_LENGTH) * sleep_time * 2
         scrape_time = utils.time_from_epoch(scrape_time_secs)
         self.scrape_time_text = wx.StaticText(self, -1,
                      label = "Time = %s" % scrape_time,
-                     pos = (10,70)
+                     pos = gui_position.YqlScrapePage.scrape_time_text
                      )
 
 
@@ -896,13 +896,15 @@ class CsvImportPage(Tab):
         wx.Panel.__init__(self, parent)
         text = wx.StaticText(self, -1,
                              "Welcome to the CSV data import page page.\nYou can make your own import functions under the function tab.",
-                             (10,10)
+                             gui_position.CsvImportPage.text
                              )
 
-        default_button_horizontal_position = 0
-        default_button_vertical_position = 50
-        default_dropdown_horizontal_offset = 100
-        default_dropdown_vertical_offset = 0
+        default_button_position = gui_position.CsvImportPage.default_button_position
+        default_button_horizontal_position = default_button_position[0]
+        default_button_vertical_position = default_button_position[1]
+        default_dropdown_offset = gui_position.CsvImportPage.default_dropdown_offset
+        default_dropdown_horizontal_offset = default_dropdown_offset[0]
+        default_dropdown_vertical_offset = default_dropdown_offset[1]
 
         import_button = wx.Button(self, label="import .csv", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
         import_button.Bind(wx.EVT_BUTTON, self.importCSV, import_button)
@@ -970,11 +972,13 @@ class XlsImportPage(Tab):
                              (10,10)
                              )
 
-        default_button_horizontal_position = 0
-        default_button_vertical_position = 50
-        default_dropdown_horizontal_offset = 100
-        default_dropdown_vertical_offset = 0
-        aaii_offset = 28 # if aaii files in aaii import folder, this button will appear below the import dropdown
+        default_button_position = gui_position.XlsImportPage.default_button_position
+        default_button_horizontal_position = default_button_position[0]
+        default_button_vertical_position = default_button_position[1]
+        default_dropdown_offset = gui_position.XlsImportPage.default_dropdown_offset
+        default_dropdown_horizontal_offset = default_dropdown_offset[0]
+        default_dropdown_vertical_offset = default_dropdown_offset[1]
+        aaii_offset = gui_position.XlsImportPage.aaii_offset # if aaii files in aaii import folder, this button will appear below the import dropdown
 
         import_button = wx.Button(self, label="import .xls", pos=(default_button_horizontal_position, default_button_vertical_position), size=(-1,-1))
         import_button.Bind(wx.EVT_BUTTON, self.importXLS, import_button)
@@ -1045,7 +1049,7 @@ class XlsImportPage(Tab):
             print line_number(), path
         aaii_data_folder_dialogue.Destroy()
         if path:
-            aaii.import_aaii_files_from_data_folder(path=path, time_until_data_needs_update = 100000000000)
+            aaii.import_aaii_files_from_data_folder(path=path)
 ##
 class PortfolioPage(Tab):
     def __init__(self, parent):
@@ -1122,7 +1126,7 @@ class PortfolioAccountTab(Tab):
         self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.AddSpacer(50)
+        self.sizer.AddSpacer(gui_position.PortfolioAccountTab.AddSpacer)
         self.SetSizer(self.sizer)
 
         if not self.portfolio_obj:
@@ -1135,24 +1139,24 @@ class PortfolioAccountTab(Tab):
                     print line_number(), e
                     self.portfolio_obj = None
 
-        self.add_button = wx.Button(self, label="Update from file", pos=(5,0), size=(-1,-1))
+        self.add_button = wx.Button(self, label="Update from file", pos=gui_position.PortfolioAccountTab.add_button, size=(-1,-1))
         self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button)
 
         self.portfolio_import_name_list = meta.return_portfolio_import_function_short_names()
-        self.drop_down = wx.ComboBox(self, pos=(11,25), choices=self.portfolio_import_name_list)
+        self.drop_down = wx.ComboBox(self, pos=gui_position.PortfolioAccountTab.drop_down, choices=self.portfolio_import_name_list)
 
         self.triple_list = meta.return_portfolio_import_function_triple()
 
         self.portfolio_import_name = None
 
 
-        self.delete_button = wx.Button(self, label="Delete this portfolio", pos=(800,0), size=(-1,-1))
+        self.delete_button = wx.Button(self, label="Delete this portfolio", pos=gui_position.PortfolioAccountTab.delete_button, size=(-1,-1))
         self.delete_button.Bind(wx.EVT_BUTTON, self.confirmDeleteAccount, self.delete_button)
 
-        self.rename_button = wx.Button(self, label="Rename this portfolio", pos=(568,22), size=(-1,-1))
+        self.rename_button = wx.Button(self, label="Rename this portfolio", pos=gui_position.PortfolioAccountTab.rename_button, size=(-1,-1))
         self.rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, self.rename_button)
 
-        self.change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=(568,0), size=(-1,-1))
+        self.change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=gui_position.PortfolioAccountTab.change_number_of_portfolios_button, size=(-1,-1))
         self.change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, self.change_number_of_portfolios_button)
 
         #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
@@ -1163,22 +1167,22 @@ class PortfolioAccountTab(Tab):
             self.spreadSheetFill(self.portfolio_obj)
         self.screen_grid = None
 
-        self.ticker_input = wx.TextCtrl(self, -1, "", (250, 3))
+        self.ticker_input = wx.TextCtrl(self, -1, "", gui_position.PortfolioAccountTab.ticker_input)
         self.ticker_input.SetHint("ticker")
 
-        self.share_input = wx.TextCtrl(self, -1, "", (250, 25))
+        self.share_input = wx.TextCtrl(self, -1, "", gui_position.PortfolioAccountTab.share_input)
         self.share_input.SetHint("# shares")
 
-        self.cost_basis_input = wx.TextCtrl(self, -1, "", (350, 3))
+        self.cost_basis_input = wx.TextCtrl(self, -1, "", gui_position.PortfolioAccountTab.cost_basis_input)
         self.cost_basis_input.SetHint("Cash/Cost")
 
-        self.update_button = wx.Button(self, label="Update Data", pos=(346,22), size=(-1,-1))
+        self.update_button = wx.Button(self, label="Update Data", pos=gui_position.PortfolioAccountTab.update_button, size=(-1,-1))
         self.update_button.Bind(wx.EVT_BUTTON, self.updateManually, self.update_button)
 
-        self.update_prices_button = wx.Button(self, label="Update Prices", pos=(446,22), size=(-1,-1))
+        self.update_prices_button = wx.Button(self, label="Update Prices", pos=gui_position.PortfolioAccountTab.update_prices_button, size=(-1,-1))
         self.update_prices_button.Bind(wx.EVT_BUTTON, self.confirmUpdatePrices, self.update_prices_button)
 
-        self.remove_data_button = wx.Button(self, label="Remove Data", pos = (446, 0), size = (-1,-1))
+        self.remove_data_button = wx.Button(self, label="Remove Data", pos=gui_position.PortfolioAccountTab.remove_data_button, size = (-1,-1))
         self.remove_data_button.Bind(wx.EVT_BUTTON, self.confirmRemoveData, self.remove_data_button)
 
         print line_number(), "PortfolioAccountTab loaded"
@@ -1707,17 +1711,17 @@ class AllStocksPage(Tab):
         self.uid = config.ALL_STOCKS_PAGE_UNIQUE_ID
         self.parent = parent
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              "Full Stock List",
-                             (10,10)
+                             gui_position.AllStocksPage.text
                              )
 
         self.spreadsheet = None
 
-        refresh_button = wx.Button(self, label="refresh", pos=(110,4), size=(-1,-1))
+        refresh_button = wx.Button(self, label="refresh", pos=gui_position.AllStocksPage.refresh_button, size=(-1,-1))
         refresh_button.Bind(wx.EVT_BUTTON, self.spreadSheetFillAllStocks, refresh_button)
 
-        reset_attribute_button = wx.Button(self, label="reset attributes displayed", pos=(800,4), size=(-1,-1))
+        reset_attribute_button = wx.Button(self, label="reset attributes displayed", pos=gui_position.AllStocksPage.reset_attribute_button, size=(-1,-1))
         reset_attribute_button.Bind(wx.EVT_BUTTON, self.resetGlobalAttributeSet, reset_attribute_button)
 
 
@@ -1783,36 +1787,36 @@ class StockDataPage(Tab):
         self.parent = parent
         wx.Panel.__init__(self, parent)
 
-        rank_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              "Data for stock:",
-                             (10,10)
+                             gui_position.StockDataPage.text
                              )
         self.ticker_input = wx.TextCtrl(self, -1,
                                    "",
-                                   (110, 8),
+                                   gui_position.StockDataPage.ticker_input,
                                    style=wx.TE_PROCESS_ENTER
                                    )
         self.ticker_input.SetHint("ticker")
         self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
 
-        load_screen_button = wx.Button(self,
+        look_up_button = wx.Button(self,
                                           label="look up",
-                                          pos=(210,5),
+                                          pos=gui_position.StockDataPage.look_up_button,
                                           size=(-1,-1)
                                           )
-        load_screen_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, load_screen_button)
+        look_up_button.Bind(wx.EVT_BUTTON, self.createOneStockSpreadSheet, look_up_button)
 
 
         self.search_data = wx.TextCtrl(self, -1,
                                    "",
-                                   (110, 31),
+                                   gui_position.StockDataPage.search_data,
                                    style=wx.TE_PROCESS_ENTER
                                    )
         self.search_data.SetHint("search data")
         self.search_data.Bind(wx.EVT_KEY_UP, self.searchData)
         self.search_button = wx.Button(self,
                                          label="search",
-                                          pos=(210, 28),
+                                          pos=gui_position.StockDataPage.search_button,
                                          size=(-1,-1)
                                          )
         self.search_button.Bind(wx.EVT_BUTTON, self.searchData, self.search_button)
@@ -1820,7 +1824,7 @@ class StockDataPage(Tab):
 
         update_yql_basic_data_button = wx.Button(self,
                                          label="update basic data",
-                                         pos=(300,5),
+                                         pos=gui_position.StockDataPage.update_yql_basic_data_button,
                                          size=(-1,-1)
                                          )
         #update_annual_data_button = wx.Button(self,
@@ -1837,7 +1841,7 @@ class StockDataPage(Tab):
 
         update_additional_data_button = wx.Button(self,
                                           label="update additional data",
-                                          pos=(430,5),
+                                          pos=gui_position.StockDataPage.update_additional_data_button,
                                           size=(-1,-1)
                                           )
 
@@ -1968,19 +1972,19 @@ class ScreenPage(Tab):
         self.uid = config.SCREEN_PAGE_UNIQUE_ID
         self.parent = parent
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              "Screen Stocks",
-                             (10,10)
+                             gui_position.ScreenPage.text
                              )
-        screen_button = wx.Button(self, label="screen", pos=(110,4), size=(-1,-1))
+        screen_button = wx.Button(self, label="screen", pos=gui_position.ScreenPage.screen_button, size=(-1,-1))
         screen_button.Bind(wx.EVT_BUTTON, self.screenStocks, screen_button)
 
         self.screen_name_list = meta.return_screen_function_short_names()
-        self.drop_down = wx.ComboBox(self, pos=(210, 6), choices=self.screen_name_list)
+        self.drop_down = wx.ComboBox(self, pos=gui_position.ScreenPage.drop_down, choices=self.screen_name_list)
 
         self.triple_list = meta.return_screen_function_triple()
 
-        self.save_screen_button = wx.Button(self, label="save", pos=(800,4), size=(-1,-1))
+        self.save_screen_button = wx.Button(self, label="save", pos=gui_position.ScreenPage.save_screen_button, size=(-1,-1))
         self.save_screen_button.Bind(wx.EVT_BUTTON, self.saveScreen, self.save_screen_button)
         self.save_screen_button.Hide()
 
@@ -2037,7 +2041,8 @@ class ScreenPage(Tab):
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
-            size = (width-20, height-128) # find the difference between the Frame and the grid size
+            spreadsheet_width_height_offset = gui_position.ScreenPage.spreadsheet_width_height_offset
+            size = (width-spreadsheet_width_height_offset[0], height-spreadsheet_width_height_offset[1]) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
         self.sizer = None
@@ -2124,14 +2129,14 @@ class SavedScreenPage(Tab):
         self.uid = config.SAVED_SCREEN_PAGE_UNIQUE_ID
         self.parent = parent
         wx.Panel.__init__(self, parent)
-        welcome_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              "Saved screens",
-                             (10,10)
+                             gui_position.SavedScreenPage.text
                              )
-        refresh_screen_button = wx.Button(self, label="refresh list", pos=(110,5), size=(-1,-1))
+        refresh_screen_button = wx.Button(self, label="refresh list", pos=gui_position.SavedScreenPage.refresh_screen_button, size=(-1,-1))
         refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, refresh_screen_button)
 
-        load_screen_button = wx.Button(self, label="load screen", pos=(200,5), size=(-1,-1))
+        load_screen_button = wx.Button(self, label="load screen", pos=gui_position.SavedScreenPage.load_screen_button, size=(-1,-1))
         load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
 
 
@@ -2141,13 +2146,13 @@ class SavedScreenPage(Tab):
             self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)]
 
         self.drop_down = wx.ComboBox(self, value="",
-                                     pos=(305, 6),
+                                     pos=gui_position.SavedScreenPage.drop_down,
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
 
         self.currently_viewed_screen = None
-        self.delete_screen_button = wx.Button(self, label="delete", pos=(880,4), size=(-1,-1))
+        self.delete_screen_button = wx.Button(self, label="delete", pos=gui_position.SavedScreenPage.delete_screen_button, size=(-1,-1))
         self.delete_screen_button.Bind(wx.EVT_BUTTON, self.deleteScreen, self.delete_screen_button)
         self.delete_screen_button.Hide()
 
@@ -2241,7 +2246,8 @@ class SavedScreenPage(Tab):
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             #print line_number(), width, height
-            size = (width-20, height-128) # find the difference between the Frame and the grid size
+            spreadsheet_width_height_offset = gui_position.SavedScreenPage.spreadsheet_width_height_offset
+            size = (width-spreadsheet_width_height_offset[0], height-spreadsheet_width_height_offset[1]) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
         self.sizer = None
@@ -2288,19 +2294,19 @@ class RankPage(Tab):
 
         rank_page_text = wx.StaticText(self, -1,
                              self.title,
-                             (10,10)
+                             gui_position.RankPage.rank_page_text
                              )
 
-        refresh_screen_button = wx.Button(self, label="refresh", pos=(110,5), size=(-1,-1))
+        refresh_screen_button = wx.Button(self, label="refresh", pos=gui_position.RankPage.refresh_screen_button, size=(-1,-1))
         refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, refresh_screen_button)
 
-        load_screen_button = wx.Button(self, label="add screen", pos=(200,5), size=(-1,-1))
+        load_screen_button = wx.Button(self, label="add screen", pos=gui_position.RankPage.load_screen_button, size=(-1,-1))
         load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, load_screen_button)
 
-        load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
+        load_portfolio_button = wx.Button(self, label="add account", pos=gui_position.RankPage.load_portfolio_button, size=(-1,-1))
         load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, load_portfolio_button)
 
-        update_additional_data_button = wx.Button(self, label="update additional data", pos=(5,30), size=(-1,-1))
+        update_additional_data_button = wx.Button(self, label="update additional data", pos=gui_position.RankPage.update_additional_data_button, size=(-1,-1))
         update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalData, update_additional_data_button)
 
 
@@ -2317,7 +2323,7 @@ class RankPage(Tab):
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
             self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)] # add conditional to remove old screens
         self.drop_down = wx.ComboBox(self,
-                                     pos=(305, 6),
+                                     pos=gui_position.RankPage.drop_down,
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -2330,18 +2336,18 @@ class RankPage(Tab):
             #print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
-                                     pos=(305, 31),
+                                     pos=gui_position.RankPage.accounts_drop_down,
                                      choices=config.PORTFOLIO_NAMES,
                                      style = wx.TE_READONLY
                                      )
 
 
         self.currently_viewed_screen = None
-        self.clear_button = wx.Button(self, label="clear", pos=(890,4), size=(-1,-1))
+        self.clear_button = wx.Button(self, label="clear", pos=gui_position.RankPage.clear_button, size=(-1,-1))
         self.clear_button.Bind(wx.EVT_BUTTON, self.clearGrid, self.clear_button)
         self.clear_button.Hide()
 
-        self.sort_button = wx.Button(self, label="Sort by:", pos=(420,30), size=(-1,-1))
+        self.sort_button = wx.Button(self, label="Sort by:", pos=gui_position.RankPage.sort_button, size=(-1,-1))
         self.sort_button.Bind(wx.EVT_BUTTON, self.sortStocks, self.sort_button)
 
         sort_drop_down_width = -1
@@ -2349,7 +2355,7 @@ class RankPage(Tab):
             sort_drop_down_width = 480
 
         self.sort_drop_down = wx.ComboBox(self,
-                                     pos=(520, 31),
+                                     pos=gui_position.RankPage.sort_drop_down,
                                      choices=self.full_attribute_list,
                                      style = wx.TE_READONLY,
                                      size = (sort_drop_down_width, -1)
@@ -2359,10 +2365,10 @@ class RankPage(Tab):
 
         self.rank_triple_list = meta.return_rank_function_triple()
         self.rank_name_list = meta.return_rank_function_short_names()
-        self.rank_button =  wx.Button(self, label="Rank by:", pos=(420, 5), size=(-1,-1))
+        self.rank_button =  wx.Button(self, label="Rank by:", pos=gui_position.RankPage.rank_button, size=(-1,-1))
         self.rank_button.Bind(wx.EVT_BUTTON, self.rankStocks, self.rank_button)
         self.rank_drop_down = wx.ComboBox(self,
-                                     pos=(520, 6),
+                                     pos=gui_position.RankPage.rank_drop_down,
                                      choices=self.rank_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -2727,8 +2733,8 @@ class CustomAnalysisPage(Tab):
         self.ticker_sizer = wx.BoxSizer(wx.VERTICAL)
         self.grid_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.ticker_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
-        self.grid_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.ticker_sizer.AddSpacer(gui_position.CustomAnalysisPage.ticker_sizer_AddSpacer)
+        self.grid_sizer.AddSpacer(gui_position.CustomAnalysisPage.grid_sizer_AddSpacer)
 
         self.sizer.Add(self.ticker_sizer, 0, wx.BOTTOM|wx.EXPAND)
         self.sizer.Add(self.grid_sizer, 1, wx.ALL|wx.EXPAND)
@@ -2741,35 +2747,31 @@ class CustomAnalysisPage(Tab):
         self.SetSizer(self.sizer)
 
 
-        #self.inner_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        #self.inner_sizer.AddSpacer(config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][0])
-
-
         if self.doc_string:
             self.panel_name = self.doc_string
         elif len(self.function_name) < 30:
             self.panel_name = self.function_name
         else:
             self.panel_name = "Custom Analysis " + str(self.page_index)
-        welcome_page_text = wx.StaticText(self, -1,
+        text = wx.StaticText(self, -1,
                              self.panel_name,
-                             (10,10)
+                             gui_position.CustomAnalysisPage.text
                              )
 
-        self.refresh_screen_button = wx.Button(self, label="refresh", pos=(110,5), size=(-1,-1))
+        self.refresh_screen_button = wx.Button(self, label="refresh", pos=gui_position.CustomAnalysisPage.refresh_screen_button, size=(-1,-1))
         self.refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, self.refresh_screen_button)
 
-        self.load_screen_button = wx.Button(self, label="add screen", pos=(200,5), size=(-1,-1))
+        self.load_screen_button = wx.Button(self, label="add screen", pos=gui_position.CustomAnalysisPage.load_screen_button, size=(-1,-1))
         self.load_screen_button.Bind(wx.EVT_BUTTON, self.loadScreen, self.load_screen_button)
 
-        self.load_portfolio_button = wx.Button(self, label="add account", pos=(191,30), size=(-1,-1))
+        self.load_portfolio_button = wx.Button(self, label="add account", pos=gui_position.CustomAnalysisPage.load_portfolio_button, size=(-1,-1))
         self.load_portfolio_button.Bind(wx.EVT_BUTTON, self.loadAccount, self.load_portfolio_button)
 
         self.existing_screen_name_list = []
         if config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST:
             self.existing_screen_name_list = [i[0] for i in reversed(config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST)] # add conditional to remove old screens
         self.screen_drop_down = wx.ComboBox(self,
-                                     pos=(305, 6),
+                                     pos=gui_position.CustomAnalysisPage.screen_drop_down,
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -2782,13 +2784,13 @@ class CustomAnalysisPage(Tab):
             #print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
-                                     pos=(305, 31),
+                                     pos=gui_position.CustomAnalysisPage.accounts_drop_down,
                                      choices=config.PORTFOLIO_NAMES,
                                      style = wx.TE_READONLY
                                      )
 
 
-        self.clear_button = wx.Button(self, label="clear", pos=(840,31), size=(-1,-1))
+        self.clear_button = wx.Button(self, label="clear", pos=gui_position.CustomAnalysisPage.clear_button, size=(-1,-1))
         self.clear_button.Bind(wx.EVT_BUTTON, self.clearSpreadsheet, self.clear_button)
         self.clear_button.Hide()
 
@@ -2798,7 +2800,7 @@ class CustomAnalysisPage(Tab):
 
         self.ticker_input = wx.TextCtrl(self, -1,
                                    "",
-                                   (805, 8),
+                                   gui_position.CustomAnalysisPage.ticker_input,
                                    style=wx.TE_PROCESS_ENTER
                                    )
         self.ticker_input.SetHint("ticker")
@@ -2806,21 +2808,21 @@ class CustomAnalysisPage(Tab):
 
         self.add_one_stock_button = wx.Button(self,
                                           label="Add stock:",
-                                          pos=(710,5),
+                                          pos=gui_position.CustomAnalysisPage.add_one_stock_button,
                                           size=(-1,-1)
                                           )
         self.add_one_stock_button.Bind(wx.EVT_BUTTON, self.addOneStock, self.add_one_stock_button)
 
         self.add_all_stocks_button = wx.Button(self,
                                           label="Add all stocks",
-                                          pos=(710,31),
+                                          pos= gui_position.CustomAnalysisPage.add_all_stocks_button,
                                           size=(-1,-1)
                                           )
         self.add_all_stocks_button.Bind(wx.EVT_BUTTON, self.loadAllStocks, self.add_all_stocks_button)
 
         self.analyse = wx.Button(self,
                                           label="Analyse",
-                                          pos=(500,31),
+                                          pos=gui_position.CustomAnalysisPage.analyse,
                                           size=(-1,-1)
                                           )
         self.analyse.Bind(wx.EVT_BUTTON, self.loadCustomSpreadsheet, self.analyse)
@@ -2884,7 +2886,7 @@ class CustomAnalysisPage(Tab):
         for stock in stock_list:
             ticker_list_massive_str += stock.symbol
             ticker_list_massive_str += "\n"
-        height_offset = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1][1]
+        height_offset = gui_position.CustomAnalysisPage.height_offset
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             #print line_number(), width, height
@@ -2961,7 +2963,7 @@ class CustomAnalysisPage(Tab):
         #print line_number(), list_of_spreadsheet_cells
 
         #You need this code to resize
-        size = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.CustomAnalysisPage.spreadsheet_size
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
@@ -2982,8 +2984,8 @@ class CustomAnalysisPage(Tab):
     def create_custom_analysis_spread_sheet(self,
         cell_list,
         held_ticker_list = [] # not used currently
-        , size = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[0]
-        , position = config.CUSTOM_ANALYSIS_SPREADSHEET_SIZE_POSITION_TUPLE[1]
+        , size = gui_position.CustomAnalysisPage.spreadsheet_size
+        , position = gui_position.CustomAnalysisPage.spreadsheet_position
         , enable_editing = False
         ):
 
