@@ -3778,7 +3778,7 @@ class SalePrepPage(Tab):
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3795,7 +3795,7 @@ class SalePrepPage(Tab):
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3811,7 +3811,7 @@ class SalePrepPage(Tab):
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3824,7 +3824,7 @@ class SalePrepPage(Tab):
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3838,7 +3838,7 @@ class SalePrepPage(Tab):
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -4124,7 +4124,7 @@ class SalePrepPage(Tab):
                 stocks_sale_check_cell.text_color = "black"
             else:
                 # Bad input
-                self.setGridError(row, number = number_of_shares_to_sell)
+                self.setGridError(row, row_obj.row_title, number = number_of_shares_to_sell)
                 return
 
         if column == self.percent_of_shares_cell.col: # by % of stock held
@@ -4134,7 +4134,7 @@ class SalePrepPage(Tab):
                     value = float(value)/100
                 except Exception, exception:
                     print line_number(), exception
-                    self.setGridError(row, percentage = value)
+                    self.setGridError(row, row_obj.row_title, percentage = value)
                     return
             else:
                 try:
@@ -4144,7 +4144,7 @@ class SalePrepPage(Tab):
                 except Exception, exception:
                     print line_number(), exception
                     if value != "":
-                        self.setGridError(row, percentage = value)
+                        self.setGridError(row, row_obj.row_title, percentage = value)
                         return
             percent_of_holdings_to_sell = value
 
@@ -4186,7 +4186,7 @@ class SalePrepPage(Tab):
                     stocks_percent_of_shares_copy_cell.text = str(0.) + "%"
                     stocks_percent_of_shares_copy_cell.value = 0.
             else:
-                self.setGridError(row, percentage = percent_of_holdings_to_sell)
+                self.setGridError(row, row_obj.row_title, percentage = percent_of_holdings_to_sell)
                 return
 
         if price is not None and number_of_shares_to_sell:
@@ -4232,8 +4232,10 @@ class SalePrepPage(Tab):
         self.exportSaleCandidates("event")
 
 
-    def setGridError(self, row, number = None, percentage = None):
-        row_obj = self.rows_dict.get(str(row))
+    def setGridError(self, row, row_obj_row_title, number = None, percentage = None):
+        row_obj = self.rows_dict.get(str(row_obj_row_title))
+        print line_number(), self.rows_dict
+        print line_number(), row_obj
 
         stocks_num_of_shares_copy_cell = row_obj.cell_dict.get(str(self.number_of_shares_copy_cell.col))
         stocks_percent_of_shares_copy_cell = row_obj.cell_dict.get(str(self.percent_of_shares_copy_cell.col))
