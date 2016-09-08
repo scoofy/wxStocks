@@ -190,7 +190,7 @@ class SalePrepPage(object):
     size = (800,650) #grid size
     width_adjust = 20
     height_adjust = 128
-    AddSpacer = 83
+    AddSpacer = [83,0,57][config.OS_TYPE_INDEX]
     new_grid_position = [(0,83),(),(0,57)][config.OS_TYPE_INDEX]
 
 class TradePage(object):
