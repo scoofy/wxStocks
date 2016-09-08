@@ -196,16 +196,16 @@ class SalePrepPage(object):
 class TradePage(object):
     trade_page_text = (10,10)
     create_grid_button = (500,0)
-    clear_grid_button = (900,0)
-    save_grid_button = (900,30)
+    clear_grid_button = [(900,0),(),(default_width-112,0)][config.OS_TYPE_INDEX]
+    save_grid_button = [(900,30),(),(default_width-112,27)][config.OS_TYPE_INDEX]
     update_stocks_button = (700,30)
     stock_update_pending_text = (700,30)
 
-    newGridFill_size = (1000,650)
+    newGridFill_size = [(1000,650),(),(1000,default_height)][config.OS_TYPE_INDEX]
     width_adjust = 20
     height_adjust = 128
-    new_grid_position = (0,83)
-    newGridFill_AddSpacer = 83
+    new_grid_position = [(0,83),(),(0,57)][config.OS_TYPE_INDEX]
+    newGridFill_AddSpacer = [83, 0, 57][config.OS_TYPE_INDEX]
 
 class UserFunctionsPage(object):
     AddSpacer = 95
