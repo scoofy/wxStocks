@@ -61,7 +61,7 @@ class XlsImportPage(object):
 #PortfolioPage
 ##############
 class PortfolioAccountTab(object):
-    AddSpacer = 54
+    AddSpacer = [54,0,56][config.OS_TYPE_INDEX]
     add_button = (5,0)
     drop_down = [(11,25),(6,27),(6,27)][config.OS_TYPE_INDEX]
     delete_button = [(800,0),(),(655,0)][config.OS_TYPE_INDEX]
@@ -114,8 +114,8 @@ class SavedScreenPage(object):
 class RankPage(object):
     rank_page_text = (10,10)
     refresh_screen_button = [(110,5),(),(57,5)][config.OS_TYPE_INDEX]
-    load_screen_button = (147,5)
-    load_portfolio_button = (147,30)
+    load_screen_button = [(200,5),(),(147,5)][config.OS_TYPE_INDEX]
+    load_portfolio_button = [(191,30),(),(147,30)][config.OS_TYPE_INDEX]
     update_additional_data_button = (5,30)
     #update_annual_data_button
     #update_analyst_estimates_button
@@ -135,17 +135,16 @@ class CustomAnalysisPage(object):
     grid_sizer_AddSpacer = spreadsheet_position[1]
     height_offset = spreadsheet_position[1]
 
-    text = (10,10)
-    refresh_screen_button = (110,5)
-    load_screen_button = (200,5)
-    load_portfolio_button = (191,30)
-    screen_drop_down = (305, 6)
-    accounts_drop_down = (305, 31)
-    clear_button = (840,31)
-    ticker_input = (805,8)
-    add_one_stock_button = (710,5)
-    add_all_stocks_button = (710,31)
-    analyse = (500,31)
+    refresh_screen_button = [(110,5),(),(57,5)][config.OS_TYPE_INDEX]
+    load_screen_button = [(200,5),(),(147,5)][config.OS_TYPE_INDEX]
+    load_portfolio_button = [(191,30),(),(147,30)][config.OS_TYPE_INDEX]
+    screen_drop_down = [(305, 6),(),(238,6)][config.OS_TYPE_INDEX]
+    accounts_drop_down = [(305, 31),(),(238,31)][config.OS_TYPE_INDEX]
+    clear_button = [(840,31),(),(default_width-133,5)][config.OS_TYPE_INDEX]
+    ticker_input = [(805,8),(),(591,6)][config.OS_TYPE_INDEX]
+    add_one_stock_button = [(710,5),(),(500,5)][config.OS_TYPE_INDEX]
+    add_all_stocks_button = [(710,31),(),(500,31)][config.OS_TYPE_INDEX]
+    analyse = [(500,31),(),(2,31)][config.OS_TYPE_INDEX]
 
     ticker_display_horizontal_offset = 3
     ticker_display_horizontal_size = 100
@@ -154,10 +153,11 @@ class CustomAnalysisPage(object):
 
 class ResearchPage(object):
     text = (10,10)
-    ticker_input = (100, 8)
-    add_stock_button = (200,5)
-    remove_stock_button = (300,5)
+    ticker_input = [(100, 8),(),(60,6)][config.OS_TYPE_INDEX]
+    add_stock_button = [(200,5),(),(173,5)][config.OS_TYPE_INDEX]
+    remove_stock_button = [(300,5),(),(263,5)][config.OS_TYPE_INDEX]
     bingbong = (400,5) #loads examples for development, i love them bingbongbrothers
+
     research_initial_button_vertical_offset = 44
     research_initial_button_horizontal_offset = 60
     research_text_additional_vertical_offset = 6
@@ -166,9 +166,10 @@ class ResearchPage(object):
 
     website_button_horizontal_offset = 60
     stock_initial_button_horizontal_offset = 144
-    stock_initial_button_vertical_offset = 80
-    stock_text_additional_vertical_offset = 6
-    second_line_text_additional_offset = 18
+    stock_initial_button_vertical_offset = [80,35,35][config.OS_TYPE_INDEX]
+
+    stock_text_additional_vertical_offset = [6,0,0][config.OS_TYPE_INDEX]
+    second_line_text_additional_offset = [18,15,15][config.OS_TYPE_INDEX]
     vertical_offset_per_stock = 40
     stock_added_width = 0
     stock_default_vertical_offset = 10
@@ -184,13 +185,13 @@ class SalePrepPage(object):
     refresh_button = (110,5)
     load_new_account_data_button = (110,30)
     save_button = (420,50)
-    saved_text = (433,55)
+    saved_text = [(433,55),(),(433,40)][config.OS_TYPE_INDEX]
 
     size = (800,650) #grid size
     width_adjust = 20
     height_adjust = 128
     AddSpacer = 83
-    new_grid = (0,83)
+    new_grid_position = [(0,83),(),(0,57)][config.OS_TYPE_INDEX]
 
 class TradePage(object):
     trade_page_text = (10,10)

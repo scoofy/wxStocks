@@ -2753,10 +2753,6 @@ class CustomAnalysisPage(Tab):
             self.panel_name = self.function_name
         else:
             self.panel_name = "Custom Analysis " + str(self.page_index)
-        text = wx.StaticText(self, -1,
-                             self.panel_name,
-                             gui_position.CustomAnalysisPage.text
-                             )
 
         self.refresh_screen_button = wx.Button(self, label="refresh", pos=gui_position.CustomAnalysisPage.refresh_screen_button, size=(-1,-1))
         self.refresh_screen_button.Bind(wx.EVT_BUTTON, self.refreshScreens, self.refresh_screen_button)
@@ -3176,6 +3172,8 @@ class ResearchPage(Tab):
         webbrowser.open(url, new=1, autoraise=True)
 
     def generateGeneralResearchRow(self):
+        # not sure why this is still here... i don't think it's used???
+
         row_object = ResearchPageRowDataList()
         research_initial_button_vertical_offset = gui_position.ResearchPage.research_initial_button_vertical_offset
         research_initial_button_horizontal_offset = gui_position.ResearchPage.research_initial_button_horizontal_offset
@@ -3232,7 +3230,7 @@ class ResearchPage(Tab):
             row_object.stock = stock
             row_object.ticker_textctrl = wx.StaticText(self, -1,
                              stock.ticker,
-                             (stock_default_vertical_offset, (index*vertical_offset_per_stock) + stock_initial_button_vertical_offset + stock_text_additional_vertical_offset)
+                             (stock_default_vertical_offset,   (index*vertical_offset_per_stock) + stock_initial_button_vertical_offset + stock_text_additional_vertical_offset)
                              )
             if utils.return_stocks_website_if_possible(stock):
                 row_object.website_button = wx.Button(self,
@@ -3608,7 +3606,7 @@ class SalePrepPage(Tab):
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer.AddSpacer(gui_position.SalePrepPage.AddSpacer)
 
-        new_grid = SalePrepGrid(self, -1, size=size, pos=gui_position.SalePrepPage.new_grid)
+        new_grid = SalePrepGrid(self, -1, size=size, pos=gui_position.SalePrepPage.new_grid_position)
         new_grid.CreateGrid(num_rows, num_columns)
         new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
         #You need this code to resize

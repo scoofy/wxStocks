@@ -131,7 +131,7 @@ def rainbow_spreadsheet(stock_list):
 
 
 def jas_stock_analysis(stock_list):
-    "a jas analysis"
+    "very in-depth analysis example"
     from functions_for_custom_analysis_go_in_here import aaii_formulas as aaii
     import numpy
     import pprint as pp
