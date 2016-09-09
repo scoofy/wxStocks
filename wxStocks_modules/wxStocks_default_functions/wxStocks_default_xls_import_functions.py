@@ -1,5 +1,5 @@
 # Add xls import functions below:
-# You can also edit this file (wxStocks_xls_import_functions.py) in your own text editor. 
+# You can also edit this file (user/user_functions/wxStocks_xls_import_functions.py) in your own text editor.
 try:
 	from modules import xlrd
 except:
@@ -7,15 +7,15 @@ except:
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
-#	def your_full_xls_import_function_name(xlrd_workbook, attribute_suffix = "underscore and two letters"): 
+#	def your_full_xls_import_function_name(xlrd_workbook, attribute_suffix = "underscore and two letters"):
 #		"""short name""" # <--- this will appear in import dropdowns
 #
-#		# Add some xlrd processing: 
+#		# Add some xlrd processing:
 #		# Note, there are some useful xlrd functions in the xlrd section of the
 #		# "wxStocks_modules/wxStocks_utilities.py"
-#		# file. You may find helpful, and i would recommend theses functions as the xlrd library is not very clear. 
+#		# file. You may find helpful, and i would recommend theses functions as the xlrd library is not very clear.
 #		# To access these, simple add "from wxStocks_modules import wxStocks_utilities" to the top of this file or in the functions.
-#		
+#
 #		data = xlrd.do_stuff(xlrd_workbook)
 #		# do stuff to data
 #

@@ -1,10 +1,10 @@
 # Add portfolio import functions below:
-# You can also edit this file (wxStocks_csv_import_functions.py) in your own text editor. 
+# You can also edit this file (user/user_functions/wxStocks_csv_import_functions.py) in your own text editor.
 import csv
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
-#	def your_full_csv_import_function_name(csv_file, attribute_suffix = "underscore and two letters"): 
+#	def your_full_csv_import_function_name(csv_file, attribute_suffix = "underscore and two letters"):
 #		"""short name""" # <--- this will appear in import dropdowns
 #
 #		# add some csv processing:
@@ -37,7 +37,7 @@ def schwab_csv(csv_file):
 				washed_row.append(washed_cell)
 			washed_row_list.append(washed_row)
 	new_account_file_data = washed_row_list
-	
+
 	portfolio_data = new_account_file_data
 
 	#print line_number(), self.portfolio_data

@@ -19,7 +19,7 @@ from wxStocks_default_functions import default_function_page_object_config as fu
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
 import wxStocks_scrapers as scrape
-import wxStocks_screen_functions as screen
+import user_data.user_functions.wxStocks_screen_functions as screen
 import wxStocks_meta_functions as meta
 import wxStocks_gui_position_index as gui_position
 import wxStocks_functions_that_process_user_functions as process_user_function
@@ -5056,8 +5056,9 @@ class UserFunctionsMetaPage(Tab):
 
 class UserFunctionsPage(Tab):
     def __init__(self, parent, function_page_obj):
-        self.title = function_page_obj.title
-        self.uid = function_page_obj.uid
+        self.function_page_obj = function_page_obj
+        self.title = self.function_page_obj.title
+        self.uid = self.function_page_obj.uid
         self.parent = parent
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -5065,16 +5066,16 @@ class UserFunctionsPage(Tab):
 
         wx.Panel.__init__(self, parent)
 
-        self.general_text = wx.StaticText(self, -1, function_page_obj.general_text, gui_position.UserFunctionsPage.general_text)
-        self.additional_text = wx.StaticText(self, -1, function_page_obj.additional_text, (gui_position.UserFunctionsPage.additional_text))
+        self.general_text = wx.StaticText(self, -1, self.function_page_obj.general_text, gui_position.UserFunctionsPage.general_text)
+        self.additional_text = wx.StaticText(self, -1, self.function_page_obj.additional_text, (gui_position.UserFunctionsPage.additional_text))
 
-        self.save_button = wx.Button(self, label=function_page_obj.save_button_text, pos=gui_position.UserFunctionsPage.save_button, size=(-1,-1))
+        self.save_button = wx.Button(self, label=self.function_page_obj.save_button_text, pos=gui_position.UserFunctionsPage.save_button, size=(-1,-1))
         self.save_button.Bind(wx.EVT_BUTTON, self.confirmSave, self.save_button)
 
-        self.reset_button = wx.Button(self, label=function_page_obj.reset_button_text, pos=gui_position.UserFunctionsPage.reset_button, size=(-1,-1))
+        self.reset_button = wx.Button(self, label=self.function_page_obj.reset_button_text, pos=gui_position.UserFunctionsPage.reset_button, size=(-1,-1))
         self.reset_button.Bind(wx.EVT_BUTTON, self.confirmResetToDefault, self.reset_button)
 
-        self.function_file_text = function_page_obj.function_that_loads_text_of_user_created_functions()
+        self.function_file_text = self.function_page_obj.function_that_loads_text_of_user_created_functions()
 
         self.height_offset = gui_position.UserFunctionsPage.height_offset
 
@@ -5090,7 +5091,7 @@ class UserFunctionsPage(Tab):
 
         self.SetSizer(self.sizer)
 
-        print line_number(), "%s loaded" % function_page_obj.title
+        print line_number(), "%s loaded" % self.function_page_obj.title
 
     def confirmSave(self, event):
         confirm = wx.MessageDialog(None,
@@ -5105,9 +5106,12 @@ class UserFunctionsPage(Tab):
         if yesNoAnswer == wx.ID_YES:
             self.saveFunctionsFile()
 
-    def saveFunctionsFile(self):
-        text_to_save = self.file_display.GetValue()
-        function_page_obj.save_function(text_to_save)
+    def saveFunctionsFile(self, text = None):
+        if text:
+            text_to_save = text
+        else:
+            text_to_save = self.file_display.GetValue()
+        self.function_page_obj.save_function(text_to_save)
 
     def confirmResetToDefault(self, event):
         confirm = wx.MessageDialog(None,
@@ -5125,8 +5129,8 @@ class UserFunctionsPage(Tab):
     def resetToDefault(self):
         self.file_display.Destroy()
 
-        self.function_file_text = function_page_obj.function_to_load_defaults()
-        function_page_obj.saveFunctionsFile(self.function_file_text)
+        self.function_file_text = self.function_page_obj.function_to_load_defaults()
+        self.saveFunctionsFile(text = self.function_file_text)
 
         size = gui_position.UserFunctionsPage.resetToDefault_size
         try:

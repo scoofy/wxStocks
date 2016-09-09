@@ -1,10 +1,10 @@
 # Add csv import functions below:
-# You can also edit this file (wxStocks_csv_import_functions.py) in your own text editor. 
+# You can also edit this file (user/user_functions/wxStocks_csv_import_functions.py) in your own text editor.
 import csv
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
-#	def your_full_csv_import_function_name(csv_file, attribute_suffix = "underscore and two letters"): 
+#	def your_full_csv_import_function_name(csv_file, attribute_suffix = "underscore and two letters"):
 #		"""short name""" # <--- this will appear in import dropdowns
 #
 #		# add some csv processing:

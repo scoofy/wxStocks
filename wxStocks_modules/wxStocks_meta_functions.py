@@ -13,17 +13,17 @@ def return_function_triple(type_of_functions): # "screen", "rank", "csv_import",
 	"""returns function 3-tuple of the form (name, function, doc)."""
 	# First we import the modules we want to inspect
 	if type_of_functions == "screen":
-		import wxStocks_screen_functions as function_file
+		import user_data.user_functions.wxStocks_screen_functions as function_file
 	elif type_of_functions == "rank":
-		import wxStocks_rank_functions as function_file
+		import user_data.user_functions.wxStocks_rank_functions as function_file
 	elif type_of_functions == "csv_import":
-		import wxStocks_csv_import_functions as function_file
+		import user_data.user_functions.wxStocks_csv_import_functions as function_file
 	elif type_of_functions == "xls_import":
-		import wxStocks_xls_import_functions as function_file
+		import user_data.user_functions.wxStocks_xls_import_functions as function_file
 	elif type_of_functions == "portfolio":
-		import wxStocks_portfolio_import_functions as function_file
+		import user_data.user_functions.wxStocks_portfolio_import_functions as function_file
 	elif type_of_functions == "analysis":
-		import wxStocks_custom_analysis_spreadsheet_builder as function_file
+		import user_data.user_functions.wxStocks_custom_analysis_spreadsheet_builder as function_file
 	else:
 		print line_number(), "Error: No function type defined."
 		return

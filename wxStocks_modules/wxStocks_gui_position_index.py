@@ -217,7 +217,7 @@ class UserFunctionsPage(object):
     file_display_position = (10, height_offset)
     file_display_size = (995,580)
 
-    resetToDefault_size = (995,580)
+    resetToDefault_size = (995,580) #this seems to present a problem in windows, but i'm guessing it's a sizer issue in the direct code
 
 
 

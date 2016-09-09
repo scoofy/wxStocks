@@ -1,13 +1,13 @@
 # Add rank functions below:
-# You can also edit this file (wxStocks_rank_functions.py) in your own text editor. 
+# You can also edit this file (user/user_functions/wxStocks_rank_functions.py) in your own text editor.
 
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
-#	def your_full_rank_function_name(Stock, decending=True, rank_error_as_median=True): 
+#	def your_full_rank_function_name(Stock, decending=True, rank_error_as_median=True):
 #		# the stock will be provided by the program from a screen, please keep this as "stock, reversed=".
 #		# "reversed" is tells the program whether you want your stocks with largest as better or smallest as metter.
-#		# default ordering is largest is better 
+#		# default ordering is largest is better
 #
 #		"""short name""" # <--- this will appear in rank dropdowns
 #
@@ -21,16 +21,6 @@
 #		return (relevant_value, Stock, decending, rank_error_as_median)
 
 ################################################################################################################
-
-def rank_stocks_by_ticker_alphabetically(Stock, decending=False, rank_error_as_median=False):
-	'''Ticker Length'''
-	try:
-		relevant_value = getattr(Stock, "symbol")
-	except:
-		relevant_value = None
-	relevant_value = len(relevant_value)
-
-	return (relevant_value, Stock, decending, rank_error_as_median)
 
 def rank_stocks_by_peg_ratio(Stock, decending=False, rank_error_as_median=False):
 	'''PEG ratio'''
@@ -73,10 +63,10 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 	except Exception, exception:
 		print exception
 		print "%s is missing required data" % Stock.symbol
-		
+
 		return (None, Stock, decending, rank_error_as_median)
 
-		
+
 
 	if peg5 in ["N/A", "none", "None", None]:
 		peg5 = None
@@ -96,7 +86,7 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 
 	#print "PEG =", peg5
 	#print "type =", type(peg5)
-	#print "Yield =", dividend_yield 
+	#print "Yield =", dividend_yield
 	#print "type =", type(dividend_yield)
 	#print "PE =", pe
 	#print "type =", type(pe)
