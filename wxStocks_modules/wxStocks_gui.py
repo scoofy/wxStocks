@@ -2882,11 +2882,13 @@ class CustomAnalysisPage(Tab):
         for stock in stock_list:
             ticker_list_massive_str += stock.symbol
             ticker_list_massive_str += "\n"
+
+        vertical_offset = gui_position.CustomAnalysisPage.vertical_offset
         height_offset = gui_position.CustomAnalysisPage.height_offset
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             #print line_number(), width, height
-            height = height - height_offset - (config.VERTICAL_OFFSET_PER_TAB * 3) # find the difference between the Frame and the grid size
+            height = height - height_offset
         except Exception, e:
             print line_number(), e
         #print line_number()
@@ -2895,7 +2897,7 @@ class CustomAnalysisPage(Tab):
         self.ticker_display_horizontal_size = gui_position.CustomAnalysisPage.ticker_display_horizontal_size
         self.ticker_display = wx.TextCtrl(self, -1,
                                     ticker_list_massive_str,
-                                    (self.ticker_display_horizontal_offset, height_offset),
+                                    (self.ticker_display_horizontal_offset, vertical_offset),
                                     size = (self.ticker_display_horizontal_size, height),
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
@@ -2916,7 +2918,7 @@ class CustomAnalysisPage(Tab):
 
 
         self.screen_drop_down = wx.ComboBox(self,
-                                     pos=(305, 6),
+                                     pos=gui_position.CustomAnalysisPage.screen_drop_down,
                                      choices=self.existing_screen_name_list,
                                      style = wx.TE_READONLY
                                      )
@@ -2962,12 +2964,16 @@ class CustomAnalysisPage(Tab):
 
         #You need this code to resize
         size = gui_position.CustomAnalysisPage.spreadsheet_size
+        print line_number()
+        print "main size=", gui_position.MainFrame_size
+        print "size=", size
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
-            size = (width-165, height-200) # find the difference between the Frame and the grid size
+            width, height = size
+            size = (width-gui_position.CustomAnalysisPage.spreadsheet_width_height_offset[0], height-gui_position.CustomAnalysisPage.spreadsheet_width_height_offset[1])
         except Exception, e:
             print line_number(), e
+        print line_number(), "size=", size
+
         self.inner_inner_sizer = None
 
 

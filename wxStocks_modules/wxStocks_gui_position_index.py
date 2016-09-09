@@ -10,6 +10,8 @@ MainFrame_SetSizeHints = MainFrame_size
 #shortcuts
 default_width = MainFrame_size[0]
 default_height = MainFrame_size[1]
+vertical_offset_per_tab = 45
+
 
 class WelcomePage(object):
     welcome_page_text = (10,10)
@@ -128,12 +130,14 @@ class RankPage(object):
     rank_drop_down = (520,6)
 
 class CustomAnalysisPage(object):
-    spreadsheet_size=(855,578)
+    spreadsheet_size=[(855,578),(),(default_width-146, default_height-185)][config.OS_TYPE_INDEX]
     spreadsheet_position=(105,58)
+    spreadsheet_width_height_offset=[(165,200),(),(0,0)][config.OS_TYPE_INDEX]
 
     ticker_sizer_AddSpacer = spreadsheet_position[1]
     grid_sizer_AddSpacer = spreadsheet_position[1]
-    height_offset = spreadsheet_position[1]
+    vertical_offset = spreadsheet_position[1]
+    height_offset = [spreadsheet_position[1] + (vertical_offset_per_tab*3), 0, 148][config.OS_TYPE_INDEX]
 
     refresh_screen_button = [(110,5),(),(57,5)][config.OS_TYPE_INDEX]
     load_screen_button = [(200,5),(),(147,5)][config.OS_TYPE_INDEX]
