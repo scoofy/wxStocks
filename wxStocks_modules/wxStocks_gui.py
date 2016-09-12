@@ -652,11 +652,11 @@ class TickerPage(Tab):
             ticker_list_massive_str += ticker
             ticker_list_massive_str += ", "
 
-        height_offset = 90
-        size = (765, 625)
+        display_tickers_position_vertical_offset = gui_position.TickerPage.display_tickers_position_vertical_offset
+        size = gui_position.TickerPage.display_tickers_size_if_resize_errors
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
+            width, height = gui_position.main_frame_size()
+            size = ( width -  display_tickers_size_horizontal_adjustment , height - display_tickers_position_vertical_offset) # find the difference between the Frame and the grid size
         except:
             pass
 
@@ -668,7 +668,7 @@ class TickerPage(Tab):
             pass
         self.file_display = wx.TextCtrl(self, -1,
                                     ticker_list_massive_str,
-                                    (2, height_offset),
+                                    (2, display_tickers_position_vertical_offset),
                                     size = size,
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
@@ -1298,11 +1298,11 @@ class PortfolioAccountTab(Tab):
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
 
-        size = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
-        height_offset = 52
+        size = gui_position.PortfolioAccountTab.portfolio_page_spreadsheet_size_position_tuple[0]
+        spreadsheet_fill_vertical_offset = gui_position.PortfolioAccountTab.spreadsheet_fill_vertical_offset
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
+            width, height = gui_position.main_frame_size()
+            size = ( width - spreadsheet_fill_horizontal_offset , height - spreadsheet_fill_vertical_offset) # find the difference between the Frame and the grid size
         except:
             pass
         self.current_account_spreadsheet = create_account_spread_sheet(self, portfolio_obj, size = size)
@@ -2886,7 +2886,7 @@ class CustomAnalysisPage(Tab):
         vertical_offset = gui_position.CustomAnalysisPage.vertical_offset
         height_offset = gui_position.CustomAnalysisPage.height_offset
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            width, height = gui_position.main_frame_size()
             #print line_number(), width, height
             height = height - height_offset
         except Exception, e:
@@ -5083,8 +5083,6 @@ class UserFunctionsPage(Tab):
 
         self.function_file_text = self.function_page_obj.function_that_loads_text_of_user_created_functions()
 
-        self.height_offset = gui_position.UserFunctionsPage.height_offset
-
         self.file_display = wx.TextCtrl(self, -1,
                                     self.function_file_text,
                                     gui_position.UserFunctionsPage.file_display_position,
@@ -5140,8 +5138,8 @@ class UserFunctionsPage(Tab):
 
         size = gui_position.UserFunctionsPage.resetToDefault_size
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            size = ( width - (config.HORIZONTAL_OFFSET_PER_TAB * 2) , height - self.height_offset - (config.VERTICAL_OFFSET_PER_TAB * 2)) # find the difference between the Frame and the grid size
+            width, height = gui_position.main_frame_size()
+            size = ( width - gui_position.UserFunctionsPage.resetToDefault_horizontal_offset, height - resetToDefault_vertical_offset) # find the difference between the Frame and the grid size
         except:
             pass
 
