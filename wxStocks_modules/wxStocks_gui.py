@@ -5486,7 +5486,7 @@ class MegaGrid(wx.grid.Grid):
 # ############ Spreadsheet Functions ########################################################
 
 # # Had to switch to mega grids because data got too large!
-def create_megagrid_from_stock_list(stock_list, parent, size=config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1]):
+def create_megagrid_from_stock_list(stock_list, parent, size=gui_position.full_spreadsheet_size_position_tuple[0], pos=gui_position.full_spreadsheet_size_position_tuple[1]):
     # Find all attribute names
     attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
     attribute_list.sort(key=lambda x: x.lower())
@@ -5523,7 +5523,7 @@ def create_megagrid_from_stock_list(stock_list, parent, size=config.FULL_SPREADS
     return spreadsheet
 
 Ranked_Tuple_Reference = namedtuple("Ranked_Tuple_Reference", ["value", "stock"])
-def create_ranked_megagrid_from_tuple_list(ranked_tuple_list, parent, rank_name, size=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0], pos=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1]):
+def create_ranked_megagrid_from_tuple_list(ranked_tuple_list, parent, rank_name, size=gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0], pos=gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[1]):
     'ranked named_tuple reference: ["value", "stock"], rank_name should be obtained from a dropdown'
 
     # Find all attribute names
@@ -5563,8 +5563,8 @@ def create_account_spread_sheet(
     wxWindow,
     account_obj,
     held_ticker_list = [] # not used currentl
-    , size = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
-    , position = config.PORTFOLIO_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1]
+    , size = gui_position.PortfolioAccountTab.portfolio_page_spreadsheet_size_position_tuple[0]
+    , position = gui_position.PortfolioAccountTab.portfolio_page_spreadsheet_size_position_tuple[1]
     , enable_editing = False
     ):
 

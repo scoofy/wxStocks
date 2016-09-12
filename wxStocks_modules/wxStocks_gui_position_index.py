@@ -17,7 +17,6 @@ default_height = MainFrame_size[1]
 vertical_offset_per_tab = 45
 horizontal_offset_per_tab = 22
 full_spreadsheet_size_position_tuple = ((980,637),(0,50)) # size=(width, height), pos=(x-axis, y-axis)
-rank_page_spreadsheet_size_position_tuple = ((980,625),(0,60))
 
 class WelcomePage(object):
     welcome_page_text = (10,10)
@@ -102,11 +101,11 @@ class AllStocksPage(object):
 
 class StockDataPage(object):
     text = [(10,10),(),(10,5)][config.OS_TYPE_INDEX]
-    ticker_input = [(110,8),(90,1)],(90,1)][config.OS_TYPE_INDEX]
-    look_up_button = [(210,5),(202,0)],(202,0)][config.OS_TYPE_INDEX]
+    ticker_input = [(110,8),(90,1),(90,1)][config.OS_TYPE_INDEX]
+    look_up_button = [(210,5),(202,0),(202,0)][config.OS_TYPE_INDEX]
     search_data = [(110,31),(90,27),(90,27)][config.OS_TYPE_INDEX]
     search_button = [(210,28),(202,26),(202,26)][config.OS_TYPE_INDEX]
-    update_yql_basic_data_button = [(300,5),(291,0)],(291,0)][config.OS_TYPE_INDEX]
+    update_yql_basic_data_button = [(300,5),(291,0),(291,0)][config.OS_TYPE_INDEX]
     # there are two other buttons that have been commented out,
     # they will go here if ever reintroduced to the code
     update_additional_data_button = [(430,5),(406,0),(406,0)][config.OS_TYPE_INDEX]
@@ -131,6 +130,8 @@ class SavedScreenPage(object):
     spreadsheet_width_height_offset = (20,128)
 
 class RankPage(object):
+    rank_page_spreadsheet_size_position_tuple = ((980,625),(0,60))
+
     rank_page_text = (10,10)
     refresh_screen_button = [(110,5),(57,5),(57,5)][config.OS_TYPE_INDEX]
     load_screen_button = [(200,5),(147,5),(147,5)][config.OS_TYPE_INDEX]
@@ -154,7 +155,7 @@ class CustomAnalysisPage(object):
     ticker_sizer_AddSpacer = spreadsheet_position[1]
     grid_sizer_AddSpacer = spreadsheet_position[1]
     vertical_offset = spreadsheet_position[1]
-    height_offset = [spreadsheet_position[1] + (vertical_offset_per_tab*3), , 148][8, 148][config.OS_TYPE_INDEX]
+    height_offset = [spreadsheet_position[1] + (vertical_offset_per_tab*3), 148, 148][config.OS_TYPE_INDEX]
 
     refresh_screen_button = [(110,5),(57,5),(57,5)][config.OS_TYPE_INDEX]
     load_screen_button = [(200,5),(147,5),(147,5)][config.OS_TYPE_INDEX]
