@@ -177,7 +177,7 @@ class CustomAnalysisPage(object):
 
 class ResearchPage(object):
     text = (10,10)
-    ticker_input = [(100, 8),(60,6),(60,6)][config.OS_TYPE_INDEX]
+    ticker_input = [(100, 8),(80,6),(60,6)][config.OS_TYPE_INDEX]
     add_stock_button = [(200,5),(173,5),(173,5)][config.OS_TYPE_INDEX]
     remove_stock_button = [(300,5),(263,5),(263,5)][config.OS_TYPE_INDEX]
     bingbong = (400,5) #loads examples for development, i love them bingbongbrothers
@@ -190,7 +190,7 @@ class ResearchPage(object):
 
     website_button_horizontal_offset = 60
     stock_initial_button_horizontal_offset = 144
-    stock_initial_button_vertical_offset = [80,35,35][config.OS_TYPE_INDEX]
+    stock_initial_button_vertical_offset = [80,45,35][config.OS_TYPE_INDEX]
 
     stock_text_additional_vertical_offset = [6,0,0][config.OS_TYPE_INDEX]
     second_line_text_additional_offset = [18,15,15][config.OS_TYPE_INDEX]
@@ -204,32 +204,32 @@ class SalePrepPage(object):
     horizontal_offset_i_greater_than_n = 200
     checkbox_initial_offset = 600
     checkbox_vertical_offset_factor = 16
-    line = (0,83)
-    line_size = (1000, -1)
+    line = [(0,83),(0,72),(0,60)][config.OS_TYPE_INDEX]
+    line_size = [(1000, -1),(default_width,-1),(1000,-1)][config.OS_TYPE_INDEX]
     refresh_button = (110,5)
-    load_new_account_data_button = (110,30)
+    load_new_account_data_button = [(110,30),(110,38),(110,30)][config.OS_TYPE_INDEX]
     save_button = (420,50)
     saved_text = [(433,55),(433,40),(433,40)][config.OS_TYPE_INDEX]
 
     size = (800,650) #grid size
     width_adjust = 20
     height_adjust = 128
-    AddSpacer = [83,0,57][config.OS_TYPE_INDEX]
-    new_grid_position = [(0,83),(0,57),(0,57)][config.OS_TYPE_INDEX]
+    AddSpacer = [83,75,57][config.OS_TYPE_INDEX]
+    new_grid_position = [(0,83),(0,75),(0,57)][config.OS_TYPE_INDEX]
 
 class TradePage(object):
     trade_page_text = (10,10)
     create_grid_button = (500,0)
-    clear_grid_button = [(900,0),(default_width-112,0),(default_width-112,0)][config.OS_TYPE_INDEX]
-    save_grid_button = [(900,30),(default_width-112,27),(default_width-112,27)][config.OS_TYPE_INDEX]
-    update_stocks_button = (700,30)
+    clear_grid_button = [(900,0),(default_width-97,0),(default_width-112,0)][config.OS_TYPE_INDEX]
+    save_grid_button = [(900,30),(default_width-97,33),(default_width-112,27)][config.OS_TYPE_INDEX]
+    update_stocks_button = [(700,30), (700,33),(700,27)][config.OS_TYPE_INDEX]
     stock_update_pending_text = (700,30)
 
     newGridFill_size = [(1000,650),(1000,default_height),(1000,default_height)][config.OS_TYPE_INDEX]
     width_adjust = 20
     height_adjust = 128
-    new_grid_position = [(0,83),(0,57),(0,57)][config.OS_TYPE_INDEX]
-    newGridFill_AddSpacer = [83, 0, 57][config.OS_TYPE_INDEX]
+    new_grid_position = [(0,83),(0,69),(0,57)][config.OS_TYPE_INDEX]
+    newGridFill_AddSpacer = [83, 69, 57][config.OS_TYPE_INDEX]
 
 class UserFunctionsPage(object):
     AddSpacer = 95

@@ -3547,20 +3547,27 @@ class SalePrepPage(Tab):
             except Exception, exception:
                 print line_number(), exception
         self.checkbox_list = []
-        for i in range(config.NUMBER_OF_PORTFOLIOS):
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+            try:
+                index = int(key)-1
+            except Exception as e:
+                print line_number(), e
+                print "Note: Something has gone wrong with the keys to the config.PORTFOLIO_OBJECTS_DICT, which is throwing this error, they should be indexed starting with 1"
             if not portfolio_obj:
                 continue
-
+            else:
+                for attribute in dir(portfolio_obj):
+                    if not attribute.startswith("_"):
+                        print str(attribute)+":", getattr(portfolio_obj, attribute)
             horizontal_offset = 0
-            if i>=5:
+            if index>=5:
                 horizontal_offset = 200
             checkbox_to_add = wx.CheckBox(self, -1,
-                                          config.PORTFOLIO_NAMES[i],
-                                          pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*i)),
+                                          portfolio_obj.name,
+                                          pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*index)),
                                           size=(-1,-1)
                                           )
 
-            portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
             checkbox_to_add.SetValue(True)
             self.checkbox_list.append(checkbox_to_add)
         self.spreadSheetFill("event")
