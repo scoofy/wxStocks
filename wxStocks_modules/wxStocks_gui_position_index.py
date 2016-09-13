@@ -116,9 +116,9 @@ class StockDataPage(object):
 #############
 class ScreenPage(object):
     text = (10,10)
-    screen_button = [(110,4),(90,4),(90,4)][config.OS_TYPE_INDEX]
-    drop_down = [(210,6),(180,6),(180,6)][config.OS_TYPE_INDEX]
-    save_screen_button = [(800,4),(default_width-124,4),(default_width-124,4)][config.OS_TYPE_INDEX]
+    screen_button = [(110,4),(120,3),(90,4)][config.OS_TYPE_INDEX]
+    drop_down = [(210,6),(210,4),(180,6)][config.OS_TYPE_INDEX]
+    save_screen_button = [(800,4),(default_width-110,3),(default_width-124,4)][config.OS_TYPE_INDEX]
     #config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE is referenced here... it should be moved to this file eventually, but is not causing any problems now
     spreadsheet_width_height_offset = (20,128)
 
@@ -132,26 +132,26 @@ class SavedScreenPage(object):
     spreadsheet_width_height_offset = (20,128)
 
 class RankPage(object):
-    rank_page_spreadsheet_size_position_tuple = ((980,625),(0,60))
+    rank_page_spreadsheet_size_position_tuple = [((980,625),(0,60)),((980,625),(0,75)),((980,625),(0,60))][config.OS_TYPE_INDEX]
 
     rank_page_text = (10,10)
-    refresh_screen_button = [(110,5),(57,5),(57,5)][config.OS_TYPE_INDEX]
-    load_screen_button = [(200,5),(147,5),(147,5)][config.OS_TYPE_INDEX]
-    load_portfolio_button = [(191,30),(147,30),(147,30)][config.OS_TYPE_INDEX]
-    update_additional_data_button = (5,30)
+    refresh_screen_button = [(110,5),(85,3),(57,5)][config.OS_TYPE_INDEX]
+    load_screen_button = [(200,5),(175,3),(147,5)][config.OS_TYPE_INDEX]
+    load_portfolio_button = [(191,30),(175,37),(147,30)][config.OS_TYPE_INDEX]
+    update_additional_data_button = [(5,30),(5,37),(5,30)][config.OS_TYPE_INDEX]
     #update_annual_data_button
     #update_analyst_estimates_button
-    drop_down = [(305,6),(238,6),(238,6)][config.OS_TYPE_INDEX]
-    accounts_drop_down = [(305,31),(238,31),(238,31)][config.OS_TYPE_INDEX]
-    clear_button = [(890,4),(default_width-124,4),(default_width-124,4)][config.OS_TYPE_INDEX]
-    sort_button = (420,30)
-    sort_drop_down = (520,31)
-    rank_button = (420,5)
-    rank_drop_down = (520,6)
+    drop_down = [(305,6),(270,4),(238,6)][config.OS_TYPE_INDEX]
+    accounts_drop_down = [(305,31),(270,38),(238,31)][config.OS_TYPE_INDEX]
+    clear_button = [(890,4),(default_width-100,3),(default_width-124,4)][config.OS_TYPE_INDEX]
+    sort_button = [(420,30),(580,37),(420,30)][config.OS_TYPE_INDEX]
+    sort_drop_down = [(520,31),(670,38),(520,31)][config.OS_TYPE_INDEX]
+    rank_button = [(420,5),(580,3),(420,5)][config.OS_TYPE_INDEX]
+    rank_drop_down = [(520,6),(670,4),(520,6)][config.OS_TYPE_INDEX]
 
 class CustomAnalysisPage(object):
-    spreadsheet_size=[(855,578),(default_width-146, default_height-185),(default_width-146, default_height-185)][config.OS_TYPE_INDEX]
-    spreadsheet_position=(105,58)
+    spreadsheet_size=[(855,578),(default_width-130, default_height-185),(default_width-146, default_height-185)][config.OS_TYPE_INDEX]
+    spreadsheet_position=[(105,58),(105,75),(105,58)][config.OS_TYPE_INDEX]
     spreadsheet_width_height_offset=[(165,200),(0,0),(0,0)][config.OS_TYPE_INDEX]
 
     ticker_sizer_AddSpacer = spreadsheet_position[1]
@@ -159,16 +159,16 @@ class CustomAnalysisPage(object):
     vertical_offset = spreadsheet_position[1]
     height_offset = [spreadsheet_position[1] + (vertical_offset_per_tab*3), 148, 148][config.OS_TYPE_INDEX]
 
-    refresh_screen_button = [(110,5),(57,5),(57,5)][config.OS_TYPE_INDEX]
-    load_screen_button = [(200,5),(147,5),(147,5)][config.OS_TYPE_INDEX]
-    load_portfolio_button = [(191,30),(147,30),(147,30)][config.OS_TYPE_INDEX]
-    screen_drop_down = [(305, 6),(238,6),(238,6)][config.OS_TYPE_INDEX]
-    accounts_drop_down = [(305, 31),(238,31),(238,31)][config.OS_TYPE_INDEX]
-    clear_button = [(840,31),(default_width-133,5),(default_width-133,5)][config.OS_TYPE_INDEX]
-    ticker_input = [(805,8),(591,6),(591,6)][config.OS_TYPE_INDEX]
-    add_one_stock_button = [(710,5),(500,5),(500,5)][config.OS_TYPE_INDEX]
-    add_all_stocks_button = [(710,31),(500,31),(500,31)][config.OS_TYPE_INDEX]
-    analyse = [(500,31),(2,31),(2,31)][config.OS_TYPE_INDEX]
+    refresh_screen_button = [(110,5),(85,3),(57,5)][config.OS_TYPE_INDEX]
+    load_screen_button = [(200,5),(175,3),(147,5)][config.OS_TYPE_INDEX]
+    load_portfolio_button = [(191,30),(175,37),(147,30)][config.OS_TYPE_INDEX]
+    screen_drop_down = [(305, 6),(270,4),(238,6)][config.OS_TYPE_INDEX]
+    accounts_drop_down = [(305, 31),(270,38),(238,31)][config.OS_TYPE_INDEX]
+    clear_button = [(840,31),(default_width-110,5),(default_width-133,5)][config.OS_TYPE_INDEX]
+    ticker_input = [(805,8),(670,4),(591,6)][config.OS_TYPE_INDEX]
+    add_one_stock_button = [(710,5),(580,3),(500,5)][config.OS_TYPE_INDEX]
+    add_all_stocks_button = [(710,31),(580,37),(500,31)][config.OS_TYPE_INDEX]
+    analyse = [(500,31),(2,38),(2,31)][config.OS_TYPE_INDEX]
 
     ticker_display_horizontal_offset = 3
     ticker_display_horizontal_size = 100
