@@ -16,7 +16,7 @@ default_width = MainFrame_size[0]
 default_height = MainFrame_size[1]
 vertical_offset_per_tab = 45
 horizontal_offset_per_tab = 22
-full_spreadsheet_size_position_tuple = ((980,637),(0,50)) # size=(width, height), pos=(x-axis, y-axis)
+full_spreadsheet_size_position_tuple = [((980,637),(0,50)),((980,637),(0,40)),((980,637),(0,50))][config.OS_TYPE_INDEX] # size=(width, height), pos=(x-axis, y-axis)
 
 class WelcomePage(object):
     welcome_page_text = (10,10)
@@ -36,10 +36,10 @@ class WelcomePage(object):
 #Get Data Panel
 ###############
 class TickerPage(object):
-    AddSpacer = 88 #box vertical offset
+    AddSpacer = [88,95,88][config.OS_TYPE_INDEX] #box vertical offset
     text = (10,10)
-    download_button = (5, 30)
-    refresh_button = (5, 60)
+    download_button = [(5, 30),(5,31),(5, 30)][config.OS_TYPE_INDEX]
+    refresh_button = [(5, 60),(5,62),(5, 60)][config.OS_TYPE_INDEX]
     more_text = (145,36)
 
     # size is based on frame size, adjustments made here (displayTickers method)
@@ -62,32 +62,32 @@ class YqlScrapePage(object):
 ######################
 class CsvImportPage(object):
     text = (10,10)
-    default_button_position = (0,50)
+    default_button_position = [(0,50),(5,52),(0,50)][config.OS_TYPE_INDEX]
     default_dropdown_offset = (100,0)
 
 class XlsImportPage(object):
     text = (10,10)
-    default_button_position = (0,50)
+    default_button_position = [(0,50),(5,52),(0,50)][config.OS_TYPE_INDEX]
     default_dropdown_offset = (100,0)
-    aaii_offset = 28 # if aaii files in aaii import folder, this button will appear below the import dropdown #currently always shows up i think
+    aaii_offset = [28,34,28][config.OS_TYPE_INDEX] # if aaii files in aaii import folder, this button will appear below the import dropdown #currently always shows up i think
 
 #PortfolioPage
 ##############
 class PortfolioAccountTab(object):
-    portfolio_page_spreadsheet_size_position_tuple = ((960,580),(0,50))
+    portfolio_page_spreadsheet_size_position_tuple = [((960,580),(0,50)),((960,580),(0,70)),((960,580),(0,50))][config.OS_TYPE_INDEX]
 
-    AddSpacer = [54,0,56][config.OS_TYPE_INDEX]
-    add_button = (5,0)
-    drop_down = [(11,25),(6,27),(6,27)][config.OS_TYPE_INDEX]
-    delete_button = [(800,0),(655,0),(655,0)][config.OS_TYPE_INDEX]
-    rename_button = [(568,22),(479,26),(479,26)][config.OS_TYPE_INDEX]
-    change_number_of_portfolios_button = [(568,0),(479,0),(479,0)][config.OS_TYPE_INDEX]
-    ticker_input = [(250,3),(160,1),(160,1)][config.OS_TYPE_INDEX]
-    share_input = [(250,25),(160,27),(160,27)][config.OS_TYPE_INDEX]
-    cost_basis_input = [(350,3),(273,1),(273,1)][config.OS_TYPE_INDEX]
-    update_button = [(346,22),(273,26),(273,26)][config.OS_TYPE_INDEX]
-    update_prices_button = [(446,22),(385,26),(385,26)][config.OS_TYPE_INDEX]
-    remove_data_button = [(446,0),(385,0),(385,0)][config.OS_TYPE_INDEX]
+    AddSpacer = [54,70,56][config.OS_TYPE_INDEX]
+    add_button = [(5,0),(5,2),(5,0)][config.OS_TYPE_INDEX]
+    drop_down = [(11,25),(5,35),(6,27)][config.OS_TYPE_INDEX]
+    delete_button = [(800,0),(default_width-162,2),(655,0)][config.OS_TYPE_INDEX]
+    rename_button = [(568,22),(492,35),(479,26)][config.OS_TYPE_INDEX]
+    change_number_of_portfolios_button = [(568,0),(492,2),(479,0)][config.OS_TYPE_INDEX]
+    ticker_input = [(250,3),(160,4),(160,1)][config.OS_TYPE_INDEX]
+    share_input = [(250,25),(160,36),(160,27)][config.OS_TYPE_INDEX]
+    cost_basis_input = [(350,3),(255,4),(273,1)][config.OS_TYPE_INDEX]
+    update_button = [(346,22),(255,35),(273,26)][config.OS_TYPE_INDEX]
+    update_prices_button = [(446,22),(385,35),(385,26)][config.OS_TYPE_INDEX]
+    remove_data_button = [(446,0),(385,2),(385,0)][config.OS_TYPE_INDEX]
 
     spreadsheet_fill_vertical_offset = 52 + (vertical_offset_per_tab*2)
     spreadsheet_fill_horizontal_offset = horizontal_offset_per_tab*2
@@ -97,18 +97,20 @@ class PortfolioAccountTab(object):
 class AllStocksPage(object):
     text = (10,10)
     refresh_button = (110,4)
-    reset_attribute_button = [(800,4),(default_width- 188,4),(default_width- 188,4)][config.OS_TYPE_INDEX]
+    reset_attribute_button = [(800,4),(default_width- 200,4),(default_width- 188,4)][config.OS_TYPE_INDEX]
 
 class StockDataPage(object):
-    text = [(10,10),(10,5),(10,5)][config.OS_TYPE_INDEX]
-    ticker_input = [(110,8),(90,1),(90,1)][config.OS_TYPE_INDEX]
-    look_up_button = [(210,5),(202,0),(202,0)][config.OS_TYPE_INDEX]
-    search_data = [(110,31),(90,27),(90,27)][config.OS_TYPE_INDEX]
-    search_button = [(210,28),(202,26),(202,26)][config.OS_TYPE_INDEX]
-    update_yql_basic_data_button = [(300,5),(291,0),(291,0)][config.OS_TYPE_INDEX]
+    text = [(10,10),(10,7),(10,5)][config.OS_TYPE_INDEX]
+    ticker_input = [(110,8),(112,4),(90,1)][config.OS_TYPE_INDEX]
+    look_up_button = [(210,5),(206,2),(202,0)][config.OS_TYPE_INDEX]
+    search_data = [(110,31),(112,36),(90,27)][config.OS_TYPE_INDEX]
+    search_button = [(210,28),(206,34),(202,26)][config.OS_TYPE_INDEX]
+    update_yql_basic_data_button = [(300,5),(300,2),(291,0)][config.OS_TYPE_INDEX]
     # there are two other buttons that have been commented out,
     # they will go here if ever reintroduced to the code
-    update_additional_data_button = [(430,5),(406,0),(406,0)][config.OS_TYPE_INDEX]
+    update_additional_data_button = [(430,5),(434,2),(406,0)][config.OS_TYPE_INDEX]
+
+    create_spread_sheet_for_one_stock_size_position_tuple = [((980, 637),(0,60)),((980, 637),(0,70)),((980, 637),(0,60))][config.OS_TYPE_INDEX]
 
 #AnalysisPage
 #############

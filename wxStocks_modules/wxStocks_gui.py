@@ -1455,6 +1455,10 @@ class PortfolioAccountTab(Tab):
         self.ticker_input.SetValue("")
         self.cost_basis_input.SetValue("")
         self.share_input.SetValue("")
+        self.ticker_input.SetHint("ticker")
+        self.share_input.SetHint("# shares")
+        self.cost_basis_input.SetHint("Cash/Cost")
+
         utils.update_all_dynamic_grids()
 
 
@@ -1796,8 +1800,9 @@ class StockDataPage(Tab):
                                    gui_position.StockDataPage.ticker_input,
                                    style=wx.TE_PROCESS_ENTER
                                    )
-        self.ticker_input.SetHint("ticker")
         self.ticker_input.Bind(wx.EVT_TEXT_ENTER, self.createOneStockSpreadSheet)
+        self.ticker_input.SetHint("ticker")
+
 
         look_up_button = wx.Button(self,
                                           label="look up",
@@ -1822,11 +1827,13 @@ class StockDataPage(Tab):
         self.search_button.Bind(wx.EVT_BUTTON, self.searchData, self.search_button)
 
 
-        update_yql_basic_data_button = wx.Button(self,
+        self.update_yql_basic_data_button = wx.Button(self,
                                          label="update basic data",
                                          pos=gui_position.StockDataPage.update_yql_basic_data_button,
                                          size=(-1,-1)
                                          )
+        self.update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, self.update_yql_basic_data_button)
+        self.update_yql_basic_data_button.Hide()
         #update_annual_data_button = wx.Button(self,
         #                                 label="update annual data",
         #                                 pos=(430,5),
@@ -1839,18 +1846,18 @@ class StockDataPage(Tab):
         #                                 )
 
 
-        update_additional_data_button = wx.Button(self,
+        self.update_additional_data_button = wx.Button(self,
                                           label="update additional data",
                                           pos=gui_position.StockDataPage.update_additional_data_button,
                                           size=(-1,-1)
                                           )
+        self.update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, self.update_additional_data_button)
+        self.update_additional_data_button.Hide()
 
         self.current_ticker_viewed = None
         self.current_search_term = None
 
-        update_additional_data_button.Bind(wx.EVT_BUTTON, self.updateAdditionalDataForOneStock, update_additional_data_button)
 
-        update_yql_basic_data_button.Bind(wx.EVT_BUTTON, self.update_yql_basic_data, update_yql_basic_data_button)
         #update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
         #update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
 
@@ -1908,6 +1915,10 @@ class StockDataPage(Tab):
         ##
         self.screen_grid = new_grid
         self.current_ticker_viewed = ticker.upper()
+        
+        self.update_yql_basic_data_button.Show()
+        self.update_additional_data_button.Show()
+
 
     def update_yql_basic_data(self, event):
         ticker = self.ticker_input.GetValue()
@@ -5729,8 +5740,8 @@ def create_account_spread_sheet(
 def create_spread_sheet_for_one_stock(
     wxWindow,
     ticker,
-    size = (980, 637),
-    position = (0,60),
+    size = gui_position.StockDataPage.create_spread_sheet_for_one_stock_size_position_tuple[0],
+    position = gui_position.StockDataPage.create_spread_sheet_for_one_stock_size_position_tuple[1],
     enable_editing = False,
     search_term = None
     ):
