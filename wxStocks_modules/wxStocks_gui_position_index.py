@@ -100,7 +100,7 @@ class AllStocksPage(object):
     reset_attribute_button = [(800,4),(default_width- 188,4),(default_width- 188,4)][config.OS_TYPE_INDEX]
 
 class StockDataPage(object):
-    text = [(10,10),(),(10,5)][config.OS_TYPE_INDEX]
+    text = [(10,10),(10,5),(10,5)][config.OS_TYPE_INDEX]
     ticker_input = [(110,8),(90,1),(90,1)][config.OS_TYPE_INDEX]
     look_up_button = [(210,5),(202,0),(202,0)][config.OS_TYPE_INDEX]
     search_data = [(110,31),(90,27),(90,27)][config.OS_TYPE_INDEX]
@@ -115,7 +115,7 @@ class StockDataPage(object):
 class ScreenPage(object):
     text = (10,10)
     screen_button = [(110,4),(90,4),(90,4)][config.OS_TYPE_INDEX]
-    drop_down = [(210,6),(),(180,6)][config.OS_TYPE_INDEX]
+    drop_down = [(210,6),(180,6),(180,6)][config.OS_TYPE_INDEX]
     save_screen_button = [(800,4),(default_width-124,4),(default_width-124,4)][config.OS_TYPE_INDEX]
     #config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE is referenced here... it should be moved to this file eventually, but is not causing any problems now
     spreadsheet_width_height_offset = (20,128)

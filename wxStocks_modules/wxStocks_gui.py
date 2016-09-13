@@ -1745,7 +1745,7 @@ class AllStocksPage(Tab):
         stock_list = utils.return_all_stocks()
 
         #You need this code to resize
-        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
@@ -1757,7 +1757,7 @@ class AllStocksPage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.inner_sizer.AddSpacer(gui_position.full_spreadsheet_size_position_tuple[1][1])
 
         new_grid = create_megagrid_from_stock_list(stock_list, self, size = size)
 
@@ -1886,7 +1886,7 @@ class StockDataPage(Tab):
             return
 
         #You need this code to resize
-        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
@@ -2037,7 +2037,7 @@ class ScreenPage(Tab):
         stock_list.sort(key = lambda x: (x is None, x.symbol))
 
         #You need this code to resize
-        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
@@ -2050,7 +2050,7 @@ class ScreenPage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.inner_sizer.AddSpacer(gui_position.full_spreadsheet_size_position_tuple[1][1])
 
 
         new_grid = create_megagrid_from_stock_list(stock_list, self, size = size)
@@ -2242,7 +2242,7 @@ class SavedScreenPage(Tab):
 
     def spreadSheetFill(self):
         #You need this code to resize
-        size = config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             #print line_number(), width, height
@@ -2255,7 +2255,7 @@ class SavedScreenPage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(config.FULL_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.inner_sizer.AddSpacer(gui_position.full_spreadsheet_size_position_tuple[1][1])
 
 
         new_grid = create_megagrid_from_stock_list(config.CURRENT_SAVED_SCREEN_LIST, self, size = size)
@@ -2419,7 +2419,7 @@ class RankPage(Tab):
         stock_list.sort(key = lambda x: x.symbol)
 
         #You need this code to resize
-        size = config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             #print line_number(), width, height
@@ -2431,10 +2431,10 @@ class RankPage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.inner_sizer.AddSpacer(gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[1][1])
 
 
-        new_grid = create_megagrid_from_stock_list(stock_list, self, size = size, pos=config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1])
+        new_grid = create_megagrid_from_stock_list(stock_list, self, size = size, pos=gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[1])
 
 
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
@@ -2460,7 +2460,7 @@ class RankPage(Tab):
 
 
         #You need this code to resize
-        size = config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[0]
+        size = gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
             print line_number(), width, height
@@ -2472,7 +2472,7 @@ class RankPage(Tab):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.inner_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.inner_sizer.AddSpacer(config.RANK_PAGE_SPREADSHEET_SIZE_POSITION_TUPLE[1][1])
+        self.inner_sizer.AddSpacer(gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[1][1])
 
 
         new_grid = create_ranked_megagrid_from_tuple_list(ranked_tuple_list, self, rank_name, size = size)
