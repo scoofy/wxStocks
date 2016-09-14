@@ -6,7 +6,7 @@ Disclaimer: This program comes as is, and probably has some errors in it. This s
 
 wxStocks is a investment analysis program that could help teach you to scrape, screen, sort, and prepare a portfolio for learning about buying and selling equities.
 
-Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool. 
+Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool.
 
 *NOTE: El Capitan has broken wxPython on Mac indefinitely. The bug is here: http://trac.wxwidgets.org/ticket/17203 and it's been 7 months since any update. I'll be resuming develpment on Windows 10 and Linux Mint, which should actually help with many of the display issues on those.
 
@@ -54,6 +54,13 @@ https://pypi.python.org/pypi/xlrd
 
 Screenshots:
 
+OS X (Yosemite)
 ![Portfolios](/wxStocks_portfolio.png?raw=true "Portfolios")
 ![Custom Analysis](/wxStocks_custom_analysis.png?raw=true "Custom Analysis")
 ![Sale Prep](/wxStocks_sale_prep.png?raw=true "Sale Prep")
+
+Linux (Mint)
+![Linux](/wxStocks_linux.png?raw=true "Linux")
+
+Windows (10)
+![Windows](/wxStocks_windows.png?raw=true "Windows")
