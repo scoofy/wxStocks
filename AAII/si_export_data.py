@@ -4,13 +4,11 @@ from dbfread import DBF
 print "Stock Investor Pro Exporter\n"
 
 # Config
-user_id = "Default"
-if user_id == "Default":
-	print "You must reset the user id to suit your PC, exiting..."
-	sys.exit()
+user_id = os.getenv('username')
 open_save_folder = True
 
 # set paths
+# si only works in windows so i'm assuming windows command line, but if you're using wine or something fix here.
 si_path = "C:\Program Files (x86)\Stock Investor\Professional"
 os.chdir(si_path)
 user_folder = "C:\Users\\" + user_id
