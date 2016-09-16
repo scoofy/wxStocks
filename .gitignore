@@ -1,4 +1,5 @@
 DO_NOT_COPY/**
+DO_NOT_COPY/user_id.py
 wxStocks_data/**
 *.pyc
 *.pk
