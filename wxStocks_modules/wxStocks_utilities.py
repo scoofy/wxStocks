@@ -105,6 +105,12 @@ def return_account_by_id(id_number):
         logging.error("Portfolio object with id: %s does not appear to exist" % str(id_number))
         return None
 
+def return_account_by_name(account_obj_name_str):
+    for key, account_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        if account_obj.name == account_obj_name_str:
+            relevant_account = account_obj
+            return relevant_account
+
 def return_last_close_and_last_update_tuple(stock_obj):
     try:
         last_close = float(getattr(stock_obj, config.DEFAULT_LAST_TRADE_PRICE_ATTRIBUTE_NAME))
@@ -584,6 +590,7 @@ def update_all_screen_dropdowns_after_saving_a_new_screen():
         if custom_analysis_page_ref:
             print "success"
             custom_analysis_page_ref.obj.refreshScreens("event")
+
 ####################### end: utility functions involving pages #######################################
 
 

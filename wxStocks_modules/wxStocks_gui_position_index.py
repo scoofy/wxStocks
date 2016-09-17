@@ -224,6 +224,7 @@ class TradePage(object):
     save_grid_button = [(900,30),(default_width-97,33),(default_width-112,27)][config.OS_TYPE_INDEX]
     update_stocks_button = [(700,30), (700,33),(700,27)][config.OS_TYPE_INDEX]
     stock_update_pending_text = (700,30)
+    execute_trades_button = [(),(),(400,0)][config.OS_TYPE_INDEX]
 
     newGridFill_size = [(1000,650),(1000,default_height),(1000,default_height)][config.OS_TYPE_INDEX]
     width_adjust = 20

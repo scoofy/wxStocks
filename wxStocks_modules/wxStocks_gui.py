@@ -1915,7 +1915,7 @@ class StockDataPage(Tab):
         ##
         self.screen_grid = new_grid
         self.current_ticker_viewed = ticker.upper()
-        
+
         self.update_yql_basic_data_button.Show()
         self.update_additional_data_button.Show()
 
@@ -3497,11 +3497,11 @@ class SalePrepPage(Tab):
         default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
 
         sell_tuple_list = [] # this will end up being a list of tuples for each stock to sell
-        for column_num in range(num_columns):
-            for row_num in range(num_rows):
-                if not row_num >= default_rows:
-                    continue
-                elif column_num == self.number_of_shares_copy_cell.col:
+        for row_num in range(num_rows):
+            if row_num < default_rows:
+                continue
+            for column_num in range(num_columns):
+                if column_num == self.number_of_shares_copy_cell.col:
                     not_empty = self.grid.GetCellValue(row_num, column_num)
                     error = self.grid.GetCellValue(row_num, column_num - 1) # error column is one less than stock column
                     if error != "Error":
@@ -3509,9 +3509,11 @@ class SalePrepPage(Tab):
                     print line_number(), not_empty
                     if not_empty and not error:
                         if int(not_empty):
+                            portfolio_id_number = str(self.grid.GetCellValue(row_num, self.first_cell.col))
+                            relevant_portfolio = config.PORTFOLIO_OBJECTS_DICT.get(portfolio_id_number)
                             ticker = str(self.grid.GetCellValue(row_num, self.ticker_cell.col))
                             number_of_shares_to_sell = int(self.grid.GetCellValue(row_num, self.number_of_shares_copy_cell.col))
-                            sell_tuple = (ticker, number_of_shares_to_sell)
+                            sell_tuple = (ticker, number_of_shares_to_sell, relevant_portfolio)
                             sell_tuple_list.append(sell_tuple)
                     elif error:
                         print line_number(), "ERROR: Could not save sell list. There are errors in quantity syntax."
@@ -3695,8 +3697,8 @@ class SalePrepPage(Tab):
                 continue
 
             # set portfolio name
-            portfolio_name = config.PORTFOLIO_NAMES[portfolio_num]
-            self.grid.SetCellValue(row_count, self.first_cell.col, portfolio_name)
+            portfolio_name = account.name
+            self.grid.SetCellValue(row_count, self.first_cell.col, account.name)
             self.grid.SetCellBackgroundColour(row_count, self.num_of_shares_cell.col, "white")
             self.grid.SetReadOnly(row_count, self.num_of_shares_cell.col, True)
             self.grid.SetCellBackgroundColour(row_count, self.percent_of_shares_cell.col, "white")
@@ -3706,7 +3708,7 @@ class SalePrepPage(Tab):
 
             for ticker in sorted(account.stock_shares_dict):
                 row_obj_already_exists = False
-                row_obj = self.rows_dict.get(str(ticker)+str(relevant_portfolios_list.index(account)))
+                row_obj = self.rows_dict.get(str(ticker)+str(account.id_number))
                 if row_obj:
                     row_obj.row = row_count
                     row_obj_already_exists = True
@@ -3726,7 +3728,7 @@ class SalePrepPage(Tab):
                         print line_number(), "Stock %s does not appear to exist" % ticker
                         continue
                     # set account index cell
-                    account_index_cell = SpreadsheetCell(row = row_count, col = self.first_cell.col, text = str(relevant_portfolios_list.index(account)), text_color = "white")
+                    account_index_cell = SpreadsheetCell(row = row_count, col = self.first_cell.col, text = str(account.id_number), text_color = "white")
 
                     # set ticker cell
                     stocks_ticker_cell = SpreadsheetCell(row = row_count, col = self.ticker_cell.col, text = stock.symbol, stock = stock)
@@ -3798,11 +3800,11 @@ class SalePrepPage(Tab):
                     if cost_basis_per_share and stocks_last_price and stocks_capital_gains:
                         #print line_number(), ticker, "3: cost_basis_per_share and stocks_last_price and stocks_capital_gains"
                         try:
-                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3815,11 +3817,11 @@ class SalePrepPage(Tab):
                     elif cost_basis_per_share and stocks_last_price:
                         #print line_number(), ticker, "2: cost_basis_per_share and stocks_last_price"
                         try:
-                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3831,11 +3833,11 @@ class SalePrepPage(Tab):
                     elif cost_basis_per_share:
                         #print line_number(), ticker, "cost_basis_per_share"
                         try:
-                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3844,11 +3846,11 @@ class SalePrepPage(Tab):
                     elif stocks_last_price:
                         #print line_number(), ticker, "stocks_last_price"
                         try:
-                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
@@ -3858,18 +3860,18 @@ class SalePrepPage(Tab):
                     else:
                         #print line_number(), ticker, "else"
                         try:
-                            this_row = self.rows_dict.get(str(stock.symbol) + str(relevant_portfolios_list.index(account)))
+                            this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
                             print line_number(), e
                         if not this_row:
-                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(relevant_portfolios_list.index(account)), account = account, cell_dict = {})
+                            this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
                         this_row.cell_dict[stocks_ticker_cell.col] = stocks_ticker_cell
                         this_row.cell_dict[stocks_firm_name_cell.col] = stocks_firm_name_cell
                         this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
 
 
-                    self.rows_dict[str(stock.symbol) + str(relevant_portfolios_list.index(account))] = this_row
+                    self.rows_dict[str(stock.symbol) + str(account.id_number)] = this_row
                 this_row = None
                 stock = None
                 row_count += 1
@@ -4009,14 +4011,14 @@ class SalePrepPage(Tab):
             return
 
         ticker = str(self.grid.GetCellValue(row, self.ticker_cell.col))
-        account_index = str(self.grid.GetCellValue(row, self.first_cell.col))
+        account_id_number = str(self.grid.GetCellValue(row, self.first_cell.col))
         num_shares = str(self.grid.GetCellValue(row, self.total_shares_cell.col))
         num_shares = num_shares.replace(",","")
 
         sale_value = None
         percent_to_commission = None
 
-        row_obj = self.rows_dict.get(str(ticker)+str(account_index))
+        row_obj = self.rows_dict.get(str(ticker)+str(account_id_number))
         #if row_obj:
         #    print line_number()
         #    print row_obj.cell_dict
@@ -4371,11 +4373,41 @@ class TradePage(Tab):
                              )
         self.stock_update_pending_text.Hide()
 
+        self.execute_trades_button = wx.Button(self,
+                                               label="Execute trades",
+                                               pos = gui_position.TradePage.execute_trades_button,
+                                               size=(-1,-1),
+                                               )
+        self.execute_trades_button.Bind(wx.EVT_BUTTON, self.confirmExecuteTrades, self.execute_trades_button)
+
         self.grid = None
 
         self.makeGridOnButtonPush("event")
 
         print line_number(), "TradePage loaded"
+
+    def confirmExecuteTrades(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "Do you want to execute your currently set trades?",
+                                   'Confirm Trades',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Execute"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.executeCurrentlyScheduledTrades()
+
+    def executeCurrentlyScheduledTrades(self):
+        print "wah wah"
+        print "sale_tuple_list:", self.sale_tuple_list
+        print "SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE:", config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
+        print "buy_candidate_tuples:", self.buy_candidate_tuples
+        print "buy_candidates:", self.buy_candidates
+
+    def executeTradeDialog(self):
+        pass
 
     def updateStocksWithErrors(self, event):
         utils.remove_list_duplicates(self.stocks_to_update)
@@ -4474,8 +4506,8 @@ class TradePage(Tab):
 
         for portfolio in self.relevant_portfolios_list:
             id_number = portfolio.id_number
-            print line_number(), "Portfolio %d:" % id_number, config.PORTFOLIO_NAMES[id_number - 1]
-        print line_number(), self.sale_tuple_list
+            #print line_number(), "Portfolio %d:" % id_number, config.PORTFOLIO_NAMES[id_number - 1]
+            #print line_number(), config.PORTFOLIO_NAMES
         self.makeGridOnButtonPush("event")
 
         # Now, how to refresh only parts of the list... hmmmm
@@ -4524,7 +4556,7 @@ class TradePage(Tab):
                             if str(quantity).isdigit():
                                 quantity = int(quantity)
                                 ticker_row = row
-                                self.buy_candidate_tuples.append((ticker_row, quantity))
+                                self.buy_candidate_tuples.append((ticker_row, quantity, stock))
                     else:
                         print line_number(), ticker, "doesn't seem to exist"
                         self.grid.SetCellValue(row, column, ticker)
