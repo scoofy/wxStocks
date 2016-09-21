@@ -14,7 +14,7 @@ import pprint as pp
 from collections import namedtuple
 from wx.lib import sheet
 
-from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage, ResearchPageRowDataList
+from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage, ResearchPageRowDataList, StockBuyDialog
 from wxStocks_default_functions import default_function_page_object_config as functions_config
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
@@ -4405,6 +4405,8 @@ class TradePage(Tab):
         print "SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE:", config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
         print "buy_candidate_tuples:", self.buy_candidate_tuples
         print "buy_candidates:", self.buy_candidates
+        trade_dialog = StockBuyDialog()
+        trade_dialog.ShowModal()
 
     def executeTradeDialog(self):
         pass
@@ -4621,18 +4623,19 @@ class TradePage(Tab):
         #print line_number(), self.buy_candidates
         for column_num in range(self.default_columns):
             for row_num in range(num_rows):
-                if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,14]:
+                if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,self.default_buy_candidate_quantity_column]: #,self.default_account_dropdown_column]:
                     new_grid.SetReadOnly(row_num, column_num, True)
                 elif column_num == self.default_buy_candidate_column:
                     if int(row_num) == int(self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1):
                         new_grid.SetCellBackgroundColour(row_num, column_num, self.default_not_entered_buy_candidate_color)
                     else:
                         new_grid.SetCellBackgroundColour(row_num, column_num, self.default_buy_candidate_color)
-                elif column_num == 14:
+                elif column_num == self.default_buy_candidate_quantity_column:
                     if int(row_num) == int(self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1):
                         new_grid.SetCellBackgroundColour(row_num, column_num, self.default_not_entered_buy_candidate_quantity_color)
                     else:
                         new_grid.SetCellBackgroundColour(row_num, column_num, self.default_buy_candidate_quantity_color)
+
 
 
         # Defining cells separately from forming them so they are easy to edit

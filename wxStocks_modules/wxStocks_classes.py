@@ -1,6 +1,7 @@
 import time, datetime, inspect, config, sys
 import wxStocks_db_functions as db
 import wxStocks_utilities as utils
+import wx
 def line_number():
     """Returns the current line number in our program."""
     return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
@@ -337,7 +338,32 @@ class FunctionPage(object):
 class ResearchPageRowDataList(object):
     pass
 
+class StockBuyDialog(wx.Dialog):
+    def __init__(self):
+        wx.Dialog.__init__(self, None, title="Buy Stock")
+        ticker = "TICKR"
+        number_of_shares = 100
+        self.text = wx.StaticText(self, -1,
+                             "You are about to buy {shares} shares of {stock}, please select the portfolio".format(shares = number_of_shares, stock = ticker),
+                             )
+        self.portfolio_dropdown = wx.ComboBox(self,
+                                     choices=['test1', 'test2'],
+                                     style = wx.TE_READONLY)
+        self.cost_basis_text = wx.StaticText(self, -1,
+                                             "Cost basis (optional):")
+        self.cost_basis_value = wx.TextCtrl(self, -1,
+                                   "",
+                                   style=wx.TE_PROCESS_ENTER
+                                   )
+        confirm = wx.Button(self, wx.ID_OK)
 
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.text, 0, wx.ALL|wx.CENTER,5)
+        sizer.Add(self.portfolio_dropdown, 0, wx.ALL|wx.CENTER, 5)
+        sizer.Add(self.cost_basis_text, 0, wx.ALL|wx.CENTER, 5)
+        sizer.Add(self.cost_basis_value, 0, wx.ALL|wx.CENTER, 5)
+        sizer.Add(confirm, 0, wx.ALL|wx.CENTER, 5)
+        self.SetSizer(sizer)
 
 
 
