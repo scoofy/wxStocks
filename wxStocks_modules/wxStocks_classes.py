@@ -339,36 +339,64 @@ class ResearchPageRowDataList(object):
     pass
 
 class StockBuyDialog(wx.Dialog):
-    def __init__(self):
+    def __init__(self, ticker, number_of_shares, preset_account_choice=None, error_account=None, preset_cost_basis=None, error_cost_basis=None,):
         wx.Dialog.__init__(self, None, title="Buy Stock")
-        ticker = "TICKR"
-        number_of_shares = 100
+        self.Bind(wx.EVT_CLOSE, self.closeWindow)  #Bind the EVT_CLOSE event to closeWindow()
+
+        choices = []
+        for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+            choices.append(obj.name)
+        choice_index = None
+        if preset_account_choice:
+            choice_index = choices.index(preset_account_choice)
+        self.ticker = ticker
+        self.number_of_shares = number_of_shares
         self.text = wx.StaticText(self, -1,
-                             "You are about to buy {shares} shares of {stock}, please select the portfolio".format(shares = number_of_shares, stock = ticker),
+                             "You are about to buy {shares} shares of {stock}, please select the portfolio".format(shares = self.number_of_shares, stock = self.ticker),
                              )
+        self.error_account_message = wx.StaticText(self, -1, "")
+        if error_account:
+            self.error_account_message.SetLabel(str(error_account))
         self.portfolio_dropdown = wx.ComboBox(self,
-                                     choices=['test1', 'test2'],
+                                     choices = choices,
                                      style = wx.TE_READONLY)
+        if choice_index is not None: # it will often be 0
+            self.portfolio_dropdown.SetSelection(choice_index)
+
+        self.error_cost_basis_message = wx.StaticText(self, -1, "")
+        if error_cost_basis:
+            self.error_cost_basis_message.SetLabel(str(error_cost_basis))
+
         self.cost_basis_text = wx.StaticText(self, -1,
                                              "Cost basis (optional):")
-        self.cost_basis_value = wx.TextCtrl(self, -1,
+        self.cost_basis = wx.TextCtrl(self, -1,
                                    "",
                                    style=wx.TE_PROCESS_ENTER
                                    )
+        if preset_cost_basis:
+            self.cost_basis.SetLabel(preset_cost_basis)
+        self.cost_basis.SetHint("Cost Basis")
+
+
+
         confirm = wx.Button(self, wx.ID_OK)
+        #cancel = wx.Button(self, wx.ID_CANCEL)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.text, 0, wx.ALL|wx.CENTER,5)
+        if error_account:
+            sizer.Add(self.error_account_message, 0, wx.ALL|wx.CENTER,5)
         sizer.Add(self.portfolio_dropdown, 0, wx.ALL|wx.CENTER, 5)
         sizer.Add(self.cost_basis_text, 0, wx.ALL|wx.CENTER, 5)
-        sizer.Add(self.cost_basis_value, 0, wx.ALL|wx.CENTER, 5)
+        if error_cost_basis:
+            sizer.Add(self.error_cost_basis_message, 0, wx.ALL|wx.CENTER,5)
+        sizer.Add(self.cost_basis, 0, wx.ALL|wx.CENTER, 5)
         sizer.Add(confirm, 0, wx.ALL|wx.CENTER, 5)
+        #sizer.Add(cancel, 0, wx.ALL|wx.RIGHT, 0)
         self.SetSizer(sizer)
 
-
-
-
-
+    def closeWindow(self, event):
+        self.Destroy()
 
 
 

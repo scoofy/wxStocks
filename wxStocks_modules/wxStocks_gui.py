@@ -1247,8 +1247,12 @@ class PortfolioAccountTab(Tab):
                 Account_object.cost_basis_dict.pop(stock.symbol, None)
             if shares_to_remove:
                 current_shares = Account_object.stock_shares_dict.get(stock.symbol)
-                new_shares = current_shares - shares_to_remove
-                Account_object.stock_shares_dict[stock.symbol] = new_shares
+                left_over_shares = float(current_shares) - float(shares_to_remove)
+                if not left_over_shares:
+                    Account_object.cost_basis_dict.pop(stock.symbol, None)
+                    Account_object.stock_shares_dict.pop(stock.symbol, None)
+                else:
+                    Account_object.stock_shares_dict[stock.symbol] = left_over_shares
         else: # remove stock
             Account_object.cost_basis_dict.pop(stock.symbol, None)
             Account_object.stock_shares_dict.pop(stock.symbol, None)
@@ -4337,6 +4341,7 @@ class TradePage(Tab):
         self.default_buy_candidate_quantity_column = 14
         self.default_buy_candidate_quantity_color = "#CFE8FC"
         self.default_not_entered_buy_candidate_quantity_color = "#E9F4FD"
+        self.default_account_dropdown_column = 17
 
         self.buy_candidates = [] # this will be tickers to buy, but no quantities
         self.buy_candidate_tuples = [] # this will be tickers ROWS with quantities, if they don't appear in previous list, there will be disregarded, because data has been changed.
@@ -4399,17 +4404,92 @@ class TradePage(Tab):
         if yesNoAnswer == wx.ID_YES:
             self.executeCurrentlyScheduledTrades()
 
+
     def executeCurrentlyScheduledTrades(self):
+        print line_number()
         print "wah wah"
         print "sale_tuple_list:", self.sale_tuple_list
         print "SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE:", config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
         print "buy_candidate_tuples:", self.buy_candidate_tuples
         print "buy_candidates:", self.buy_candidates
-        trade_dialog = StockBuyDialog()
-        trade_dialog.ShowModal()
+        full_execute_buy_list = []
+        for this_tuple in self.buy_candidate_tuples:
+            quantity = this_tuple[1]
+            ticker = this_tuple[2]
+            execute_buy_tuple = self.executeTradeDialog(ticker=ticker, number_of_shares=quantity)
+            if not execute_buy_tuple:
+                return # cancel entire event if one window is cancelled
+            full_execute_buy_list.append(execute_buy_tuple)
+        print line_number(), full_execute_buy_list
+        self.executeTradeFinal(self.sale_tuple_list, full_execute_buy_list)
 
-    def executeTradeDialog(self):
-        pass
+    def executeTradeFinal(self, sell_tuple_list, buy_tuple_list):
+        accounts_to_be_saved_list = []
+        for sell_candidate in sell_tuple_list:
+            ticker = sell_candidate[0]
+            quantity = sell_candidate[1]
+            account_obj = sell_candidate[2]
+            previous_shares = account_obj.stock_shares_dict.get(ticker)
+            if previous_shares is not None:
+                left_over_shares = float(previous_shares) - float(quantity)
+            else:
+                print line_number(), "ERROR: something went quite wrong here."
+                return
+
+            if left_over_shares < 0:
+                print line_number(), "ERROR: you cannot sell more shares than you own."
+                return
+            elif not left_over_shares: # could be 0, 0., or None
+                account_obj.stock_shares_dict.pop(ticker, None)
+                account_obj.cost_basis_dict.pop(ticker, None)
+            else: # if there are left over stocks
+                account_obj.stock_shares_dict[ticker] = float(left_over_shares)
+            accounts_to_be_saved_list.append(account_obj)
+        for buy_candidate in buy_tuple_list:
+            ticker = buy_candidate[0]
+            quantity = buy_candidate[1]
+            account_obj = buy_candidate[2]
+            cost_basis = buy_candidate[3]
+            previous_shares = account_obj.stock_shares_dict.get(ticker)
+            if not previous_shares:
+                previous_shares = 0.
+            total_shares = float(previous_shares) + float(quantity)
+            account_obj.stock_shares_dict[ticker] = total_shares
+            if cost_basis:
+                old_cost_basis = account_obj.cost_basis_dict.get(ticker)
+                if old_cost_basis or previous_shares:
+                    print line_number(), "I'm not comfortable calculating your new cost basis for tax purposes. Please re-enter it on your account page."
+                    account_obj.cost_basis_dict[ticker] = None
+                else:
+                    account_obj.cost_basis_dict[ticker] = float(cost_basis)
+            accounts_to_be_saved_list.append(account_obj)
+        save_list = utils.remove_list_duplicates(accounts_to_be_saved_list)
+        for account in save_list:
+            db.save_portfolio_object(account)
+        print line_number(), "TRADE EXECUTED"
+        utils.update_all_dynamic_grids()
+
+
+    def executeTradeDialog(self, ticker, number_of_shares, preset_account_choice=None, error_account=None, preset_cost_basis=None, error_cost_basis=None):
+        trade_dialog = StockBuyDialog(ticker, number_of_shares, preset_account_choice, error_account, preset_cost_basis, error_cost_basis)
+        confirm = trade_dialog.ShowModal()
+        portfolio = trade_dialog.portfolio_dropdown.GetValue()
+        cost_basis = trade_dialog.cost_basis.GetValue()
+        trade_dialog.Destroy()
+        if confirm != wx.ID_OK:
+            return
+        if not portfolio:
+            print line_number(), "invalid portfolio choice"
+            self.executeTradeDialog(ticker=ticker, number_of_shares=number_of_shares, error_account = "You much choose a portfolio for this stock purchase", preset_cost_basis=cost_basis)
+        float_cost_basis = utils.money_text_to_float(cost_basis)
+        if cost_basis and (float_cost_basis is None): # it may be 0, but it shouldn't have a valid cost basis entry and then return None
+            print line_number(), "invalid cost basis"
+            self.executeTradeDialog(ticker=ticker, number_of_shares=number_of_shares, preset_account_choice=portfolio, error_cost_basis = "You entered an invalid cost basis")
+        portfolio_obj = utils.return_account_by_name(portfolio)
+        if not portfolio_obj:
+            print line_number(), "Something went wrong with grabbing the portfolio {portfolio} here.".format(portfolio=portfolio)
+        print line_number(), (ticker, number_of_shares, portfolio_obj, float_cost_basis)
+        return (ticker, number_of_shares, portfolio_obj, float_cost_basis)
 
     def updateStocksWithErrors(self, event):
         utils.remove_list_duplicates(self.stocks_to_update)
@@ -4535,6 +4615,10 @@ class TradePage(Tab):
             column = event.GetCol()
             cursor_positon = (int(row), int(column))
 
+        if int(column) == self.default_account_dropdown_column:
+            # ignore this input
+            return
+
         buy_candidates_len = len(self.buy_candidates)
         print line_number(), buy_candidates_len
         print line_number(), buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1
@@ -4558,7 +4642,7 @@ class TradePage(Tab):
                             if str(quantity).isdigit():
                                 quantity = int(quantity)
                                 ticker_row = row
-                                self.buy_candidate_tuples.append((ticker_row, quantity, stock))
+                                self.buy_candidate_tuples.append((ticker_row, quantity, str(ticker), stock))
                     else:
                         print line_number(), ticker, "doesn't seem to exist"
                         self.grid.SetCellValue(row, column, ticker)
@@ -4623,7 +4707,7 @@ class TradePage(Tab):
         #print line_number(), self.buy_candidates
         for column_num in range(self.default_columns):
             for row_num in range(num_rows):
-                if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,self.default_buy_candidate_quantity_column]: #,self.default_account_dropdown_column]:
+                if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,self.default_buy_candidate_quantity_column]:
                     new_grid.SetReadOnly(row_num, column_num, True)
                 elif column_num == self.default_buy_candidate_column:
                     if int(row_num) == int(self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1):
@@ -4936,7 +5020,11 @@ class TradePage(Tab):
                         if stock:
                             company_to_buy_firm_name = SpreadsheetCell(row = row_num, col = column_num + 1, text = str(stock.firm_name))
                             spreadsheet_cell_list.append(company_to_buy_firm_name)
-
+                            ## This was a good idea... but the gridcellchoiceeditor was really unweildy, so a made a pop up class on execute click instead.
+                            # portfolio_dropdown = wx.grid.GridCellChoiceEditor(["test1", "test2"], allowOthers=True)
+                            # new_grid.SetCellEditor(row_num, self.default_account_dropdown_column, portfolio_dropdown)
+                            # new_grid.SetCellBackgroundColour(row_num, self.default_account_dropdown_column, self.default_buy_candidate_quantity_color)
+                            # print line_number(), 'HERE!'
                         try:
                             last_price = float(utils.return_last_price_if_possible(stock))
                             company_to_buy_price = SpreadsheetCell(row = row_num, col = column_num + 2, text = config.locale.currency(last_price, grouping = True), value = last_price, align_right = True)
