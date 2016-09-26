@@ -3384,6 +3384,10 @@ class SalePrepPage(Tab):
 
         print line_number(), "SalePrepPage loaded"
 
+    def resetPage(self):
+        self.rows_dict = {}
+        self.spreadSheetFill("event")
+
     def cell_is_writable(self, row_num, col_num):
         default_rows = config.DEFAULT_ROWS_ON_SALE_PREP_PAGE
 
@@ -4467,6 +4471,9 @@ class TradePage(Tab):
         for account in save_list:
             db.save_portfolio_object(account)
         print line_number(), "TRADE EXECUTED"
+        self.clearGrid("event")
+        sale_prep_page = config.GLOBAL_PAGES_DICT.get(config.SALE_PREP_PAGE_UNIQUE_ID).obj
+        sale_prep_page.resetPage()
         utils.update_all_dynamic_grids()
 
 

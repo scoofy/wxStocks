@@ -66,6 +66,8 @@ for save_id in save_id_list:
 	export = file_submenu[9]
 	export.Click()
 
+	time.sleep(2) # has been throwing an error, delay prevents that.
+
 	# Now in the export window
 	sic2 = sic[u'Export Data']
 	sic2.SetFocus()
