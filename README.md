@@ -42,6 +42,8 @@ https://pypi.python.org/pypi/pycrypto
 
 Good stack overflow article for windows: http://stackoverflow.com/questions/11405549/how-do-i-install-pycrypto-on-windows
 
+The compiler I needed for Windows: Microsoft Visual C++ Compiler for Python 2.7
+
 Good article for OSX: http://osxdaily.com/2012/07/10/how-to-install-paramiko-and-pycrypto-in-mac-os-x-the-easy-way/
 
 simplecrypt:
