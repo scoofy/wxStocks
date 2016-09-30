@@ -313,18 +313,6 @@ ENCRYPTION_HARDNESS_LEVEL = None
 # Portfolio globals
 PASSWORD = None
 
-DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS,[]]
-# Structure of this variable below,
-# see "wxStocks_db_functions.load_DATA_ABOUT_PORTFOLIOS" for more info about loading.
-
-# DATA_ABOUT_PORTFOLIOS = 	[
-#								NUMBER_OF_PORTFOLIOS (this will be an integer),
-#								[
-#									"Portfolio Name" (this will be a string),
-#									etc...
-#								]
-#							]
-DEFAULT_DATA_ABOUT_PORTFOLIOS = [NUMBER_OF_DEFAULT_PORTFOLIOS, []]
 
 # Default name is "Primary"
 NUMBER_OF_PORTFOLIOS = 0

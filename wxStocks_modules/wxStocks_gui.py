@@ -1060,8 +1060,9 @@ class PortfolioPage(Tab):
         portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
 
-        #print line_number(), "DATA_ABOUT_PORTFOLIOS:", config.DATA_ABOUT_PORTFOLIOS
-        portfolios_that_already_exist = config.DATA_ABOUT_PORTFOLIOS[1]
+        portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
+        print line_number(), portfolios_that_already_exist
+        print line_number(), "\n"*5
 
         default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
         if not portfolios_that_already_exist:
@@ -1082,32 +1083,30 @@ class PortfolioPage(Tab):
 
                 new_portfolio_name_list.append(portfolio_name)
 
-                config.DATA_ABOUT_PORTFOLIOS[0] = config.NUMBER_OF_PORTFOLIOS
-                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_name_list
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
-            db.save_DATA_ABOUT_PORTFOLIOS()
-        else:
+        else: # portfolios already exist
             need_to_save = False
-            for i in range(config.NUMBER_OF_PORTFOLIOS):
+            portfolios_to_save = []
+            number_of_portfolios_to_load = max(len(portfolios_that_already_exist), config.NUMBER_OF_DEFAULT_PORTFOLIOS)
+            for i in range(number_of_portfolios_to_load):
                 #print line_number(), i
-                try:
-                    portfolio_name = portfolios_that_already_exist[i]
-                except Exception, exception:
-                    print line_number(), exception
+                portfolio_obj = utils.return_account_by_id(i+1)
+                if not portfolio_obj:
                     if i < 3:
                         number_words = ["Primary", "Secondary", "Tertiary"]
                         portfolio_name = number_words[i]
                     else:
                         portfolio_name = "Portfolio %d" % (i+1)
-                    portfolios_that_already_exist.append(portfolio_name)
+                    portfolio_obj = db.create_new_Account_if_one_doesnt_exist(portfolio_id=i+1, name=portfolio_name)
+                    portfolios_that_already_exist.append(portfolio_obj)
+                    portfolios_to_save.append(portfolio_obj)
                     need_to_save = True
 
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
-                portfolio_account.title = portfolio_name
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, portfolio_obj.id_number, portfolio_obj.name)
+                portfolio_account.title = portfolio_obj.name
+                portfolio_account_notebook.AddPage(portfolio_account, portfolio_obj.name)
             if need_to_save == True:
-                config.DATA_ABOUT_PORTFOLIOS[1] = portfolios_that_already_exist
-                db.save_DATA_ABOUT_PORTFOLIOS()
+                for portfolio_obj in portfolios_to_save:
+                    db.save_portfolio_object(portfolio_obj)
 
         sizer2 = wx.BoxSizer()
         sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
@@ -1265,33 +1264,33 @@ class PortfolioAccountTab(Tab):
 
 
     def changeNumberOfPortfolios(self, event):
-        num_of_portfolios_popup = wx.NumberEntryDialog(None,
-                                      "What would you like to call this portfolio?",
-                                      "Rename tab",
-                                      "Caption",
-                                      config.NUMBER_OF_PORTFOLIOS,
-                                      0,
-                                      10
-                                      )
-        if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
-            return
+        # num_of_portfolios_popup = wx.NumberEntryDialog(None,
+        #                               "What would you like to call this portfolio?",
+        #                               "Rename tab",
+        #                               "Caption",
+        #                               config.NUMBER_OF_PORTFOLIOS,
+        #                               0,
+        #                               10
+        #                               )
+        # if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
+        #     return
 
-        new_number_of_portfolios = num_of_portfolios_popup.GetValue()
-        num_of_portfolios_popup.Destroy()
+        # new_number_of_portfolios = num_of_portfolios_popup.GetValue()
+        # num_of_portfolios_popup.Destroy()
 
-        config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
-        config.DATA_ABOUT_PORTFOLIOS[0] = new_number_of_portfolios
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
-        confirm = wx.MessageDialog(self,
-                                 "The number of portfolios has changed. The change will be applied the next time you launch this program.",
-                                 'Restart Required',
-                                 style = wx.ICON_EXCLAMATION
-                                 )
-        confirm.ShowModal()
-        confirm.Destroy()
+        # config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
+        # # password = ""
+        # # if config.ENCRYPTION_POSSIBLE:
+        # #   password = self.get_password()
+        # confirm = wx.MessageDialog(self,
+        #                          "The number of portfolios has changed. The change will be applied the next time you launch this program.",
+        #                          'Restart Required',
+        #                          style = wx.ICON_EXCLAMATION
+        #                          )
+        # confirm.ShowModal()
+        # confirm.Destroy()
+        print line_number(), "Changing number of portfolios currently not functional"
+        return
 
     def fillSpreadsheetWithCurrentPortfolio(self):
         portfolio_obj = self.portfolio_obj
@@ -1580,27 +1579,18 @@ class PortfolioAccountTab(Tab):
         rename_popup.Destroy()
 
 
-        portfolio_name_list = config.DATA_ABOUT_PORTFOLIOS[1]
+        portfolio_name_list = [obj.name for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
         new_portfolio_names = []
         if new_name != old_name:
             if new_name not in portfolio_name_list:
-                for i in portfolio_name_list:
-                    if i == old_name:
-                        new_portfolio_names.append(new_name)
-                    else:
-                        new_portfolio_names.append(i)
-
                 self.name = new_name
                 self.portfolio_obj.name = new_name
-                config.DATA_ABOUT_PORTFOLIOS[1] = new_portfolio_names
 
                 print line_number(), "This file opening needs to be removed."
                 # password = ""
                 # if config.ENCRYPTION_POSSIBLE:
                 #   password = self.get_password()
-                db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
                 db.save_portfolio_object(self.portfolio_obj)
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
                 confirm = wx.MessageDialog(self,
                                          "This portfolio's name has been changed. The change will be applied the next time you launch this program.",
                                          'Restart Required',
@@ -1643,7 +1633,6 @@ class PortfolioAccountTab(Tab):
                 portfolio_name = "%dth" % (self.portfolio_id+1)
             if self.portfolio_id in range(len(default_portfolio_names)):
                 portfolio_name = default_portfolio_names[self.portfolio_id]
-            config.DATA_ABOUT_PORTFOLIOS[1][self.portfolio_id] = portfolio_name
         except Exception as e:
             print line_number(), e
 
@@ -1661,28 +1650,16 @@ class PortfolioAccountTab(Tab):
         deleted = db.delete_portfolio_object(self.portfolio_id) #, password = password)
 
         if not deleted:
-            print line_number(), "Trying to remove default portfolio."
-            print line_number(), config.DATA_ABOUT_PORTFOLIOS
-            try:
-                print line_number(), self.portfolio_id
-                portfolio_to_remove_index = self.portfolio_id - 1 # can't have a zero tab number i think
-                del config.DATA_ABOUT_PORTFOLIOS[1][portfolio_to_remove_index] # see if index is out of range
-                config.DATA_ABOUT_PORTFOLIOS[0] = config.DATA_ABOUT_PORTFOLIOS[0] - 1
-                print line_number(), "Delete success."
-                print line_number(), config.DATA_ABOUT_PORTFOLIOS
-                deleted = True
-            except Exception as e:
-                print line_number(), e
-                print line_number(), "Something weird is going on with deleting a portfolio."
+            print line_number(), "Something weird is going on with deleting a portfolio."
 
-        db.save_DATA_ABOUT_PORTFOLIOS() #password = password)
 
         self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
+        db.save_portfolio_object(self.portfolio_obj)
 
         if deleted:
             confirm = wx.MessageDialog(self,
-                             "The number of portfolios has changed. The change will be applied the next time you launch this program.",
-                             'Restart Required',
+                             "Portfolio Deleted.",
+                             'Portfolio Deleted',
                              style = wx.ICON_EXCLAMATION
                              )
             confirm.ShowModal()
@@ -3056,10 +3033,7 @@ class CustomAnalysisPage(Tab):
 
     def loadAccount(self, event):
         account_name = self.accounts_drop_down.GetValue()
-        account_index = config.DATA_ABOUT_PORTFOLIOS[1].index(account_name)# this needs to be fixed,
-        # adding one to the index for no reason is dumb
-        account_index = str(account_index + 1)
-        portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(account_index)
+        portfolio_obj = utils.return_account_by_name(account_name)
         for ticker in portfolio_obj.stock_shares_dict:
             stock = utils.return_stock_by_symbol(ticker)
             if stock:

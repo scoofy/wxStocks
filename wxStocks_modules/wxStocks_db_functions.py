@@ -1,6 +1,6 @@
 import wx
 import config
-import inspect, logging, os, threading, hashlib, getpass
+import inspect, logging, os, threading, hashlib, getpass, glob
 import cPickle as pickle
 from modules.pybcrypt import bcrypt
 
@@ -40,7 +40,7 @@ encryption_strength_path = 'wxStocks_data/encryption_strength.txt'
 def load_all_data():
     load_GLOBAL_STOCK_DICT()
     load_GLOBAL_TICKER_LIST()
-    load_DATA_ABOUT_PORTFOLIOS()
+    load_all_portfolio_objects()
     load_GLOBAL_STOCK_SCREEN_DICT()
     load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
 # start up try/except clauses below
@@ -149,7 +149,7 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
     if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
         config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
 def load_GLOBAL_STOCK_DICT():
-    print line_number(),
+    print line_number(), "\n"
     sys.stdout.write("Loading GLOBAL_STOCK_DICT: this may take a couple of minutes.")
     sys.stdout.flush()
     try:
@@ -427,70 +427,6 @@ def decrypt_if_possible(path):
             pass
         return None
 
-def save_DATA_ABOUT_PORTFOLIOS():
-    data = config.DATA_ABOUT_PORTFOLIOS
-    print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
-    if config.ENCRYPTION_POSSIBLE:
-        try:
-            import Crypto
-            from modules.simplecrypt import encrypt, decrypt
-        except:
-            config.ENCRYPTION_POSSIBLE = False
-            print line_number(), "Error: DATA_ABOUT_PORTFOLIOS did not save"
-            return
-        unencrypted_pickle_string = pickle.dumps(data)
-        encrypted_string = encrypt(config.PASSWORD, unencrypted_pickle_string)
-        print line_number(), "Saving encrypted DATA_ABOUT_PORTFOLIOS."
-        with open(portfolios_path % "txt", 'w') as output:
-            output.write(encrypted_string)
-    else:
-        print line_number(), "Saving unencrypted DATA_ABOUT_PORTFOLIOS."
-        with open(portfolios_path % "pk", 'w') as output:
-            pickle.dump(data, output, pickle.HIGHEST_PROTOCOL)
-def load_DATA_ABOUT_PORTFOLIOS():
-    # add encrypt + decryption to this function
-    data = None
-    #print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
-    if not config.ENCRYPTION_POSSIBLE:
-        print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
-        try:
-            DATA_ABOUT_PORTFOLIOS_file_exists = open(portfolios_path % "pk", 'r')
-            data = pickle.load(DATA_ABOUT_PORTFOLIOS_file_exists)
-            DATA_ABOUT_PORTFOLIOS_file_exists.close()
-            config.DATA_ABOUT_PORTFOLIOS = data
-        except Exception, e:
-            print line_number(), "DATA_ABOUT_PORTFOLIOS does not exist."
-            return config.DEFAULT_DATA_ABOUT_PORTFOLIOS
-    else:
-        #print line_number(), "Loading unencrypted DATA_ABOUT_PORTFOLIOS..."
-        try:
-            data = decrypt_if_possible(path = portfolios_path % "txt")
-        except:
-            pass
-    if data:
-        #print line_number(), data
-        config.DATA_ABOUT_PORTFOLIOS = data
-    else:
-        return
-
-    # For config.DATA_ABOUT_PORTFOLIOS structure, see config file
-    config.NUMBER_OF_PORTFOLIOS = config.DATA_ABOUT_PORTFOLIOS[0]
-    #print line_number(), config.NUMBER_OF_PORTFOLIOS
-    config.PORTFOLIO_NAMES = []
-
-    # Set config.PORTFOLIO_NAMES
-    for i in range(config.NUMBER_OF_PORTFOLIOS):
-        try:
-            config.PORTFOLIO_NAMES.append(config.DATA_ABOUT_PORTFOLIOS[1][i])
-        except Exception, exception:
-            print line_number(), exception
-            logging.error('Portfolio names do not match number of portfolios')
-    #print line_number(), config.PORTFOLIO_NAMES
-
-    # Load portfolio objects
-    #print line_number(), "--------", config.DATA_ABOUT_PORTFOLIOS[0], "--------"
-    load_all_portfolio_objects()
-
 def create_new_Account_if_one_doesnt_exist(portfolio_id, name = None):
     portfolio_obj = load_portfolio_object(portfolio_id)
     if not portfolio_obj:
@@ -537,9 +473,14 @@ def load_portfolio_object(id_number):
     else:
         #print line_number(), "Account object failed to load."
         return
-def load_all_portfolio_objects(number_of_portfolios = config.DATA_ABOUT_PORTFOLIOS[0]):
-    for i in range(number_of_portfolios):
-        load_portfolio_object(i+1)
+def load_all_portfolio_objects():
+    num_of_py_files = len(glob.glob1(secure_file_folder,"*.pk"))
+    num_of_txt_files = len(glob.glob1(secure_file_folder,"*.txt"))
+    total_num_of_possible_account_files = num_of_py_files + num_of_txt_files
+    for i in range(total_num_of_possible_account_files):
+        portfolio_obj = load_portfolio_object(i+1)
+        if portfolio_obj:
+            config.PORTFOLIO_OBJECTS_DICT[str(i+1)] = portfolio_obj
 def delete_portfolio_object(id_number):
     "delete account"
     print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
