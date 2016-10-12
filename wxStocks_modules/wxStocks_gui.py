@@ -1582,6 +1582,9 @@ class PortfolioAccountTab(Tab):
         portfolio_name_list = [obj.name for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
         new_portfolio_names = []
         if new_name != old_name:
+            print line_number()
+            print new_name
+            print portfolio_name_list
             if new_name not in portfolio_name_list:
                 self.name = new_name
                 self.portfolio_obj.name = new_name

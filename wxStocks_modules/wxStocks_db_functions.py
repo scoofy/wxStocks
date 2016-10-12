@@ -428,9 +428,13 @@ def decrypt_if_possible(path):
         return None
 
 def create_new_Account_if_one_doesnt_exist(portfolio_id, name = None):
-    portfolio_obj = load_portfolio_object(portfolio_id)
-    if not portfolio_obj:
+    # check live version
+    portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(portfolio_id)
+    if not portfolio_obj: # check saved version
+        portfolio_obj = load_portfolio_object(portfolio_id)
+    if not portfolio_obj: # create new version
         portfolio_obj = wxStocks_classes.Account(portfolio_id, name = name)
+        config.PORTFOLIO_OBJECTS_DICT[portfolio_id] = portfolio_obj
     save_portfolio_object(portfolio_obj)
     return portfolio_obj
 
