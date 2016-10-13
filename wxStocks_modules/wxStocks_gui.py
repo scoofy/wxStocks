@@ -1079,6 +1079,7 @@ class PortfolioPage(Tab):
                     portfolio_name = default_portfolio_names[i]
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
                 portfolio_account.title = portfolio_name
+                portfolio_obj = db.create_new_Account_if_one_doesnt_exist(i+1, name=portfolio_name)
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 
                 new_portfolio_name_list.append(portfolio_name)
@@ -1610,6 +1611,8 @@ class PortfolioAccountTab(Tab):
                                          )
                 error.ShowModal()
                 error.Destroy()
+        else:
+            print line_number(), "portfolio name not changed"
 
     def confirmDeleteAccount(self, event):
         confirm = wx.MessageDialog(None,
