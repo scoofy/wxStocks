@@ -33,7 +33,7 @@ for root, dirs, files in os.walk(current_dir):
 
 for root, dirs, files in os.walk(current_dir):
     for filename in files:
-        if root.split("\\")[-1] in ["DO_NOT_COPY", "user_data"]:
+        if root.split("\\")[-1] in ["DO_NOT_COPY", "user_data", "wxStocks_data"]:
             continue
         if filename.endswith(".py"):
             existing_path = os.path.join(root, filename)
