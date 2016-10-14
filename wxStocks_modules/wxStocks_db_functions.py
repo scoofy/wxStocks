@@ -380,6 +380,7 @@ def save_user_custom_analysis_functions(text):
 ### Portfolio functions need encryption/decryption
 def decrypt_if_possible(path):
     error = False
+    data = None
     #print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
     if config.ENCRYPTION_POSSIBLE:
         try:
@@ -391,13 +392,39 @@ def decrypt_if_possible(path):
             return
         try:
             encrypted_file = open(path, 'r')
-            encrypted_string = encrypted_file.read()
-            encrypted_file.close()
-            pickled_string = decrypt(config.PASSWORD, encrypted_string)
-            data = pickle.loads(pickled_string)
+            print line_number(), encrypted_file
         except Exception as e:
-            #print line_number(), e
-            #print line_number(), "Decryption not possible, account file doesn't exist"
+            print line_number(), e
+            print line_number(), "Decryption not possible, account file doesn't exist"
+            encrypted_file = None
+        if encrypted_file:
+            try:
+                encrypted_string = encrypted_file.read()
+                print line_number(), encrypted_string
+                encrypted_file.close()
+            except Exception as e:
+                print line_number(), e
+                print line_number(), "encryption string or close error"
+                encrypted_string = None
+            if not encrypted_string:
+                error = True
+            else:
+                try:
+                    pickled_string = decrypt(config.PASSWORD, encrypted_string)
+                except Exception as e:
+                    print line_number(), e
+                    print line_number(), "decrypt error"
+                    pickled_string = None
+                if not pickled_string:
+                    error = True
+                else:
+                    try:
+                        data = pickle.loads(pickled_string)
+                    except Exception as e:
+                        print line_number(), e
+                        print line_number(), "depickle error"
+                        print line_number(), "Decryption not possible, account file doesn't exist"
+        if not data:
             try:
                 unencrypted_pickle_file = open(path.replace(".txt",".pk"), 'r')
                 data = pickle.load(unencrypted_pickle_file)
@@ -434,7 +461,6 @@ def create_new_Account_if_one_doesnt_exist(portfolio_id, name = None):
         portfolio_obj = load_portfolio_object(portfolio_id)
     if not portfolio_obj: # create new version
         portfolio_obj = wxStocks_classes.Account(portfolio_id, name = name)
-        config.PORTFOLIO_OBJECTS_DICT[portfolio_id] = portfolio_obj
     save_portfolio_object(portfolio_obj)
     return portfolio_obj
 
@@ -443,7 +469,6 @@ def save_portfolio_object(portfolio_obj):
     id_number = portfolio_obj.id_number
     config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
 
-    encryption_possible = False
     print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
     if config.ENCRYPTION_POSSIBLE:
         try:
@@ -452,7 +477,7 @@ def save_portfolio_object(portfolio_obj):
             encryption_possible = True
         except Exception as e:
             pass
-    if encryption_possible:
+    if config.ENCRYPTION_POSSIBLE:
         path = portfolio_account_obj_file_path % (id_number, "txt")
         unencrypted_pickle_string = pickle.dumps(portfolio_obj)
         encrypted_string = encrypt(config.PASSWORD, unencrypted_pickle_string)
@@ -463,7 +488,7 @@ def save_portfolio_object(portfolio_obj):
         with open(path, 'w') as output:
             pickle.dump(portfolio_obj, output, pickle.HIGHEST_PROTOCOL)
 def load_portfolio_object(id_number):
-    #print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
+    print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
     if config.ENCRYPTION_POSSIBLE:
         path = portfolio_account_obj_file_path % (id_number, "txt")
     else:
@@ -471,16 +496,17 @@ def load_portfolio_object(id_number):
     portfolio_obj = decrypt_if_possible(path = path)
 
     if portfolio_obj:
-        config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
-        #print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
+        config.PORTFOLIO_OBJECTS_DICT[str(portfolio_obj.id_number)] = portfolio_obj
+        print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
         return portfolio_obj
     else:
-        #print line_number(), "Account object failed to load."
+        print line_number(), "Account object failed {id_num} to load.".format(id_num = id_number)
         return
 def load_all_portfolio_objects():
     num_of_py_files = len(glob.glob1(secure_file_folder,"*.pk"))
     num_of_txt_files = len(glob.glob1(secure_file_folder,"*.txt"))
     total_num_of_possible_account_files = num_of_py_files + num_of_txt_files
+    print line_number(), "attempting to load", total_num_of_possible_account_files, "possible portfolios"
     for i in range(total_num_of_possible_account_files):
         portfolio_obj = load_portfolio_object(i+1)
         if portfolio_obj:

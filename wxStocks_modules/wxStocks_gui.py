@@ -1060,14 +1060,19 @@ class PortfolioPage(Tab):
         portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
         portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
 
-        portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
+        portfolios_that_already_exist = []
+        print line_number(), config.PORTFOLIO_OBJECTS_DICT
+
+        if config.PORTFOLIO_OBJECTS_DICT:
+            portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
+            print line_number(), portfolios_that_already_exist
+            portfolios_that_already_exist = portfolios_that_already_exist.sort(key = lambda x: x.id_number)
         print line_number(), portfolios_that_already_exist
         print line_number(), "\n"*5
 
         default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
         if not portfolios_that_already_exist:
             config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
-            new_portfolio_name_list = []
             for i in range(config.NUMBER_OF_PORTFOLIOS):
                 print line_number(), i
                 portfolio_name = None
@@ -1077,31 +1082,18 @@ class PortfolioPage(Tab):
                     portfolio_name = "%dth" % (i+1)
                 if i in range(len(default_portfolio_names)):
                     portfolio_name = default_portfolio_names[i]
+                portfolio_obj = db.create_new_Account_if_one_doesnt_exist(i+1, name=portfolio_name)
+                print line_number(), "Portfolio", portfolio_obj.id_number, portfolio_obj.name, "created at startup"
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
                 portfolio_account.title = portfolio_name
-                portfolio_obj = db.create_new_Account_if_one_doesnt_exist(i+1, name=portfolio_name)
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 
-                new_portfolio_name_list.append(portfolio_name)
 
         else: # portfolios already exist
             need_to_save = False
             portfolios_to_save = []
-            number_of_portfolios_to_load = max(len(portfolios_that_already_exist), config.NUMBER_OF_DEFAULT_PORTFOLIOS)
-            for i in range(number_of_portfolios_to_load):
+            for portfolio_obj in portfolios_that_already_exist:
                 #print line_number(), i
-                portfolio_obj = utils.return_account_by_id(i+1)
-                if not portfolio_obj:
-                    if i < 3:
-                        number_words = ["Primary", "Secondary", "Tertiary"]
-                        portfolio_name = number_words[i]
-                    else:
-                        portfolio_name = "Portfolio %d" % (i+1)
-                    portfolio_obj = db.create_new_Account_if_one_doesnt_exist(portfolio_id=i+1, name=portfolio_name)
-                    portfolios_that_already_exist.append(portfolio_obj)
-                    portfolios_to_save.append(portfolio_obj)
-                    need_to_save = True
-
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, portfolio_obj.id_number, portfolio_obj.name)
                 portfolio_account.title = portfolio_obj.name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_obj.name)
@@ -1569,11 +1561,11 @@ class PortfolioAccountTab(Tab):
 
 
     def changeTabName(self, event):
-        old_name = self.GetLabel()
+        old_name = self.portfolio_obj.name
         rename_popup = wx.TextEntryDialog(None,
                                       "What would you like to call this portfolio?",
                                       "Rename tab",
-                                      str(self.GetLabel())
+                                      str(self.name)
                                       )
         rename_popup.ShowModal()
         new_name = str(rename_popup.GetValue())
@@ -3313,7 +3305,7 @@ class SalePrepPage(Tab):
         self.checkbox_list = []
         self.rows_dict = {}
 
-        for i in range(config.NUMBER_OF_PORTFOLIOS):
+        for i in range(len(config.PORTFOLIO_OBJECTS_DICT)):
             portfolio_exists = config.PORTFOLIO_OBJECTS_DICT.get(str(i+1))
             if not portfolio_exists:
                 continue
@@ -3321,8 +3313,9 @@ class SalePrepPage(Tab):
             horizontal_offset = gui_position.SalePrepPage.horizontal_offset
             if i>=5:
                 horizontal_offset = gui_position.SalePrepPage.horizontal_offset_i_greater_than_n
+            print line_number(), config.PORTFOLIO_OBJECTS_DICT
             checkbox_to_add = wx.CheckBox(self, -1,
-                                          config.PORTFOLIO_NAMES[i],
+                                          config.PORTFOLIO_OBJECTS_DICT.get(str(i+1)).name,
                                           pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*i)),
                                           size=(-1,-1)
                                           )
