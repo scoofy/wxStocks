@@ -1066,7 +1066,7 @@ class PortfolioPage(Tab):
         if config.PORTFOLIO_OBJECTS_DICT:
             portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
             print line_number(), portfolios_that_already_exist
-            portfolios_that_already_exist = portfolios_that_already_exist.sort(key = lambda x: x.id_number)
+            portfolios_that_already_exist.sort(key = lambda x: x.id_number)
         print line_number(), portfolios_that_already_exist
         print line_number(), "\n"*5
 
