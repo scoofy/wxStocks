@@ -4,6 +4,8 @@ import inspect, logging, os, threading, hashlib, getpass, glob
 import cPickle as pickle
 from modules.pybcrypt import bcrypt
 
+from cryptography.fernet import Fernet
+
 import wxStocks_classes
 import wxStocks_utilities as utils
 
@@ -381,7 +383,6 @@ def save_user_custom_analysis_functions(text):
 def decrypt_if_possible(path):
     error = False
     data = None
-    #print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
     if config.ENCRYPTION_POSSIBLE:
         try:
             import Crypto
@@ -390,6 +391,7 @@ def decrypt_if_possible(path):
             config.ENCRYPTION_POSSIBLE = False
             print line_number(), "Error: DATA_ABOUT_PORTFOLIOS did not load"
             return
+        fernet_obj = Fernet(config.PASSWORD)
         try:
             encrypted_file = open(path, 'r')
             print line_number(), encrypted_file
@@ -410,7 +412,7 @@ def decrypt_if_possible(path):
                 error = True
             else:
                 try:
-                    pickled_string = decrypt(config.PASSWORD, encrypted_string)
+                    pickled_string = fernet_obj.decrypt(encrypted_string)
                 except Exception as e:
                     print line_number(), e
                     print line_number(), "decrypt error"
@@ -424,6 +426,7 @@ def decrypt_if_possible(path):
                         print line_number(), e
                         print line_number(), "depickle error"
                         print line_number(), "Decryption not possible, account file doesn't exist"
+        fernet_obj = None
         if not data:
             try:
                 unencrypted_pickle_file = open(path.replace(".txt",".pk"), 'r')
@@ -478,9 +481,11 @@ def save_portfolio_object(portfolio_obj):
         except Exception as e:
             pass
     if config.ENCRYPTION_POSSIBLE:
+        fernet_obj = Fernet(config.PASSWORD)
         path = portfolio_account_obj_file_path % (id_number, "txt")
         unencrypted_pickle_string = pickle.dumps(portfolio_obj)
-        encrypted_string = encrypt(config.PASSWORD, unencrypted_pickle_string)
+        encrypted_string = fernet_obj.encrypt(unencrypted_pickle_string)
+        fernet_obj = None
         with open(path, 'w') as output:
             output.write(encrypted_string)
     else:
@@ -637,6 +642,13 @@ def make_pw_hash(pw, salt=None):
 def valid_pw(pw, h):
     print line_number(), "Validating your password, this may take a moment..."
     return h == make_pw_hash(pw, h.split('|')[1])
+def return_salt(h):
+    salt = h.split('|')[1]
+    if salt:
+        return salt
+    else:
+        return None
+
 #########################################################
 
 
