@@ -40,50 +40,6 @@ class MainFrame(wx.Frame): # reorder tab postions here
         self.title = "wxStocks"
         self.uid = config.MAIN_FRAME_UNIQUE_ID
 
-        if not "failed crypto on startup, will look at later" == 1:
-            pass
-            # There seems to be a major bug with osx at this point with message dialogs... cannot get code below functional.
-
-            # Confirm encryption if module not installed
-            # try:
-            #   import Crypto
-            #   from modules import simplecrypt
-            #   print line_number(), "Remove this and the following test line."
-            #   import force_error
-            #   yesNoAnswer = None
-            # except Exception, e:
-            #   print e
-            #   print line_number(), 'Change "Error" to "Crypto" before deploying.'
-            #   confirm = wx.MessageDialog(self,
-            #                                  "Without the pycrypto module functioning, if you import your portfolios, they will not be encrypted when saved. This will leave your data vulnurable to theft, possibly exposing your positions and net worth.",
-            #                                  'You do not have pycrypto installed.',
-            #                                  style = wx.YES_NO
-            #                                  )
-            #   confirm.SetYesNoLabels(("&Close"), ("&I Understand And Want To Continue Without Encryption"))
-            #   #yesNoAnswer = confirm.ShowModal()
-            #   if confirm.ShowModal() != wx.ID_YES:
-            #       yesNoAnswer = wx.ID_NO
-            #       print "No!"
-            #   else:
-            #       yesNoAnswer = wx.ID_YES
-            #       print "Yes!!!"
-            # if yesNoAnswer == wx.ID_YES:
-            #   sys.exit()
-            # else:
-            #   if yesNoAnswer:
-            #       confirm.Destroy()
-
-            # Workaround
-            #import wx.lib.agw.genericmessagedialog as GMD
-            #main_message = "Without the pycrypto module functioning,\nif you import your portfolios,\nthey will not be encrypted when saved.\nThis will leave your data vulnurable to theft,\npossibly exposing your positions and net worth."
-            #
-            #
-            #dlg = GMD.GenericMessageDialog(None, main_message, 'You do not have pycrypto installed.',
-            #                               agwStyle=wx.ICON_INFORMATION | wx.OK)
-            #
-            #dlg.ShowModal()
-            #dlg.Destroy()
-
         # Here we create a panel and a notebook on the panel
         main_frame = wx.Panel(self)
         self.notebook = wx.Notebook(main_frame)
@@ -440,37 +396,6 @@ class WelcomePage(Tab):
         ticker_page.downloadTickers()
 
         sys.exit()
-
-    ######################### below is not used ###########################
-    # def toggleEncryption(self, event):
-    #   if config.ENCRYPTION_POSSIBLE:
-    #       remove = self.checkRemoveEncryption()
-    #       if not remove:
-    #           return
-    #   config.ENCRYPTION_POSSIBLE = not config.ENCRYPTION_POSSIBLE
-    #   if config.ENCRYPTION_POSSIBLE:
-    #       self.turn_encryption_on_button.Hide()
-    #       self.turn_encryption_off_button.Show()
-    #       self.encryption_status = "ON:"
-    #   else:
-    #       self.turn_encryption_off_button.Hide()
-    #       self.turn_encryption_on_button.Show()
-    #       self.encryption_status = "OFF:"
-    #   print line_number(), "Encryption has been turned %s." % self.encryption_status
-    #   self.encryption_message.SetLabel(self.encryption_message_default + self.encryption_status)
-
-
-    # def checkRemoveEncryption(self):
-    #   confirm = wx.MessageDialog(None,
-    #                              "Are you sure you want to remove automatic encryption?",
-    #                              'Remove Encryption?',
-    #                              style = wx.YES_NO
-    #                              )
-    #   confirm.SetYesNoLabels(("&Yes, Remove Encryption"), ("&Cancel"))
-    #   yesNoAnswer = confirm.ShowModal()
-    #   confirm.Destroy()
-    #   return yesNoAnswer == wx.ID_YES
-    ######################### above is not used ###########################
 
 ##
 class GetDataPage(Tab):
@@ -1122,14 +1047,11 @@ class PortfolioAccountTab(Tab):
         self.SetSizer(self.sizer)
 
         if not self.portfolio_obj:
-            if config.ENCRYPTION_POSSIBLE:
+            try:
                 db.load_portfolio_object(self.portfolio_id)
-            else:
-                try:
-                    db.load_portfolio_object(self.portfolio_id)
-                except Exception, e:
-                    print line_number(), e
-                    self.portfolio_obj = None
+            except Exception, e:
+                print line_number(), e
+                self.portfolio_obj = None
 
         self.add_button = wx.Button(self, label="Update from file", pos=gui_position.PortfolioAccountTab.add_button, size=(-1,-1))
         self.add_button.Bind(wx.EVT_BUTTON, self.addAccountCSV, self.add_button)

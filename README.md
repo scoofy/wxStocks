@@ -12,7 +12,7 @@ Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and 
 
 Requirements: Python 2.X, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org)
 
-Nonessential but recommended: [PyCrypto](https://pypi.python.org/pypi/pycrypto), [simplecrypt](https://pypi.python.org/pypi/simple-crypt), [xlrd](https://pypi.python.org/pypi/xlrd)
+Nonessential but recommended: [python cryptography](https://cryptography.io/en/latest/), [xlrd](https://pypi.python.org/pypi/xlrd)
 
 License: [AGPL](https://en.wikipedia.org/wiki/Affero_General_Public_License)
 
@@ -30,28 +30,20 @@ wxPython:
 
 http://www.wxpython.org/download.php
 
-Note: I built this using the cocoa build for OSX. I should work on all other builds though, but i've heard some of my friends are having problems while using ipython. Not sure what to do if you're having issue, this is a tough one.
+Note: I built this using the cocoa build for OSX. I should work on all other builds though, but i've heard some of my friends are having problems while using ipython. Not sure what to do if you're having issue, this is a tough one. Generally though, for Windows or Linux: $ pip install wxpython
 
 Numpy:
 
+$ pip install numpy
 http://docs.scipy.org/doc/numpy/user/install.html
 
-PyCrypto (not required):
+Python cryptography library (not required):
 
-https://pypi.python.org/pypi/pycrypto
-
-Good stack overflow article for windows: http://stackoverflow.com/questions/11405549/how-do-i-install-pycrypto-on-windows
-
-The compiler I needed for Windows: Microsoft Visual C++ Compiler for Python 2.7
-
-Good article for OSX: http://osxdaily.com/2012/07/10/how-to-install-paramiko-and-pycrypto-in-mac-os-x-the-easy-way/
-
-simplecrypt:
-
-https://pypi.python.org/pypi/simple-crypt
+$ pip install cryptography
 
 xlrd:
 
+$ pip install xlrd
 https://pypi.python.org/pypi/xlrd
 
 Screenshots:

@@ -3,8 +3,10 @@ import config
 import inspect, logging, os, threading, hashlib, getpass, glob
 import cPickle as pickle
 from modules.pybcrypt import bcrypt
-
-from cryptography.fernet import Fernet
+try:
+    from cryptography.fernet import Fernet
+except:
+    config.ENCRYPTION_POSSIBLE = False
 
 import wxStocks_classes
 import wxStocks_utilities as utils
@@ -384,13 +386,6 @@ def decrypt_if_possible(path):
     error = False
     data = None
     if config.ENCRYPTION_POSSIBLE:
-        try:
-            import Crypto
-            from modules.simplecrypt import encrypt, decrypt
-        except:
-            config.ENCRYPTION_POSSIBLE = False
-            print line_number(), "Error: DATA_ABOUT_PORTFOLIOS did not load"
-            return
         fernet_obj = Fernet(config.PASSWORD)
         try:
             encrypted_file = open(path, 'r')
@@ -473,13 +468,7 @@ def save_portfolio_object(portfolio_obj):
     config.PORTFOLIO_OBJECTS_DICT[str(id_number)] = portfolio_obj
 
     print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
-    if config.ENCRYPTION_POSSIBLE:
-        try:
-            import Crypto
-            from modules.simplecrypt import encrypt, decrypt
-            encryption_possible = True
-        except Exception as e:
-            pass
+
     if config.ENCRYPTION_POSSIBLE:
         fernet_obj = Fernet(config.PASSWORD)
         path = portfolio_account_obj_file_path % (id_number, "txt")

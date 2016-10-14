@@ -6,7 +6,7 @@ print "Startup may take a few moments..."
 
 
 # Requirements that must be installed
-import wx #, numpy, pycrypto, simplecrypt
+import wx #, numpy
 
 # Standard Libraries
 import sys, inspect, hashlib, threading, base64
@@ -29,8 +29,6 @@ try:
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    import Crypto
-    from modules.simplecrypt import encrypt, decrypt
     config.ENCRYPTION_POSSIBLE = True
 except:
     config.ENCRYPTION_POSSIBLE = False
