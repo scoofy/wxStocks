@@ -2242,14 +2242,14 @@ class RankPage(Tab):
 
 
         self.portfolio_name_tuple_list = []
-        for i in range(len(config.PORTFOLIO_NAMES)):
-            tuple_to_append = [config.PORTFOLIO_NAMES[i], (i+1)]
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+            tuple_to_append = [portfolio_obj.name, portfolio_obj.id_number]
             self.portfolio_name_tuple_list.append(tuple_to_append)
             #print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
                                      pos=gui_position.RankPage.accounts_drop_down,
-                                     choices=config.PORTFOLIO_NAMES,
+                                     choices = [obj.name for obj in sorted(config.PORTFOLIO_OBJECTS_DICT.values(), key=lambda x: x.id_number)],
                                      style = wx.TE_READONLY
                                      )
 
@@ -2467,14 +2467,14 @@ class RankPage(Tab):
 
 
         self.portfolio_name_tuple_list = []
-        for i in range(len(config.PORTFOLIO_NAMES)):
-            tuple_to_append = [config.PORTFOLIO_NAMES[i], (i+1)]
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+            tuple_to_append = [portfolio_obj.name, portfolio_obj.id_number]
             self.portfolio_name_tuple_list.append(tuple_to_append)
             print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
                                      pos=(305, 31),
-                                     choices=config.PORTFOLIO_NAMES,
+                                     choices = [obj.name for obj in sorted(config.PORTFOLIO_OBJECTS_DICT.values(), key=lambda x: x.id_number)],
                                      style = wx.TE_READONLY
                                      )
     def loadScreen(self, event):
@@ -2686,14 +2686,14 @@ class CustomAnalysisPage(Tab):
 
 
         self.portfolio_name_tuple_list = []
-        for i in range(len(config.PORTFOLIO_NAMES)):
-            tuple_to_append = [config.PORTFOLIO_NAMES[i], (i+1)]
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+            tuple_to_append = [portfolio_obj.name, portfolio_obj.id_number]
             self.portfolio_name_tuple_list.append(tuple_to_append)
             #print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
                                      pos=gui_position.CustomAnalysisPage.accounts_drop_down,
-                                     choices=config.PORTFOLIO_NAMES,
+                                     choices = [obj.name for obj in sorted(config.PORTFOLIO_OBJECTS_DICT.values(), key=lambda x: x.id_number)],
                                      style = wx.TE_READONLY
                                      )
 
@@ -4490,8 +4490,7 @@ class TradePage(Tab):
 
         for portfolio in self.relevant_portfolios_list:
             id_number = portfolio.id_number
-            #print line_number(), "Portfolio %d:" % id_number, config.PORTFOLIO_NAMES[id_number - 1]
-            #print line_number(), config.PORTFOLIO_NAMES
+
         self.makeGridOnButtonPush("event")
 
         # Now, how to refresh only parts of the list... hmmmm
@@ -4579,7 +4578,7 @@ class TradePage(Tab):
             print line_number(), "relevant_portfolios_list"
             for account in self.relevant_portfolios_list:
                 id_number = account.id_number
-                self.relevant_portfolio_name_list.append(config.PORTFOLIO_NAMES[(id_number - 1)])
+                self.relevant_portfolio_name_list.append(account.name)
                 print line_number(), "relevant_portfolio_name_list:", self.relevant_portfolio_name_list
 
             num_rows = len(self.sale_tuple_list)

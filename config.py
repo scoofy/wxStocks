@@ -316,8 +316,6 @@ PASSWORD = None
 
 # Default name is "Primary"
 NUMBER_OF_PORTFOLIOS = 0
-PORTFOLIO_NAMES = []
-
 PORTFOLIO_OBJECTS_DICT = {}
 ###
 
