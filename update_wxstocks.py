@@ -34,9 +34,10 @@ for root, dirs, files in os.walk(current_dir):
             break
 
 # add new files
+user_directories = ["DO_NOT_COPY", "user_data", "wxStocks_data", "functions_for_custom_analysis_go_in_here"]
 for root, dirs, files in os.walk(newly_downloaded_path):
     for filename in files:
-        if root.split("\\")[-1] in ["DO_NOT_COPY", "user_data", "wxStocks_data"]:
+        if any(folder_name in root for folder_name in user_directories):
             continue
         if filename.endswith(".py"):
             #print root
