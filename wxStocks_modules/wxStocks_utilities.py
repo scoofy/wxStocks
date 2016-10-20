@@ -1,4 +1,4 @@
-import inspect, logging, time, csv
+import wx, inspect, logging, time, csv
 import config
 def line_number():
     """Returns the current line number in our program."""
@@ -602,37 +602,61 @@ def convert_wx_grid_data_to_html_table(wx_grid):
     num_rows = wx_grid.GetNumberRows()
     if not (num_rows and num_cols):
         return
-    for row in range(num_rows):
-        data_list_for_export.append([])
-
-    for row in range(num_rows):
-        for col in range(num_cols):
-            data = wx_grid.GetCellValue(row, col)
-            if data:
-                data_list_for_export[row].append(data)
-            else:
-                data_list_for_export[row].append("")
-
-    #print line_number()
-    #pprint.pprint(data_list_for_export)
 
     html_head = "<!DOCTYPE html><html><head><style>table, th, td {border: 1px solid black; border-collapse: collapse;} td {padding: 5px;}</style></head><body><table>"
     html_butt = "</table></body></html>"
     html_body = ""
 
-    for row in data_list_for_export:
+    for row in range(num_rows):
         #print line_number(), "row", row
         html_body = html_body + "<tr>"
-        for col in row:
-            #print line_number(), "col", str(col)
-            html_body = html_body + "<td>" + str(col) + "</td>"
+        for col in range(num_cols):
+            text = wx_grid.GetCellValue(row, col)
+            text_color = wx_grid.GetCellTextColour(row, col)
+            background_color = wx_grid.GetCellBackgroundColour(row, col)
+            alignment = wx_grid.GetCellAlignment(row, col)
+            if alignment:
+                if alignment == (0,0):
+                    alignment = ""
+                elif alignment == (255, 1024):
+                    alignment = "right"
+                elif alignment == (512, 1024):
+                    alignment = "right"
+                else:
+                    print line_number()
+                    print "text alignment unknown value:", alignment
+
+            style = ""
+            if background_color or text_color or alignment: #or other style thing
+                style = ' style="'
+                if background_color:
+                    style+=" background-color: rgba{};".format(background_color)
+                if text_color:
+                    style+=" color: rgba{};".format(text_color)
+                if alignment:
+                    style+=' text-align: {}";'.format(alignment)
+
+                style+='"' # close style section
+            html_body = html_body + "<td{style}>{text}</td>".format(style=style, text=text)
         html_body = html_body + "</tr>"
     html = html_head + html_body + html_butt
-    #print line_number()
-    #pprint.pprint(html)
+    print line_number()
+    import pprint
+    pprint.pprint(html)
     return html
 
+def save_grid_as(wx_window, wx_grid, title):
+    html = convert_wx_grid_data_to_html_table(wx_grid)
 
+    saveFileDialog = wx.FileDialog(wx_window, "Save {} to file".format(title), "", '{}{}'.format(title, str(time.strftime("%I.%M.%S%p"))),
+                                   "HTML file|.html", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+    if saveFileDialog.ShowModal() == wx.ID_CANCEL:
+        return     # the user changed idea...
+    # save the current contents in the file
+    # this can be done with e.g. wxPython output streams:
+    output_file = open(saveFileDialog.GetPath(), "w")
+    output_file.write(html)
+    output_file.close()
 ############################################################################################
 
 

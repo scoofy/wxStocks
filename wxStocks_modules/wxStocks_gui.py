@@ -2702,6 +2702,9 @@ class CustomAnalysisPage(Tab):
         self.clear_button.Bind(wx.EVT_BUTTON, self.clearSpreadsheet, self.clear_button)
         self.clear_button.Hide()
 
+        self.save_button = wx.Button(self, label="save", pos=gui_position.CustomAnalysisPage.save_button, size=(-1,-1))
+        self.save_button.Bind(wx.EVT_BUTTON, self.saveGridAs, self.save_button)
+        self.save_button.Hide()
 
         self.fade_opacity = 255
         self.custom_spreadsheet = None
@@ -2772,6 +2775,7 @@ class CustomAnalysisPage(Tab):
         except Exception, e:
             print line_number(), e
         self.clear_button.Hide()
+        self.save_button.Hide()
         self.analyse.Hide()
 
     def loadAllStocks(self, event):
@@ -2905,8 +2909,9 @@ class CustomAnalysisPage(Tab):
         , enable_editing = False
         ):
 
-        #print line_number()
-        #pp.pprint(cell_list)
+        if len(cell_list) > 10000:
+            print line_number()
+            print "Creating extremely large custom analysis spreadsheet, this may take a few minutes... seriously."
 
         num_rows = 0
         num_columns = 0
@@ -2942,6 +2947,7 @@ class CustomAnalysisPage(Tab):
         self.screen_grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, lambda event: self.addStockToResearchPage(event), self.screen_grid)
         self.screen_grid.AutoSizeColumns()
         # deal with colors and shit later, also held stocklist
+        self.save_button.Show()
         return self.screen_grid
 
     def addStockToResearchPage(self, event):
@@ -2960,6 +2966,10 @@ class CustomAnalysisPage(Tab):
                 if stock not in self.all_stocks_currently_included:
                     self.all_stocks_currently_included.append(stock)
         self.showStocksCurrentlyUsed()
+
+    def saveGridAs(self, event):
+        title = self.function_name
+        utils.save_grid_as(wx_window = self, wx_grid=self.screen_grid, title=title)
 
 #### Research
 class ResearchPage(Tab):
@@ -5059,18 +5069,9 @@ class TradePage(Tab):
         new_grid.SetFocus()
         self.grid = new_grid
 
-    def saveGridAs(self, event):
-        html = utils.convert_wx_grid_data_to_html_table(self.grid)
+    def saveGridAs(self, event, title = "Trade_Prep"):
+        utils.save_grid_as(wx_window = self, wx_grid = self.grid, title=title)
 
-        saveFileDialog = wx.FileDialog(self, "Save Trade Prep to file", "", 'TradePrep%s' % str(time.strftime("%I.%M.%S%p")),
-                                       "HTML file|.html", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if saveFileDialog.ShowModal() == wx.ID_CANCEL:
-            return     # the user changed idea...
-        # save the current contents in the file
-        # this can be done with e.g. wxPython output streams:
-        output_file = open(saveFileDialog.GetPath(), "w")
-        output_file.write(html)
-        output_file.close()
 
 
 class UserFunctionsMetaPage(Tab):
