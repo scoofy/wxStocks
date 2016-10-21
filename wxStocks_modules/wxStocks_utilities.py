@@ -646,12 +646,20 @@ def convert_wx_grid_data_to_html_table(wx_grid):
     return html
 
 def save_grid_as(wx_window, wx_grid, title):
-    html = convert_wx_grid_data_to_html_table(wx_grid)
-
     saveFileDialog = wx.FileDialog(wx_window, "Save {} to file".format(title), "", '{}{}'.format(title, str(time.strftime("%I.%M.%S%p"))),
                                    "HTML file|.html", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
     if saveFileDialog.ShowModal() == wx.ID_CANCEL:
         return     # the user changed idea...
+
+    num_cols = wx_grid.GetNumberCols()
+    num_rows = wx_grid.GetNumberRows()
+    num_cells = num_rows*num_cols
+    if num_cells > 10000:
+        print line_number()
+        print "Parsing extremely large spreadsheet for export, this may take a few minutes too..."
+
+    html = convert_wx_grid_data_to_html_table(wx_grid)
+
     # save the current contents in the file
     # this can be done with e.g. wxPython output streams:
     output_file = open(saveFileDialog.GetPath(), "w")
