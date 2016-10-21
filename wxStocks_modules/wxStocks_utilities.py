@@ -640,9 +640,9 @@ def convert_wx_grid_data_to_html_table(wx_grid):
             html_body = html_body + "<td{style}>{text}</td>".format(style=style, text=text)
         html_body = html_body + "</tr>"
     html = html_head + html_body + html_butt
-    print line_number()
-    import pprint
-    pprint.pprint(html)
+    #print line_number()
+    #import pprint
+    #pprint.pprint(html)
     return html
 
 def save_grid_as(wx_window, wx_grid, title):
