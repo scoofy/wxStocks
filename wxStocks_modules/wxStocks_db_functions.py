@@ -153,7 +153,7 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
     if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
         config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
 def load_GLOBAL_STOCK_DICT():
-    print line_number(), "\n"
+    print line_number()
     sys.stdout.write("Loading GLOBAL_STOCK_DICT: this may take a couple of minutes.")
     sys.stdout.flush()
     try:
