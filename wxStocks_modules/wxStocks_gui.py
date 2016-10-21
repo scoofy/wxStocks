@@ -2086,7 +2086,7 @@ class SavedScreenPage(Tab):
         confirm.Destroy()
 
 
-        print line_number(), self.screen_grid
+        print line_number(), self.spreadsheet
         if yesNoAnswer != wx.ID_YES:
             return
         try:
@@ -2094,7 +2094,7 @@ class SavedScreenPage(Tab):
 
             db.delete_named_screen(self.currently_viewed_screen)
 
-            self.screen_grid.Destroy()
+            self.spreadsheet.Destroy()
             self.currently_viewed_screen = None
 
         except Exception, exception:
@@ -2144,9 +2144,9 @@ class SavedScreenPage(Tab):
         if self.first_spread_sheet_load:
             self.first_spread_sheet_load = False
         else:
-            if self.screen_grid:
+            if self.spreadsheet:
                 try:
-                    self.screen_grid.Destroy()
+                    self.spreadsheet.Destroy()
                 except Exception, exception:
                     print line_number(), exception
 
