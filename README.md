@@ -24,7 +24,7 @@ Python:
 
 If you are running a mac or linux Python 2.X. To check, open your terminal and just type "python", which should lead to a prompt that looks like ">>>". You can then quit by typing "quit()". If that doesn't work, go here: https://www.python.org/downloads/
 
-If you are running windows, go here and install python 2.X: https://www.python.org/downloads/
+If you are running windows, i've found it's better to install 64-bit python if you're on a 64-bit processor for this program, go here and install python 2.X, ideally the latest release: https://www.python.org/downloads/
 
 wxPython:
 
@@ -35,6 +35,7 @@ Note: I built this using the cocoa build for OSX. I should work on all other bui
 Numpy:
 
 $ pip install numpy
+
 http://docs.scipy.org/doc/numpy/user/install.html
 
 Python cryptography library (not required):
