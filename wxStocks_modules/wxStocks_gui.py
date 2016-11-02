@@ -1923,7 +1923,7 @@ class ScreenPage(Tab):
 
         # run screen
         conforming_stocks = []
-        for ticker in config.GLOBAL_STOCK_DICT:
+        for ticker in sorted(config.GLOBAL_STOCK_DICT.keys()):
             stock = config.GLOBAL_STOCK_DICT.get(ticker)
             result = screen_function(stock)
             if result is True:
