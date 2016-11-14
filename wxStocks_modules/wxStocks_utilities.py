@@ -646,7 +646,7 @@ def convert_wx_grid_data_to_html_table(wx_grid):
     return html
 
 def save_grid_as(wx_window, wx_grid, title):
-    saveFileDialog = wx.FileDialog(wx_window, "Save {} to file".format(title), "", '{}{}'.format(title, str(time.strftime("%I.%M.%S%p"))),
+    saveFileDialog = wx.FileDialog(wx_window, "Save {} to file".format(title), "", '{}.{}'.format(title, str(time.strftime("%Y.%m.%d"))),
                                    "HTML file|.html", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
     if saveFileDialog.ShowModal() == wx.ID_CANCEL:
         return     # the user changed idea...

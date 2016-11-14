@@ -1978,6 +1978,7 @@ class ScreenPage(Tab):
 
 
     def saveScreen(self, event):
+        current_screen_name_displayed =  self.drop_down.GetValue()
         current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
         screen_name_tuple_list = config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
         existing_screen_names = [i[0] for i in screen_name_tuple_list]
@@ -1990,7 +1991,7 @@ class ScreenPage(Tab):
         save_popup = wx.TextEntryDialog(None,
                                           "What would you like to name this group?",
                                           "Save Screen",
-                                          "%s screen saved at %s" % (str(time.strftime("%Y-%m-%d")),str(time.strftime("%H:%M:%S")))
+                                          "{screen} saved on {time}".format(screen = current_screen_name_displayed, time = str(time.strftime("%m-%d %I:%M%p")))
                                          )
         if save_popup.ShowModal() == wx.ID_OK:
             saved_screen_name = str(save_popup.GetValue())
