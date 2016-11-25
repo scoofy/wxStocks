@@ -4523,9 +4523,12 @@ class TradePage(Tab):
             print line_number(), grid
 
         if not cursor_positon:
-            row = event.GetRow()
-            column = event.GetCol()
-            cursor_positon = (int(row), int(column))
+            row = int(event.GetRow())
+            column = int(event.GetCol())
+            cursor_positon = (row, column)
+        else:
+            row = int(cursor_positon[0])
+            column = int(cursor_positon[1])
 
         if int(column) == self.default_account_dropdown_column:
             # ignore this input
