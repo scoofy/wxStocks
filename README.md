@@ -8,7 +8,7 @@ wxStocks is a investment analysis program that could help teach you to scrape, s
 
 Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool.
 
-*NOTE: El Capitan has broken wxPython on Mac indefinitely. The bug is here: http://trac.wxwidgets.org/ticket/17203 and it's been 7 months since any update. I'll be resuming develpment on Windows 10 and Linux Mint, which should actually help with many of the display issues on those.
+*NOTE: El Capitan has broken wxPython on Mac indefinitely. The bug is here: http://trac.wxwidgets.org/ticket/17203 however, there seems to be a new build that works. You can find the new installer [here](https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg), but it's not signed, still, it worked for me with the latest version of Python 2 installed.
 
 Requirements: Python 2.X, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org)
 
@@ -30,7 +30,9 @@ wxPython:
 
 http://www.wxpython.org/download.php
 
-Note: I built this using the cocoa build for OSX. I should work on all other builds though, but i've heard some of my friends are having problems while using ipython. Not sure what to do if you're having issue, this is a tough one. Generally though, for Windows or Linux: $ pip install wxpython
+Mac: As noted above, the normal wxPython installer is broken, but a new, though unsigned, installer is out, which you can get [here](https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg).
+
+Windows or Linux, just use pip: $ pip install wxpython
 
 Numpy:
 
@@ -38,7 +40,7 @@ $ pip install numpy
 
 http://docs.scipy.org/doc/numpy/user/install.html
 
-Python cryptography library (not required):
+Python cryptography library (not required, but highly recommended):
 
 $ pip install cryptography
 
