@@ -8,7 +8,7 @@ wxStocks is a investment analysis program that could help teach you to scrape, s
 
 Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and pyql as its scraping tool.
 
-*NOTE: El Capitan has broken wxPython on Mac indefinitely. The bug is here: http://trac.wxwidgets.org/ticket/17203 however, there seems to be a new build that works. You can find the new installer [here](https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg), but it's not signed, still, it worked for me with the latest version of Python 2 installed.
+*NOTE: El Capitan has broken wxPython on Mac indefinitely. The bug is here: http://trac.wxwidgets.org/ticket/17203 however, there seems to be a new build that works. You can find the new installer here but it's not signed, still, it worked for me with the latest version of Python 2 installed: https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg
 
 Requirements: Python 2.X, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org)
 
@@ -30,7 +30,7 @@ wxPython:
 
 http://www.wxpython.org/download.php
 
-Mac: As noted above, the normal wxPython installer is broken, but a new, though unsigned, installer is out, which you can get [here](https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg).
+Mac: As noted above, the normal wxPython installer is broken, but a new, though unsigned, installer is out, which you can get here: https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg
 
 Windows or Linux, just use pip: $ pip install wxpython
 
