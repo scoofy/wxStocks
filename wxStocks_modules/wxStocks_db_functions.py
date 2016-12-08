@@ -153,8 +153,8 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
     if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
         config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
 def load_GLOBAL_STOCK_DICT():
-    print line_number()
-    sys.stdout.write("Loading GLOBAL_STOCK_DICT: this may take a couple of minutes.")
+    print line_number(), "\n" # if you remove this, remove the print newline statement below
+    sys.stdout.write("    Loading GLOBAL_STOCK_DICT: this may take a couple of minutes.")
     sys.stdout.flush()
     try:
         pickled_file = open(all_stocks_path, 'rb')
@@ -167,6 +167,7 @@ def load_GLOBAL_STOCK_DICT():
         stock_dict = config.GLOBAL_STOCK_DICT
         with open(all_stocks_path, 'wb') as output:
             pickle.dump(stock_dict, output, pickle.HIGHEST_PROTOCOL)
+    print "\n"
     load_GLOBAL_ATTRIBUTE_SET()
 def save_GLOBAL_STOCK_DICT():
     save_thread = threading.Thread(name = "saving", target = save_GLOBAL_STOCK_DICT_worker)
@@ -389,15 +390,17 @@ def decrypt_if_possible(path):
         fernet_obj = Fernet(config.PASSWORD)
         try:
             encrypted_file = open(path, 'r')
-            print line_number(), encrypted_file
+            #print line_number(), encrypted_file
         except Exception as e:
-            print line_number(), e
-            print line_number(), "Decryption not possible, account file doesn't exist"
+            if e.errno == 2:
+                print line_number(), "Decryption not possible, account file {} doesn't exist. This is likely not a problem, unless you use that portfolio regularly".format(path)
+            else:
+                print line_number(), e
             encrypted_file = None
         if encrypted_file:
             try:
                 encrypted_string = encrypted_file.read()
-                print line_number(), encrypted_string
+                #print line_number(), encrypted_string
                 encrypted_file.close()
             except Exception as e:
                 print line_number(), e
@@ -482,7 +485,6 @@ def save_portfolio_object(portfolio_obj):
         with open(path, 'w') as output:
             pickle.dump(portfolio_obj, output, pickle.HIGHEST_PROTOCOL)
 def load_portfolio_object(id_number):
-    print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
     if config.ENCRYPTION_POSSIBLE:
         path = portfolio_account_obj_file_path % (id_number, "txt")
     else:
@@ -491,14 +493,19 @@ def load_portfolio_object(id_number):
 
     if portfolio_obj:
         config.PORTFOLIO_OBJECTS_DICT[str(portfolio_obj.id_number)] = portfolio_obj
-        print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
+        #print "Portfolio objects dict:", config.PORTFOLIO_OBJECTS_DICT
         return portfolio_obj
     else:
         print line_number(), "Account object failed {id_num} to load.".format(id_num = id_number)
         return
 def load_all_portfolio_objects():
+    if not config.ENCRYPTION_POSSIBLE:
+        print line_number(), "config.ENCRYPTION_POSSIBLE", config.ENCRYPTION_POSSIBLE
     num_of_py_files = len(glob.glob1(secure_file_folder,"*.pk"))
     num_of_txt_files = len(glob.glob1(secure_file_folder,"*.txt"))
+    # remove password.txt from count if it exists
+    if os.path.isfile(secure_file_folder + "/password.txt"):
+        num_of_txt_files -= 1
     total_num_of_possible_account_files = num_of_py_files + num_of_txt_files
     print line_number(), "attempting to load", total_num_of_possible_account_files, "possible portfolios"
     for i in range(total_num_of_possible_account_files):

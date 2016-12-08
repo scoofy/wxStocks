@@ -1,5 +1,4 @@
 import config
-print "wxStocks_gui_position_index line 2, add self. to all attributes"
 #[osx, debian linux, windows]
 #[osx because the o is a 0, linux because the l is a 1, and windows because it deserves to be last]
 
@@ -21,6 +20,8 @@ full_spreadsheet_size_position_tuple = [((980,637),(0,50)),((980,637),(0,40)),((
 class WelcomePage(object):
     welcome_page_text = (10,10)
     instructions = [(10,20),(10,30),(10,30)][config.OS_TYPE_INDEX]
+    if config.ENCRYPTION_POSSIBLE and (config.OS_TYPE_INDEX != 0): # if encryption and not on mac
+        print line_number(), "FINISH THIS TEMPORARY RESTRUCTURING TO WORK CROSSPLATFORM"
     reset_password_button = [(5, 700),(default_width - 400, 0),(default_width - 400, 0)][config.OS_TYPE_INDEX]
     text_field_offset = 180
     text_field_vertical_offset = -3
@@ -225,7 +226,7 @@ class TradePage(object):
     save_grid_button = [(900,30),(default_width-97,33),(default_width-112,27)][config.OS_TYPE_INDEX]
     update_stocks_button = [(700,30), (700,33),(700,27)][config.OS_TYPE_INDEX]
     stock_update_pending_text = (700,30)
-    execute_trades_button = [(),(),(400,0)][config.OS_TYPE_INDEX]
+    execute_trades_button = [(400,0),(400,0),(400,0)][config.OS_TYPE_INDEX]
 
     newGridFill_size = [(1000,650),(1000,default_height),(1000,default_height)][config.OS_TYPE_INDEX]
     width_adjust = 20

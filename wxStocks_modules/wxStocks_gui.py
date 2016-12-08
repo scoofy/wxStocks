@@ -189,8 +189,7 @@ class WelcomePage(Tab):
         self.reset_password_button_horizontal_position = gui_position.WelcomePage.reset_password_button[0]
         self.reset_password_button_vertical_position = gui_position.WelcomePage.reset_password_button[1]
 
-        if config.ENCRYPTION_POSSIBLE or True:
-            print line_number(), "FIX THIS DEBUG"
+        if config.ENCRYPTION_POSSIBLE:
             self.reset_password_button = wx.Button(self, label="Reset Password", pos=(self.reset_password_button_horizontal_position, self.reset_password_button_vertical_position), size=(-1,-1))
             self.reset_password_button.Bind(wx.EVT_BUTTON, self.resetPasswordPrep, self.reset_password_button)
 
@@ -986,20 +985,18 @@ class PortfolioPage(Tab):
         portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
 
         portfolios_that_already_exist = []
-        print line_number(), config.PORTFOLIO_OBJECTS_DICT
+        #print line_number(), config.PORTFOLIO_OBJECTS_DICT
 
         if config.PORTFOLIO_OBJECTS_DICT:
             portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
-            print line_number(), portfolios_that_already_exist
+            #print line_number(), portfolios_that_already_exist
             portfolios_that_already_exist.sort(key = lambda x: x.id_number)
-        print line_number(), portfolios_that_already_exist
-        print line_number(), "\n"*5
-
+        #print line_number(), portfolios_that_already_exist
         default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
         if not portfolios_that_already_exist:
             config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
             for i in range(config.NUMBER_OF_PORTFOLIOS):
-                print line_number(), i
+                #print line_number(), i
                 portfolio_name = None
                 if config.NUMBER_OF_PORTFOLIOS < 10:
                     portfolio_name = "Portfolio %d" % (i+1)
@@ -2746,7 +2743,7 @@ class CustomAnalysisPage(Tab):
         self.ticker_display = None
         self.screen_grid = None
 
-        print line_number(), self.panel_name + " loaded"
+        #print line_number(), self.panel_name + " loaded"
 
 
     def addOneStock(self, event):
@@ -3246,7 +3243,7 @@ class SalePrepPage(Tab):
             horizontal_offset = gui_position.SalePrepPage.horizontal_offset
             if i>=5:
                 horizontal_offset = gui_position.SalePrepPage.horizontal_offset_i_greater_than_n
-            print line_number(), config.PORTFOLIO_OBJECTS_DICT
+            #print line_number(), config.PORTFOLIO_OBJECTS_DICT
             checkbox_to_add = wx.CheckBox(self, -1,
                                           config.PORTFOLIO_OBJECTS_DICT.get(str(i+1)).name,
                                           pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*i)),
@@ -3534,8 +3531,7 @@ class SalePrepPage(Tab):
         # set size for grid
         size = gui_position.SalePrepPage.size
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            width, height = gui_position.MainFrame_size
             size = (width-gui_position.SalePrepPage.width_adjust, height-gui_position.SalePrepPage.height_adjust) # find the difference between the Frame and the grid size
         except Exception, e:
             print line_number(), e
@@ -4291,7 +4287,7 @@ class TradePage(Tab):
         self.execute_trades_button = wx.Button(self,
                                                label="Execute trades",
                                                pos = gui_position.TradePage.execute_trades_button,
-                                               size=(-1,-1),
+                                               size = (-1,-1),
                                                )
         self.execute_trades_button.Bind(wx.EVT_BUTTON, self.confirmExecuteTrades, self.execute_trades_button)
 
@@ -4589,7 +4585,7 @@ class TradePage(Tab):
         self.relevant_portfolio_name_list = []
         try:
             # set initial rows, buy candidate rows checked below
-            print line_number(), "relevant_portfolios_list"
+            # print line_number(), "relevant_portfolios_list"
             for account in self.relevant_portfolios_list:
                 id_number = account.id_number
                 self.relevant_portfolio_name_list.append(account.name)
@@ -4897,13 +4893,12 @@ class TradePage(Tab):
             stocks_at_three_percent_row = 13
 
             three_percent_of_all_assets = 0.03 * total_asset_value # from above
-            try:
-                number_of_stocks_at_3_percent = total_cash / three_percent_of_all_assets # total_cash defined above
-            except Exception, exception:
-                print line_number(), exception
+            if three_percent_of_all_assets == 0: # don't divide by zero
                 number_of_stocks_at_3_percent = 0
-            number_of_stocks_at_3_percent = int(math.floor(number_of_stocks_at_3_percent)) # always round down
+            else:
+                number_of_stocks_at_3_percent = total_cash / three_percent_of_all_assets # total_cash defined above
 
+            number_of_stocks_at_3_percent = int(math.floor(number_of_stocks_at_3_percent)) # always round down
             stocks_at_three_percent_cell = SpreadsheetCell(row = stocks_at_three_percent_row, col = this_column_number, text = str(number_of_stocks_at_3_percent), value = number_of_stocks_at_3_percent, align_right = True)
             spreadsheet_cell_list.append(stocks_at_three_percent_cell)
 
@@ -5063,13 +5058,14 @@ class TradePage(Tab):
 
 
         new_grid.AutoSizeColumns()
-        print line_number(), "done building grid"
+        #print line_number(), "done building grid"
         new_grid.SetGridCursor(cursor_positon[0] + 1, cursor_positon[1])
 
         for grid in self.grid_list:
             grid.Hide()
         self.grid_list.append(new_grid)
-        print line_number(), "number of grids created =", len(self.grid_list)
+        if len(self.grid_list) > 1:
+            print line_number(), "number of grids created =", len(self.grid_list)
         new_grid.SetFocus()
         self.grid = new_grid
 
