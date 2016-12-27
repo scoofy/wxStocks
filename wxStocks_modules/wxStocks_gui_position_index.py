@@ -2,6 +2,10 @@ import config
 #[osx, debian linux, windows]
 #[osx because the o is a 0, linux because the l is a 1, and windows because it deserves to be last]
 
+def line_number():
+    """Returns the current line number in our program."""
+    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+
 #MainFrame
 MainFrame_size = [(1020,800),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZE[1]*(3./4) ),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZE[1]*(3./4) )][config.OS_TYPE_INDEX]
 MainFrame_SetSizeHints = MainFrame_size
