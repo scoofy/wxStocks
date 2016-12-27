@@ -1,4 +1,4 @@
-import config
+import config, inspect
 #[osx, debian linux, windows]
 #[osx because the o is a 0, linux because the l is a 1, and windows because it deserves to be last]
 
