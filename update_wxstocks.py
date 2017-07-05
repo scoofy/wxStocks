@@ -1,4 +1,19 @@
-import sys, os, wx, stat, hashlib, shutil
+import sys, os, wx, stat, hashlib, shutil, platform
+
+OS_TYPE = platform.system() # Detect OS, for file directory purposes
+OS_TYPE_INDEX = None
+try:
+    supported_os_types = ["Darwin", "Linux", "Windows"]
+    OS_TYPE_INDEX = supported_os_types.index(OS_TYPE)
+except Exception as e:
+    print e
+    print "This program has not be properly formatted for your OS. Edit the config file if needed."
+    sys.exit()
+
+if OS_TYPE_INDEX == 2: #Windows
+    slash = "\\"
+else:
+    slash = "/"
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -14,7 +29,7 @@ else:
 dialog.Destroy()
 
 # check to see if selected folder is a wxStocks folder
-if not (os.path.isfile(newly_downloaded_path + "\\wxStocks.py") and os.path.isfile(newly_downloaded_path + "\\update_wxstocks.py")):
+if not (os.path.isfile(newly_downloaded_path + slash + "wxStocks.py") and os.path.isfile(newly_downloaded_path + slash + "update_wxstocks.py")):
     # if wxStocks.py or update_wxstocks.py don't exist
     print "It appears you have not selected a wxStocks folder."
     print "Please try again, selecting an unzipped version of wxStocks."
@@ -22,14 +37,14 @@ if not (os.path.isfile(newly_downloaded_path + "\\wxStocks.py") and os.path.isfi
     sys.exit()
 
 # get new directory split name
-new_split_folder_name = (newly_downloaded_path + "\\wxStocks.py").split("\\")[-2]
+new_split_folder_name = (newly_downloaded_path + slash + "wxStocks.py").split(slash)[-2]
 
 # get current directory split name
 for root, dirs, files in os.walk(current_dir):
     for filename in files:
         if filename.endswith("wxStocks.py"):
             current_path = os.path.join(root, filename)
-            path_list = current_path.split("\\")
+            path_list = current_path.split(slash)
             old_split_folder_name = path_list[-2]
             break
 
@@ -43,7 +58,7 @@ for root, dirs, files in os.walk(newly_downloaded_path):
             #print root
             newly_downloaded_file_path = os.path.join(root, filename)
 
-            split_root_path =  root.split("\\" + new_split_folder_name +"\\")
+            split_root_path =  root.split(slash + new_split_folder_name + slash)
             try:
                 full_extention = split_root_path[1]
             except:
@@ -51,9 +66,9 @@ for root, dirs, files in os.walk(newly_downloaded_path):
 
             #print split_root_path
             if full_extention:
-                existing_file_path = "\\".join([current_dir, full_extention]) + "\\" + filename
+                existing_file_path = slash.join([current_dir, full_extention]) + slash + filename
             else:
-                existing_file_path = "\\".join([current_dir, filename])
+                existing_file_path = slash.join([current_dir, filename])
             #print existing_file_path
 
             try:
@@ -80,13 +95,13 @@ for root, dirs, files in os.walk(newly_downloaded_path):
 # delete nonexistant file from current directory
 for root, dirs, files in os.walk(current_dir):
     for filename in files:
-        if root.split("\\")[-1] in ["DO_NOT_COPY", "user_data", "wxStocks_data"]:
+        if root.split(slash)[-1] in ["DO_NOT_COPY", "user_data", "wxStocks_data"]:
             continue
         if filename.endswith(".py"):
             #print root
             existing_file_path = os.path.join(root, filename)
 
-            split_root_path =  root.split("\\" + old_split_folder_name +"\\")
+            split_root_path =  root.split(slash + old_split_folder_name + slash)
             try:
                 full_extention = split_root_path[1]
             except:
@@ -94,9 +109,9 @@ for root, dirs, files in os.walk(current_dir):
 
             #print split_root_path
             if full_extention:
-                potential_new_file_path = "\\".join([newly_downloaded_path, full_extention]) + "\\" + filename
+                potential_new_file_path = slash.join([newly_downloaded_path, full_extention]) + slash + filename
             else:
-                potential_new_file_path = "\\".join([newly_downloaded_path, filename])
+                potential_new_file_path = slash.join([newly_downloaded_path, filename])
             if not os.path.isfile(potential_new_file_path): # file no longer exists
                 print "Deleting:", existing_file_path
                 print "It apparently no longer exists"
