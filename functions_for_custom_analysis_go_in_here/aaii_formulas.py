@@ -571,7 +571,7 @@ def neffCf5Year(Stock, dividend_multiplier = 2.):
 ####################### Utility functions #################################################
 def line_number_with_stock(Stock):
 	"""Returns the current line number in our program."""
-	return "{} File: {}: Line {}}:".format(Stock.ticker, inspect.getframeinfo(inspect.currentframe()).filename.split("wxStocks")[-1], inspect.currentframe().f_back.f_lineno)
+	return "{} File: {}: Line {}:".format(Stock.ticker, inspect.getframeinfo(inspect.currentframe()).filename.split("wxStocks")[-1], inspect.currentframe().f_back.f_lineno)
 
 ############################################################################################
 
