@@ -232,6 +232,14 @@ def return_stocks_website_if_possible(stock):
                 except:
                     website = None
     return website
+
+def return_list_of_account_names_that_contain_stock(stock):
+    return_list = []
+    for index, portfolio in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        print index, portfolio
+        if stock.ticker in portfolio.stock_shares_dict:
+            return_list.append(portfolio.name)
+    return return_list
 ####################### Stock utility functions #################################################
 def stock_value_is_negative(stock_obj, attribute_str):
     try:
