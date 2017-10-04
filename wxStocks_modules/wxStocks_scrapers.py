@@ -205,6 +205,8 @@ def nasdaq_stock_csv_url_and_headers_generator(exchanges=config.STOCK_EXCHANGE_L
         config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = exchange.upper()
         yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange, headers
     config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
+    # yield etfs
+    yield "http://www.nasdaq.com/investing/etfs/etf-finder-results.aspx?download=Yes", headers
 
 def return_webpage(url, headers, delay=15) : # I set the delay here at 15
     print line_number(), 'Scraping nasdaq.com'
@@ -239,6 +241,9 @@ def nasdaq_csv_stock_data_parsing_generator(csv_file):
                     # u'"Summary Quote"',
                     # u'']
                     dict_list.pop()
+                elif str(dict_list[0]) == "Symbol,Name,LastSale,NetChange,NetChangeDirection,PercentChange,1YrPercentChange":
+                    dict_list = dict_list[0].split(',')
+                    dict_list = ['"' + x + '"' for x in dict_list]
                 else:
                     print line_number(), dict_list[-1]
                     sys.exit()
@@ -298,6 +303,8 @@ def convert_nasdaq_csv_to_stock_objects():
                         db.set_Stock_attribute(stock, attribute, None, "_na")
             stock.Exchange_na = config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE
             stock.last_nasdaq_scrape_update = time.time()
+
+
 #################### Yahoo Finance Scrapers "_yf" ##############################################
 def scrape_loop_for_missing_portfolio_stocks(ticker_list = [], update_regardless_of_recent_updates = False):
     if config.SCRAPE_LOOP_QUEUE:
