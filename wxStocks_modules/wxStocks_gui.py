@@ -2878,15 +2878,15 @@ class CustomAnalysisPage(Tab):
 
         #You need this code to resize
         size = gui_position.CustomAnalysisPage.spreadsheet_size
-        print line_number()
-        print "main size=", gui_position.MainFrame_size
-        print "size=", size
+        #print line_number()
+        # print "main size=", gui_position.MainFrame_size
+        # print "size=", size
         try:
             width, height = size
             size = (width-gui_position.CustomAnalysisPage.spreadsheet_width_height_offset[0], height-gui_position.CustomAnalysisPage.spreadsheet_width_height_offset[1])
         except Exception, e:
             print line_number(), e
-        print line_number(), "size=", size
+        # print line_number(), "size=", size
 
         self.inner_inner_sizer = None
 
