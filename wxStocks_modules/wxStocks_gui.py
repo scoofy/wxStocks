@@ -3544,7 +3544,10 @@ class SalePrepPage(Tab):
 
         new_grid = SalePrepGrid(self, -1, size=size, pos=gui_position.SalePrepPage.new_grid_position)
         new_grid.CreateGrid(num_rows, num_columns)
-        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
+        try: # this crashes on startup for some reason
+            new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
+        except:
+            pass
         #You need this code to resize
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
         self.SetSizer(self.inner_sizer)
