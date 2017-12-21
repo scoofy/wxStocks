@@ -3547,7 +3547,7 @@ class SalePrepPage(Tab):
         try: # this crashes on startup for some reason
             new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
         except:
-            pass
+            logging.debug("EVT_GRID_CELL_CHANGE startup error")
         #You need this code to resize
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
         self.SetSizer(self.inner_sizer)
@@ -4603,8 +4603,10 @@ class TradePage(Tab):
 
         num_rows = max(num_rows, self.default_min_rows, (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 2))
         new_grid.CreateGrid(num_rows, self.default_columns)
-        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, lambda event: self.updateGrid(event, grid = new_grid), new_grid)
-
+        try:
+            new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, lambda event: self.updateGrid(event, grid = new_grid), new_grid)
+        except:
+            logging.debug("EVT_GRID_CELL_CHANGE startup error")
         #You need this code to resize
         self.sizer = None
         self.inner_sizer = None
