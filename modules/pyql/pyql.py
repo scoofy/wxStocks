@@ -1,4 +1,5 @@
-import urllib2
+from urllib.request import urlopen
+import urllib
 import json
 import logging
 
@@ -32,14 +33,14 @@ def lookupQuote(symbols):
 					+ ")"
 
 	url = "http://query.yahooapis.com/v1/public/yql?q=" \
-			+ urllib2.quote( yql ) \
+			+ urllib.parse.quote( yql ) \
 			+ "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
 	#logging.warning(url)
 	try:
-		result = urllib2.urlopen(url)
-	except urllib2.HTTPError, e:
+		result = urlopen(url)
+	except urllib.error.HTTPError as e:
 		print ("HTTP error: ", e.code)
-	except urllib2.URLError, e:
+	except urllib.error.URLError as e:
 		print ("Network error: ", e.reason)
 
 	data = json.loads( result.read() )
@@ -62,7 +63,7 @@ def lookupKeyStats(symbols):
 					+ ")"
 
 	url = "http://query.yahooapis.com/v1/public/yql?q=" \
-			+ urllib2.quote( yql ) \
+			+ urllib.parse.quote( yql ) \
 			+ "&format=json&diagnostics=true&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&callback="
 	#logging.warning(url)
 	# e.g. with 4 quotes
@@ -73,10 +74,10 @@ def lookupKeyStats(symbols):
 	# SELECT%20*%20FROM%20yahoo.finance.keystats%20where%20symbol%20in%20%28%22YHOO%22%2C%22AAPL%22%2C%22GOOG%22%2C%22MSFT%22%29
 	# &format=json&diagnostics=true&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&callback=cbfunc
 	try:
-		result = urllib2.urlopen(url)
-	except urllib2.HTTPError, e:
+		result = urlopen(url)
+	except urllib.error.HTTPError as e:
 		print ("HTTP error: ", e.code)
-	except urllib2.URLError, e:
+	except urllib.error.URLError as e:
 		print ("Network error: ", e.reason)
 
 	data = json.loads( result.read() )

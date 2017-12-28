@@ -1,10 +1,7 @@
 import time, datetime, inspect, config, sys
-import wxStocks_db_functions as db
-import wxStocks_utilities as utils
+from wxStocks_modules import wxStocks_db_functions as db
+from wxStocks_modules import wxStocks_utilities as utils
 import wx
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
 
 # Suffix key: "_yf" = yahoo finance YHOO, "_ms" = morningstar MORN, "_aa" = AAII stock investor pro, "_nq" = Nasdaq.com data NDAQ
 
@@ -154,9 +151,7 @@ class Stock(object):
             self.yql_ticker = None
 
         else: #something is very broken, and must be fixed immediately
-            print line_number()
-            print "illegal ticker symbol:", symbol, firm_name
-            print "the program will now close without saving, you need to add this to the wxStocks_classes exceptions list immediately."
+            logging.error("illegal ticker symbol: {}, {}\nThe program will now close without saving, you need to add this to the wxStocks_classes exceptions list immediately.".format(symbol, firm_name))
             sys.exit()
 
 
@@ -188,12 +183,6 @@ class Stock(object):
 
         self.last_aaii_update_aa = 0.0
 
-        # save new object to db
-        #config.GLOBAL_STOCK_DICT[symbol.upper()] = self
-        #print type(self)
-        #print 'Saving: Stock("%s")' % symbol.upper()
-        #db.save_GLOBAL_STOCK_DICT()
-
     def testing_reset_fields(self):
         self.last_yql_basic_scrape_update = 0.0
 
@@ -218,9 +207,9 @@ class Account(object): #portfolio
             for a_tuple in initial_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
                 if a_tuple[0] not in self.stock_shares_dict.keys():
                     # ticker not already in stock share dict
-                    self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                    self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
                 else:
-                    print line_number(), "Error:", a_tuple[0], "is redundant, probably inproperly formatted data"
+                    logging.error("Error: {} is redundant, probably inproperly formatted data".format(a_tuple[0]))
         self.cost_basis_dict = initial_ticker_cost_basis_dict
 
     def reset_account(name = None, cash = 0, new_stock_shares_tuple_list = [], new_ticker_cost_basis_dict = {}):
@@ -229,18 +218,18 @@ class Account(object): #portfolio
         self.stock_shares_dict = {}
         for a_tuple in new_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
             if a_tuple[0].upper() not in self.stock_shares_dict.keys():
-                self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
             else:
-                print line_number(), "Error: duplicate stocks in new_stock_shares_tuple_list"
+                logging.error("Error: duplicate stocks in new_stock_shares_tuple_list")
         self.cost_basis_dict = new_ticker_cost_basis_dict
 
     def update_account(self, updated_cash, updated_stock_shares_tuple_list, updated_ticker_cost_basis_dict = {}):
         self.availble_cash = updated_cash
         for a_tuple in updated_stock_shares_tuple_list: # ["NAME", int(NumberOfShares)]
             if a_tuple[0].upper() not in self.stock_shares_dict.keys():
-                self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
             else: # Redundent, but i'm leaving it in here in case i need to edit this later.
-                self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
 
         if updated_ticker_cost_basis_dict:
             self.update_cost_basises(updated_ticker_cost_basis_dict)
@@ -255,9 +244,9 @@ class Account(object): #portfolio
 
     def add_stock(stock_shares_tuple):
         if stock_shares_tuple[0].upper() not in self.stock_shares_dict.keys():
-            self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+            self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
         else: # Redundent, but i'm leaving it in here in case i need to edit this later.
-            self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+            self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
 
 class SpreadsheetCell(object):
     def __init__(self,

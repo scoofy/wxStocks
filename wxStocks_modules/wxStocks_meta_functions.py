@@ -1,13 +1,9 @@
 import inspect, sys
 from collections import namedtuple
-def line_number():
-	"""Returns the current line number in our program."""
-	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
 
 Function_Reference = namedtuple("Function_Reference", ["name", "function", "doc"])
 
-functions_to_ignore_list = ["line_number"]
+functions_to_ignore_list = []
 
 def return_function_triple(type_of_functions): # "screen", "rank", "csv_import", "xls_import", "portfolio".
 	"""returns function 3-tuple of the form (name, function, doc)."""
@@ -25,7 +21,7 @@ def return_function_triple(type_of_functions): # "screen", "rank", "csv_import",
 	elif type_of_functions == "analysis":
 		import user_data.user_functions.wxStocks_custom_analysis_spreadsheet_builder as function_file
 	else:
-		print line_number(), "Error: No function type defined."
+		logging.info("Error: No function type defined.")
 		return
 
 	module_list = [] # In case i want to add more modules here. Looks like it'll probably be one file though.
@@ -39,9 +35,9 @@ def return_function_triple(type_of_functions): # "screen", "rank", "csv_import",
 				triple = Function_Reference(function_tuple[0], function_tuple[1], function_tuple[1].__doc__)
 				if function_tuple[1].__doc__:
 					if len(function_tuple[1].__doc__) > 30:
-						print "\n" * 5
-						print line_number(), "Error: user function doc strings should be less than 30 characters in length"
-						print "\n" * 5
+						logging.info("\n" * 5)
+						logging.info("Error: user function doc strings should be less than 30 characters in length")
+						logging.info("\n" * 5)
 				function_triple_list.append(triple)
 
 	return function_triple_list

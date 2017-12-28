@@ -1,4 +1,5 @@
-import locale, sys, threading, urllib2, platform
+import locale, sys, threading, platform
+from urllib.request import urlopen
 from user_data import user_data
 ### Editable globals all come from user_data.py in the user_data folder ###
 
@@ -55,8 +56,7 @@ try:
 	supported_os_types = ["Darwin", "Linux", "Windows"]
 	OS_TYPE_INDEX = supported_os_types.index(OS_TYPE)
 except Exception as e:
-	print e
-	print "This program has not be properly formatted for your OS. Edit the config file if needed."
+	logging.error("This program has not be properly formatted for your OS. Edit the config file if needed.")
 	sys.exit()
 
 IRRELEVANT_ATTRIBUTES = ["updated",
@@ -192,7 +192,7 @@ RESEARCH_PAGE_DICT_LIST = [
 	dict(button_text = "Motley Fool",
 		 url = "http://www.fool.com/quote/%(ticker)s",
 		 width = -1,
-		 lambda_function = lambda x: urllib2.urlopen(x).geturl() + "/analyst-opinion",),
+		 lambda_function = lambda x: urlopen(x).geturl() + "/analyst-opinion",),
 	dict(button_text = "finviz", url = "http://www.finviz.com/quote.ashx?t=%(ticker)s",),
 	dict(button_text = "Nasdaq Gurus", url = "http://www.nasdaq.com/symbol/%(ticker)s/guru-analysis")
 	]
@@ -289,7 +289,7 @@ GLOBAL_UNIQUE_ID_LIST = [
 	]
 if len(GLOBAL_UNIQUE_ID_LIST) != len(set(GLOBAL_UNIQUE_ID_LIST)):
 	# one of the ids is not unique
-	print "Error: GLOBAL_UNIQUE_ID_LIST has duplicates"
+	logging.error("Error: GLOBAL_UNIQUE_ID_LIST has duplicates")
 	dummy_list = []
 	duplicates = []
 	for u_id in GLOBAL_UNIQUE_ID_LIST:
@@ -297,7 +297,7 @@ if len(GLOBAL_UNIQUE_ID_LIST) != len(set(GLOBAL_UNIQUE_ID_LIST)):
 			dummy_list.append(u_id)
 		else:
 			duplicates.append(u_id)
-	print duplicates
+	logging.error(duplicates)
 	sys.exit()
 
 GLOBAL_TABS_DICT = {}

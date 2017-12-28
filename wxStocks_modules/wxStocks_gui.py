@@ -7,31 +7,23 @@
 #       4: Grid objects                                         #
 #################################################################
 import wx, numpy
-import config, threading, logging, sys, time, os, math, webbrowser, urllib2
+import config, threading, logging, sys, time, os, math, webbrowser
 import inspect
 import pprint as pp
 
 from collections import namedtuple
 from wx.lib import sheet
 
-from wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage, ResearchPageRowDataList, StockBuyDialog
-from wxStocks_default_functions import default_function_page_object_config as functions_config
-import wxStocks_db_functions as db
-import wxStocks_utilities as utils
-import wxStocks_scrapers as scrape
+from wxStocks_modules.wxStocks_classes import Stock, Account, SpreadsheetCell, SpreadsheetRow, PageReference, FunctionPage, ResearchPageRowDataList, StockBuyDialog
+from wxStocks_modules.wxStocks_default_functions import default_function_page_object_config as functions_config
+from wxStocks_modules import wxStocks_db_functions as db
+from wxStocks_modules import wxStocks_utilities as utils
+from wxStocks_modules import wxStocks_scrapers as scrape
+from wxStocks_modules import wxStocks_meta_functions as meta
+from wxStocks_modules import wxStocks_gui_position_index as gui_position
+from wxStocks_modules import wxStocks_functions_that_process_user_functions as process_user_function
 import user_data.user_functions.wxStocks_screen_functions as screen
-import wxStocks_meta_functions as meta
-import wxStocks_gui_position_index as gui_position
-import wxStocks_functions_that_process_user_functions as process_user_function
 import AAII.wxStocks_aaii_xls_data_importer as aaii
-#from AAII_functions import aaii_formulas
-
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
-
-
 
 class MainFrame(wx.Frame): # reorder tab postions here
     def __init__(self, *args, **kwargs):
@@ -87,7 +79,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         config.GLOBAL_PAGES_DICT["0"] = self
         config.GLOBAL_PAGES_DICT[self.title] = self
 
-        print line_number(), "done." "\n\n", "------------------------- wxStocks startup complete -------------------------", "\n"
+        logging.info("done.\n\n------------------------- wxStocks startup complete -------------------------\n")
 
     def set_config_GLOBAL_PAGES_DICT_key_value_pairs(self, notebook, parent_index = None):
         for child in notebook.Children:
@@ -97,7 +89,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
                 if len(notebook.Children) > 10:
                     denominator = 100.
                 elif len(notebook.Children) > 100:
-                    print line_number(), "Error: far too many tabs in", notebook
+                    logging.error("Error: far too many tabs in {}".format(notebook))
                     sys.exit()
                 else:
                     denominator = 10.
@@ -120,9 +112,9 @@ class MainFrame(wx.Frame): # reorder tab postions here
             #config.PAGES_DICT[child.title] = child
             if child.Children:
                 for grandchild in child.Children:
-                    if type(grandchild) is wx._windows.Panel:
+                    if type(grandchild) is wx._core.Panel:
                         for great_grandchild in grandchild.Children:
-                            if type(great_grandchild) is wx._controls.Notebook:
+                            if type(great_grandchild) is wx._core.Notebook:
                                 self.set_config_GLOBAL_PAGES_DICT_key_value_pairs(great_grandchild, parent_index = page_index)
 
 class Tab(wx.Panel):
@@ -281,13 +273,13 @@ class WelcomePage(Tab):
         #self.test_function_button.Bind(wx.EVT_BUTTON, self.OnSaveAs, self.test_function_button)
 
 
-        print line_number(), "WelcomePage loaded"
+        logging.info("WelcomePage loaded")
 
     def testFunction(self, event):
         try:
             self.function_to_test()
         except Exception as e:
-            print line_number(), e
+            logging.error(e)
 
     def resetPasswordPrep(self, event):
         self.reset_password_button.Hide()
@@ -389,7 +381,7 @@ class WelcomePage(Tab):
         config.GLOBAL_ATTRIBUTE_SET = set([])
         db.save_GLOBAL_STOCK_DICT()
 
-        print line_number(), "Data deleted."
+        logging.info("Data deleted.")
 
         ticker_page = config.GLOBAL_PAGES_DICT.get(config.TICKER_PAGE_UNIQUE_ID).obj
         ticker_page.downloadTickers()
@@ -459,7 +451,7 @@ class TickerPage(Tab):
                              )
 
         self.showAllTickers()
-        print line_number(), "TickerPage loaded"
+        logging.info("TickerPage loaded")
 
     def confirmDownloadTickers(self, event):
         confirm = wx.MessageDialog(None,
@@ -481,20 +473,20 @@ class TickerPage(Tab):
             download_tickers.start()
 
     def downloadTickers(self):
-        print line_number(), "Begin ticker download..."
+        logging.info("Begin ticker download...")
         ticker_list_without_prices = scrape.nasdaq_full_ticker_list_downloader()
         uppercase_exchange_list = [x.upper() for x in config.STOCK_EXCHANGE_LIST]
         for data in ticker_list_without_prices:
-            #print data
-            # The following line does:
-            # data[2] is exchange
-            if data[2].upper() in uppercase_exchange_list:
-                stock = db.create_new_Stock_if_it_doesnt_exist(data[0])
-                stock.firm_name = data[1]
-                stock.Exchange_na = data[2]
-                stock.etf_na = data[3]
+            if type(data[2]) in [str, unicode]:
+                if data[2].upper() in uppercase_exchange_list:
+                    stock = db.create_new_Stock_if_it_doesnt_exist(data[0])
+                    stock.firm_name = data[1]
+                    stock.Exchange_na = data[2]
+                    stock.etf_na = data[3]
+            else:
+                logging.debug(data)
 
-        print line_number(), "Begin price data download..."
+        logging.info("Begin price data download...")
         ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
         db.save_GLOBAL_STOCK_DICT()
 
@@ -514,7 +506,7 @@ class TickerPage(Tab):
 
         # create a list of tickers
         for ticker_data_sublist in ticker_data_from_download:
-            print line_number(), ticker_data_sublist[0] + ":", ticker_data_sublist[1]
+            logging.info("{}: {}".format(ticker_data_sublist[0] ,ticker_data_sublist[1]))
 
             ticker_symbol_upper = utils.strip_string_whitespace(ticker_data_sublist[0]).upper()
             ticker_list.append(ticker_symbol_upper)
@@ -524,10 +516,10 @@ class TickerPage(Tab):
             if ticker in ticker_list:
                 if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant == False:
                     config.GLOBAL_STOCK_DICT[ticker].ticker_relevant = True
-                print line_number(), ticker, "appears to be fine"
+                logging.info(ticker + "appears to be fine")
             else:
                 # ticker may have been removed from exchange
-                print line_number(), ticker + " appears to be dead"
+                logging.info(ticker + " appears to be dead")
                 dead_tickers.append(ticker)
 
         # check for errors, and if not, mark stocks as no longer on exchanges:
@@ -535,7 +527,7 @@ class TickerPage(Tab):
             logging.error("Something went wrong with ticker download, probably a dead link")
         else:
             for dead_ticker_symbol in dead_tickers:
-                print line_number(), dead_ticker_symbol
+                logging.info(dead_ticker_symbol)
                 dead_stock = utils.return_stock_by_symbol(dead_ticker_symbol)
                 dead_stock.ticker_relevant = False
 
@@ -545,12 +537,12 @@ class TickerPage(Tab):
             firm_name = ticker_data_sublist[1]
 
             if "$" in ticker_symbol:
-                print line_number(), 'Ticker %s with "$" symbol found, not sure if ligitimate, so not saving it.' % ticker_symbol
+                logging.info('Ticker {} with "$" symbol found, not sure if ligitimate, so not saving it.'.format(ticker_symbol))
                 continue
 
             stock = db.create_new_Stock_if_it_doesnt_exist(ticker_symbol)
             stock.firm_name = firm_name
-            print line_number(), "Saving:", stock.ticker, stock.firm_name
+            logging.info("Saving: {} {}".format(stock.ticker, stock.firm_name))
         db.save_GLOBAL_STOCK_DICT()
     # end no longer used
 
@@ -558,7 +550,7 @@ class TickerPage(Tab):
         self.showAllTickers()
 
     def showAllTickers(self):
-        print line_number(), "Loading Tickers"
+        logging.info("Loading Tickers")
         ticker_list = []
         for ticker in config.GLOBAL_STOCK_DICT:
             if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
@@ -567,7 +559,7 @@ class TickerPage(Tab):
         self.displayTickers(ticker_list)
         self.sizer.Add(self.file_display, 1, wx.ALL|wx.EXPAND)
         self.file_display.Show()
-        print line_number(), "Done"
+        logging.info("Done")
 
     def displayTickers(self, ticker_list):
         ticker_list.sort()
@@ -584,8 +576,6 @@ class TickerPage(Tab):
         except:
             pass
 
-        #print line_number()
-        #pp.pprint(config.GLOBAL_STOCK_DICT)
         try:
             self.file_display.Destroy()
         except:
@@ -643,10 +633,10 @@ class YqlScrapePage(Tab):
 
         self.calculate_scrape_times()
 
-        print line_number(), "YqlScrapePage loaded"
+        logging.info("YqlScrapePage loaded")
 
     def calculate_scrape_times(self):
-        print line_number(), "Calculating scrape times..."
+        logging.info("Calculating scrape times...")
         sleep_time = config.SCRAPE_SLEEP_TIME
 
         # calculate number of stocks and stuff to scrape
@@ -671,7 +661,7 @@ class YqlScrapePage(Tab):
 
         self.scrape_time_text.SetLabel("Time = %s" % scrape_time)
 
-        print line_number(), "Calculation done"
+        logging.info("Calculation done")
 
     def confirmScrape(self, event):
         confirm = wx.MessageDialog(None,
@@ -724,7 +714,7 @@ class YqlScrapePage(Tab):
         if self.abort_scrape == True:
             self.abort_scrape = False
             self.progress_bar.Hide()
-            print line_number(), "Scrape canceled."
+            logging.info("Scrape canceled.")
             return
 
         data = scrape.executeYqlScrapePartOne(ticker_chunk_list, position_of_this_chunk)
@@ -739,7 +729,7 @@ class YqlScrapePage(Tab):
         if self.abort_scrape == True:
             self.abort_scrape = False
             self.progress_bar.Hide()
-            print line_number(), "Scrape canceled."
+            logging.info("Scrape canceled.")
             return
 
         scrape.executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data)
@@ -771,8 +761,8 @@ class YqlScrapePage(Tab):
 
         position_of_this_chunk += 1
         percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
-        print line_number(), "%d%%" % percent_done, "done this scrape execution."
-        print line_number(), "%d%%" % percent_of_full_scrape_done, "done of all tickers."
+        logging.info("{}% done this scrape execution.".format(percent_done))
+        logging.info("{}% done of all tickers.".format(percent_of_full_scrape_done))
         self.progress_bar.SetValue(percent_of_full_scrape_done)
         self.calculate_scrape_times()
         if position_of_this_chunk >= len(ticker_chunk_list):
@@ -782,12 +772,12 @@ class YqlScrapePage(Tab):
             self.progress_bar.SetValue(100)
             return
         else:
-            print line_number(), "ready to loop again"
+            logging.info("ready to loop again")
             timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
             timer.start()
 
     def abortScrape(self, event):
-        print line_number(), "Canceling scrape... this may take up to %d seconds." % config.SCRAPE_SLEEP_TIME
+        logging.info("Canceling scrape... this may take up to {} seconds.".format(config.SCRAPE_SLEEP_TIME))
         if self.abort_scrape == False:
             self.abort_scrape = True
             self.abort_scrape_button.Hide()
@@ -852,7 +842,7 @@ class CsvImportPage(Tab):
                 csv_import_function = triple.function
 
         if not csv_import_function:
-            print line_number(), "Error, somthing went wrong locating the correct import function to use."
+            logging.error("Error, somthing went wrong locating the correct import function to use.")
 
         # run ranking funtion on all stocks
 
@@ -874,10 +864,10 @@ class CsvImportPage(Tab):
             success_string = "Success! You're file has been successfully imported."
             message_style = wx.OK
         else:
-            print line_number(), "Error in importCSV title and success strings"
+            logging.error("Error in importCSV title and success strings")
             return
 
-        print line_number(), "importCSV done"
+        logging.info("importCSV done")
 
 
         confirm = wx.MessageDialog(None,
@@ -929,7 +919,7 @@ class XlsImportPage(Tab):
                 xls_import_function = triple.function
 
         if not xls_import_function:
-            print line_number(), "Error, somthing went wrong locating the correct import function to use."
+            logging.error("Error, somthing went wrong locating the correct import function to use.")
 
         # run ranking funtion on all stocks
 
@@ -951,10 +941,10 @@ class XlsImportPage(Tab):
             success_string = "Success! You're file has been successfully imported."
             message_style = wx.OK
         else:
-            print line_number(), "Error in importXLS title and success strings"
+            logging.error("Error in importXLS title and success strings")
             return
 
-        print line_number(), "importXLS done"
+        logging.info("importXLS done")
 
 
         confirm = wx.MessageDialog(None,
@@ -965,12 +955,12 @@ class XlsImportPage(Tab):
         confirm.ShowModal()
 
     def import_AAII_files(self, event):
-        print line_number(), "Remove argument below this line after debugging"
+        logging.info("Remove argument below this line after debugging")
         path = None
         aaii_data_folder_dialogue = wx.DirDialog(self, "Choose a directory:")
         if aaii_data_folder_dialogue.ShowModal() == wx.ID_OK:
             path = aaii_data_folder_dialogue.GetPath()
-            print line_number(), path
+            logging.info(path)
         aaii_data_folder_dialogue.Destroy()
         if path:
             aaii.import_aaii_files_from_data_folder(path=path)
@@ -985,18 +975,14 @@ class PortfolioPage(Tab):
         portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
 
         portfolios_that_already_exist = []
-        #print line_number(), config.PORTFOLIO_OBJECTS_DICT
 
         if config.PORTFOLIO_OBJECTS_DICT:
-            portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
-            #print line_number(), portfolios_that_already_exist
+            portfolios_that_already_exist = [obj for key, obj in config.PORTFOLIO_OBJECTS_DICT.items()]
             portfolios_that_already_exist.sort(key = lambda x: x.id_number)
-        #print line_number(), portfolios_that_already_exist
         default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
         if not portfolios_that_already_exist:
             config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_DEFAULT_PORTFOLIOS
             for i in range(config.NUMBER_OF_PORTFOLIOS):
-                #print line_number(), i
                 portfolio_name = None
                 if config.NUMBER_OF_PORTFOLIOS < 10:
                     portfolio_name = "Portfolio %d" % (i+1)
@@ -1005,7 +991,7 @@ class PortfolioPage(Tab):
                 if i in range(len(default_portfolio_names)):
                     portfolio_name = default_portfolio_names[i]
                 portfolio_obj = db.create_new_Account_if_one_doesnt_exist(i+1, name=portfolio_name)
-                print line_number(), "Portfolio", portfolio_obj.id_number, portfolio_obj.name, "created at startup"
+                logging.info("Portfolio: {} {}, created at startup".format(portfolio_obj.id_number, portfolio_obj.name))
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
                 portfolio_account.title = portfolio_name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
@@ -1015,7 +1001,6 @@ class PortfolioPage(Tab):
             need_to_save = False
             portfolios_to_save = []
             for portfolio_obj in portfolios_that_already_exist:
-                #print line_number(), i
                 portfolio_account = PortfolioAccountTab(portfolio_account_notebook, portfolio_obj.id_number, portfolio_obj.name)
                 portfolio_account.title = portfolio_obj.name
                 portfolio_account_notebook.AddPage(portfolio_account, portfolio_obj.name)
@@ -1028,7 +1013,7 @@ class PortfolioPage(Tab):
         self.SetSizer(sizer2)
         ####
 
-        print line_number(), "PortfolioPage loaded"
+        logging.info("PortfolioPage loaded")
 class PortfolioAccountTab(Tab):
     def __init__(self, parent, tab_number, portfolio_name):
         self.title = None
@@ -1036,7 +1021,6 @@ class PortfolioAccountTab(Tab):
 
         self.portfolio_id = tab_number
         self.name = portfolio_name
-        #print line_number(), "self.portfolio_id =", self.portfolio_id
         self.portfolio_obj = config.PORTFOLIO_OBJECTS_DICT.get(str(tab_number))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1046,8 +1030,8 @@ class PortfolioAccountTab(Tab):
         if not self.portfolio_obj:
             try:
                 db.load_portfolio_object(self.portfolio_id)
-            except Exception, e:
-                print line_number(), e
+            except Exception as e:
+                logging.error(e)
                 self.portfolio_obj = None
 
         self.add_button = wx.Button(self, label="Update from file", pos=gui_position.PortfolioAccountTab.add_button, size=(-1,-1))
@@ -1096,7 +1080,7 @@ class PortfolioAccountTab(Tab):
         self.remove_data_button = wx.Button(self, label="Remove Data", pos=gui_position.PortfolioAccountTab.remove_data_button, size = (-1,-1))
         self.remove_data_button.Bind(wx.EVT_BUTTON, self.confirmRemoveData, self.remove_data_button)
 
-        print line_number(), "PortfolioAccountTab loaded"
+        logging.info("PortfolioAccountTab loaded")
 
     def confirmRemoveData(self, event):
         ticker = self.ticker_input.GetValue()
@@ -1108,13 +1092,13 @@ class PortfolioAccountTab(Tab):
             try:
                 shares = float(shares)
             except:
-                print line_number(), "Shares must be a number."
+                logging.info("Shares must be a number.")
                 return
 
 
         stock = utils.return_stock_by_symbol(ticker)
         if not stock:
-            print line_number(), "Stock %s does not appear to exist. If you want to delete cash, you must set it to zero. It cannot be None" % ticker
+            logging.info("Stock {} does not appear to exist. If you want to delete cash, you must set it to zero. It cannot be None".format(ticker))
             return
 
         if ticker and not (cost_basis or shares):
@@ -1125,14 +1109,14 @@ class PortfolioAccountTab(Tab):
             if shares <= self.portfolio_obj.stock_shares_dict.get(stock.symbol):
                 confirm_message = "You are about to remove " + str(shares) + " of %s's shares from your portfolio." % stock.symbol
             else:
-                print line_number(), "Error: invalid number of shares."
-                print "You currently have", str(self.portfolio_obj.stock_shares_dict.get(stock.symbol)), "shares."
-                print "You tried to remove", str(shares) + "."
+                logging.error("Error: invalid number of shares.")
+                logging.info("You currently have {} shares.".format(str(self.portfolio_obj.stock_shares_dict.get(stock.symbol))))
+                logging.info("You tried to remove {}.".format(str(shares)))
                 return
         elif ticker and cost_basis:
             confirm_message = "You are about to remove %s's cost basis data from your portfolio." % stock.symbol
         else:
-            print line_number(), "Invalid input"
+            logging.warning("Invalid input")
             return
 
         confirm = wx.MessageDialog(None,
@@ -1201,7 +1185,7 @@ class PortfolioAccountTab(Tab):
         #                          )
         # confirm.ShowModal()
         # confirm.Destroy()
-        print line_number(), "Changing number of portfolios currently not functional"
+        logging.error("Changing number of portfolios currently not functional")
         return
 
     def fillSpreadsheetWithCurrentPortfolio(self):
@@ -1286,11 +1270,11 @@ class PortfolioAccountTab(Tab):
                 portfolio_import_function = triple.function
 
         if not portfolio_import_function:
-            print line_number(), "Error, somthing went wrong locating the correct import function to use."
+            logging.error("Error, somthing went wrong locating the correct import function to use.")
 
         self.account_obj = process_user_function.import_portfolio_via_user_created_function(self, self.portfolio_id, portfolio_import_function)
 
-        print line_number(), type(self.account_obj)
+        logging.info(type(self.account_obj))
 
         self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
 
@@ -1299,7 +1283,7 @@ class PortfolioAccountTab(Tab):
 
         utils.update_all_dynamic_grids()
 
-        print line_number(), "Portfolio CSV import complete."
+        logging.info("Portfolio CSV import complete.")
 
     def updateAccountViaCSV(self, event):
         self.portfolio_update_name = self.drop_down.GetValue()
@@ -1320,7 +1304,7 @@ class PortfolioAccountTab(Tab):
 
         if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
             # basically if the entered data cannot be parsed
-            print line_number(), "invalid entry"
+            logging.warning("invalid entry")
             return
         if cost_basis_or_cash and not (ticker or shares):
             # User is updating cash in account
@@ -1338,27 +1322,29 @@ class PortfolioAccountTab(Tab):
 
             try:
                 ticker = ticker.upper()
-            except Exception, e:
-                print line_number(), e, "invalid ticker: %s" % ticker
+            except Exception as e:
+                logging.error(e)
+                logging.info("invalid ticker: %s" % ticker)
 
             stock = utils.return_stock_by_symbol(ticker)
             if not stock:
-                print line_number(), "stock with ticker %s does not appear to exist, do you want to create it?" % ticker
+                logging.info("stock with ticker %s does not appear to exist, do you want to create it?" % ticker)
                 confirm_update = self.confirmCreateMissingStock(ticker)
                 if confirm_update:
                     db.create_new_Stock_if_it_doesnt_exist(ticker)
                     stock = utils.return_stock_by_symbol(ticker)
                 else:
                     # cancel adding stock
-                    print line_number(), "Canceling portfolio update"
+                    logging.info("Canceling portfolio update")
                     return
 
             if shares:
                 try:
                     shares = float(shares)
                     self.portfolio_obj.stock_shares_dict[ticker] = shares
-                except Exception, e:
-                    print line_number(), e, "Error: shares data is improperly formatted"
+                except Exception as e:
+                    logging.error(e)
+                    logging.info("Error: shares data is improperly formatted")
 
             if cost_basis:
                 cost_basis = utils.money_text_to_float(cost_basis)
@@ -1439,7 +1425,7 @@ class PortfolioAccountTab(Tab):
             self.updatePrices()
 
     def updatePrices(self):
-        print line_number(), "Begin ticker download..."
+        logging.info("Begin ticker download...")
 
         ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
         current_time = time.time()
@@ -1464,19 +1450,19 @@ class PortfolioAccountTab(Tab):
 
         if tickers_that_need_yql_update:
             confirm = self.confirmUpdateMultipleMissingStocks()
-            print line_number(), tickers_that_need_yql_update
+            logging.info(tickers_that_need_yql_update)
             if confirm:
                 scrape.scrape_loop_for_missing_portfolio_stocks(ticker_list = tickers_that_need_yql_update, update_regardless_of_recent_updates = True)
 
         utils.update_all_dynamic_grids()
 
-        print line_number(), "Not sure if necessary, but saving here after update."
+        logging.info("Not sure if necessary, but saving here after update.")
         db.save_GLOBAL_STOCK_DICT()
 
         #self.saveTickerDataAsStocks(ticker_data) # no longer used
         # Update scrape page?
         # Don't want to take the time to figure this out just now.
-        print line_number(), "Add function here to update scrape time."
+        logging.info("Add function here to update scrape time.")
 
 
     def changeTabName(self, event):
@@ -1491,17 +1477,16 @@ class PortfolioAccountTab(Tab):
         rename_popup.Destroy()
 
 
-        portfolio_name_list = [obj.name for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems()]
+        portfolio_name_list = [obj.name for key, obj in config.PORTFOLIO_OBJECTS_DICT.items()]
         new_portfolio_names = []
         if new_name != old_name:
-            print line_number()
-            print new_name
-            print portfolio_name_list
+            logging.info(new_name)
+            logging.info(portfolio_name_list)
             if new_name not in portfolio_name_list:
                 self.name = new_name
                 self.portfolio_obj.name = new_name
 
-                print line_number(), "This file opening needs to be removed."
+                logging.info("This file opening needs to be removed.")
                 # password = ""
                 # if config.ENCRYPTION_POSSIBLE:
                 #   password = self.get_password()
@@ -1523,7 +1508,7 @@ class PortfolioAccountTab(Tab):
                 error.ShowModal()
                 error.Destroy()
         else:
-            print line_number(), "portfolio name not changed"
+            logging.info("portfolio name not changed")
 
     def confirmDeleteAccount(self, event):
         confirm = wx.MessageDialog(None,
@@ -1551,7 +1536,7 @@ class PortfolioAccountTab(Tab):
             if self.portfolio_id in range(len(default_portfolio_names)):
                 portfolio_name = default_portfolio_names[self.portfolio_id]
         except Exception as e:
-            print line_number(), e
+            logging.error(e)
 
 
         # password = ""
@@ -1567,7 +1552,7 @@ class PortfolioAccountTab(Tab):
         deleted = db.delete_portfolio_object(self.portfolio_id) #, password = password)
 
         if not deleted:
-            print line_number(), "Something weird is going on with deleting a portfolio."
+            logging.info("Something weird is going on with deleting a portfolio.")
 
 
         self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
@@ -1632,7 +1617,7 @@ class AllStocksPage(Tab):
         # commented out below to speed up testing
         #self.spreadSheetFillAllStocks("event")
 
-        print line_number(), "AllStocksPage loaded"
+        logging.info("AllStocksPage loaded")
 
     def spreadSheetFillAllStocks(self, event):
         if self.first_spread_sheet_load:
@@ -1640,8 +1625,8 @@ class AllStocksPage(Tab):
         else:
             try:
                 self.spreadsheet.Destroy()
-            except Exception, exception:
-                print line_number(), exception
+            except Exception as exception:
+                logging.info(exception)
 
         # Find all attribute names
         stock_list = utils.return_all_stocks()
@@ -1650,10 +1635,10 @@ class AllStocksPage(Tab):
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            logging.info("{}, {}".format(width, height))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -1759,7 +1744,7 @@ class StockDataPage(Tab):
         #update_annual_data_button.Bind(wx.EVT_BUTTON, self.update_annual_data, update_annual_data_button)
         #update_analyst_estimates_button.Bind(wx.EVT_BUTTON, self.update_analyst_estimates_data, update_analyst_estimates_button)
 
-        print line_number(), "StockDataPage loaded"
+        logging.info("StockDataPage loaded")
 
     def searchData(self, event, search_term = None):
         current_ticker_viewed = self.current_ticker_viewed
@@ -1794,10 +1779,10 @@ class StockDataPage(Tab):
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            logging.info("{}, {}".format(width, height))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -1822,7 +1807,7 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker":
             return
-        print line_number(), "basic yql scrape"
+        logging.info("basic yql scrape")
         chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape = scrape.prepareYqlScrape([str(ticker).upper()])
         chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
         data = scrape.executeYqlScrapePartOne(chunk_list, 0)
@@ -1833,7 +1818,7 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker":
             return
-        print line_number(), "scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes."
+        logging.info("scraping yahoo and morningstar annual data, you'll need to keep an eye on the terminal until this finishes.")
         scrape_balance_sheet_income_statement_and_cash_flow( [str(ticker).upper()] )
         self.createOneStockSpreadSheet(event = "")
 
@@ -1841,7 +1826,7 @@ class StockDataPage(Tab):
         ticker = self.ticker_input.GetValue()
         if str(ticker) == "ticker":
             return
-        print line_number(), "about to scrape"
+        logging.info("about to scrape")
         scrape_analyst_estimates( [str(ticker).upper()] )
         self.createOneStockSpreadSheet(event = "")
 ###
@@ -1903,7 +1888,7 @@ class ScreenPage(Tab):
 
         self.ticker_col = 0
 
-        print line_number(), "ScreenPage loaded"
+        logging.info("ScreenPage loaded")
 
     def screenStocks(self, event):
         screen_name = self.drop_down.GetValue()
@@ -1916,7 +1901,7 @@ class ScreenPage(Tab):
             elif screen_name == triple.name:
                 screen_function = triple.function
         if not screen_function:
-            print line_number(), "Error, somthing went wrong locating the correct screen to use."
+            logging.error("Error, somthing went wrong locating the correct screen to use.")
 
         # run screen
         conforming_stocks = []
@@ -1941,7 +1926,7 @@ class ScreenPage(Tab):
             try:
                 self.screen_grid.Destroy()
             except Exception as e:
-                print line_number(), e
+                logging.error(e)
 
         stock_list.sort(key = lambda x: (x is None, x.symbol))
 
@@ -1949,11 +1934,11 @@ class ScreenPage(Tab):
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            logging.info("{}, {}".format(width, height))
             spreadsheet_width_height_offset = gui_position.ScreenPage.spreadsheet_width_height_offset
             size = (width-spreadsheet_width_height_offset[0], height-spreadsheet_width_height_offset[1]) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -2006,12 +1991,11 @@ class ScreenPage(Tab):
                 error.Destroy()
                 if yesNoAnswer == wx.ID_YES:
                     # Recursion
-                    print line_number(), "Recursion event in saveScreen"
+                    logging.info("Recursion event in saveScreen")
                     self.saveScreen(event="event")
                 return
             else:
                 config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST.append([saved_screen_name, float(time.time())])
-                #print line_number(), config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
 
                 # Save global dict
                 db.save_GLOBAL_STOCK_STREEN_DICT()
@@ -2071,7 +2055,7 @@ class SavedScreenPage(Tab):
 
         self.ticker_col = 0
 
-        print line_number(), "SavedScreenPage loaded"
+        logging.info("SavedScreenPage loaded")
 
     def deleteScreen(self, event):
         confirm = wx.MessageDialog(None,
@@ -2084,19 +2068,19 @@ class SavedScreenPage(Tab):
         confirm.Destroy()
 
 
-        print line_number(), self.spreadsheet
+        logging.info(self.spreadsheet)
         if yesNoAnswer != wx.ID_YES:
             return
         try:
-            print line_number(), self.currently_viewed_screen
+            logging.info(self.currently_viewed_screen)
 
             db.delete_named_screen(self.currently_viewed_screen)
 
             self.spreadsheet.Destroy()
             self.currently_viewed_screen = None
 
-        except Exception, exception:
-            print line_number(), exception
+        except Exception as exception:
+            logging.error(exception)
             error = wx.MessageDialog(self,
                                      "Something went wrong. File was not deleted, because this file doesn't seem to exist.",
                                      'Error: File Does Not Exist',
@@ -2127,8 +2111,8 @@ class SavedScreenPage(Tab):
         selected_screen_name = self.drop_down.GetValue()
         try:
             config.CURRENT_SAVED_SCREEN_LIST = db.load_named_screen(selected_screen_name)
-        except Exception, exception:
-            print line_number(), exception
+        except Exception as exception:
+            logging.error(exception)
             error = wx.MessageDialog(self,
                                      "Something went wrong. This file doesn't seem to exist.",
                                      'Error: File Does Not Exist',
@@ -2145,8 +2129,8 @@ class SavedScreenPage(Tab):
             if self.spreadsheet:
                 try:
                     self.spreadsheet.Destroy()
-                except Exception, exception:
-                    print line_number(), exception
+                except Exception as exception:
+                    logging.error(exception)
 
         self.spreadSheetFill()
 
@@ -2155,11 +2139,10 @@ class SavedScreenPage(Tab):
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            #print line_number(), width, height
             spreadsheet_width_height_offset = gui_position.SavedScreenPage.spreadsheet_width_height_offset
             size = (width-spreadsheet_width_height_offset[0], height-spreadsheet_width_height_offset[1]) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -2240,10 +2223,9 @@ class RankPage(Tab):
 
 
         self.portfolio_name_tuple_list = []
-        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.items():
             tuple_to_append = [portfolio_obj.name, portfolio_obj.id_number]
             self.portfolio_name_tuple_list.append(tuple_to_append)
-            #print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
                                      pos=gui_position.RankPage.accounts_drop_down,
@@ -2292,7 +2274,7 @@ class RankPage(Tab):
 
         self.ticker_col = 0
 
-        print line_number(), "RankPage loaded"
+        logging.info("RankPage loaded")
 
     def rankStocks(self, event):
         self.rank_name = self.rank_drop_down.GetValue()
@@ -2306,7 +2288,7 @@ class RankPage(Tab):
                 rank_function = triple.function
 
         if not rank_function:
-            print line_number(), "Error, somthing went wrong locating the correct screen to use."
+            logging.error("Error, somthing went wrong locating the correct screen to use.")
 
         # run ranking funtion on all stocks
 
@@ -2323,8 +2305,8 @@ class RankPage(Tab):
         if self.spreadsheet:
             try:
                 self.spreadsheet.Destroy()
-            except Exception, exception:
-                print line_number(), exception
+            except Exception as exception:
+                logging.error(exception)
 
         stock_list.sort(key = lambda x: x.symbol)
 
@@ -2332,10 +2314,9 @@ class RankPage(Tab):
         size = gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            #print line_number(), width, height
             size = (width-20, height-128) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -2373,10 +2354,10 @@ class RankPage(Tab):
         size = gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0]
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            print line_number(), width, height
+            logging.info("{}, {}".format(width, height))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -2405,7 +2386,7 @@ class RankPage(Tab):
         self.rank_drop_down.Show()
 
 
-        print line_number(), "rankStocks done!"
+        logging.info("rankStocks done!")
         self.spreadsheet.Show()
 
     def updateAdditionalData(self, event):
@@ -2428,7 +2409,7 @@ class RankPage(Tab):
         if yesNoAnswer != wx.ID_YES:
             return
 
-        print line_number(), "Clearing the Grid"
+        logging.info("Clearing the Grid")
 
         config.RANK_PAGE_ALL_RELEVANT_STOCKS = []
         self.full_attribute_list = []
@@ -2465,10 +2446,10 @@ class RankPage(Tab):
 
 
         self.portfolio_name_tuple_list = []
-        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.items():
             tuple_to_append = [portfolio_obj.name, portfolio_obj.id_number]
             self.portfolio_name_tuple_list.append(tuple_to_append)
-            print line_number(), self.portfolio_name_tuple_list
+            logging.info(self.portfolio_name_tuple_list)
 
         self.accounts_drop_down = wx.ComboBox(self,
                                      pos=(305, 31),
@@ -2479,8 +2460,8 @@ class RankPage(Tab):
         selected_screen_name = self.drop_down.GetValue()
         try:
             saved_screen = db.load_named_screen(selected_screen_name)
-        except Exception, exception:
-            print line_number(), exception
+        except Exception as exception:
+            logging.error(exception)
             error = wx.MessageDialog(self,
                                      "Something went wrong. This file doesn't seem to exist.",
                                      'Error: File Does Not Exist',
@@ -2496,12 +2477,11 @@ class RankPage(Tab):
         for stock in saved_screen:
             if not stock:
                 possibly_remove_dead_stocks.append(stock)
-                print line_number(), "One of the stocks in this screen does not appear to exist."
+                logging.info("One of the stocks in this screen does not appear to exist.")
             elif stock not in config.RANK_PAGE_ALL_RELEVANT_STOCKS:
-                #print line_number(), stock.symbol, "added to config.RANK_PAGE_ALL_RELEVANT_STOCKS"
                 config.RANK_PAGE_ALL_RELEVANT_STOCKS.append(stock)
             else:
-                print line_number(), stock.symbol, "skipped"
+                logging.info("{} skipped".format(stock.symbol))
         self.createUnrankedSpreadsheet()
 
 
@@ -2513,8 +2493,8 @@ class RankPage(Tab):
                 tuple_not_found = False
                 try:
                     saved_account = db.load_portfolio_object(id_number = this_tuple[1])
-                except Exception, exception:
-                    print line_number(), exception
+                except Exception as exception:
+                    logging.error(exception)
                     error = wx.MessageDialog(self,
                                              "Something went wrong. This file doesn't seem to exist.",
                                              'Error: File Does Not Exist',
@@ -2568,8 +2548,7 @@ class RankPage(Tab):
                 except:
                     rank_tuple = Ranked_Tuple_Reference(val, stock)
                     str_stock_value_list.append(rank_tuple)
-            except Exception, exception:
-                #print line_number(), exception
+            except Exception as exception:
                 rank_tuple = Ranked_Tuple_Reference(None, stock)
                 incompatible_stock_list.append(rank_tuple)
 
@@ -2603,11 +2582,7 @@ class CustomAnalysisMetaPage(Tab):
 
         self.user_created_function_page_triples = meta.return_custom_analysis_function_triple()
         self.user_created_function_page_triples.sort(key = lambda x: x.doc)
-        # print line_number()
-        # for triple in self.user_created_function_page_triples:
-        #    for attribute in dir(triple):
-        #        if not attribute.startswith("_"):
-        #            print line_number(), getattr(triple, attribute)
+
         for triple in self.user_created_function_page_triples:
             self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
             doc_string = triple.doc
@@ -2684,10 +2659,9 @@ class CustomAnalysisPage(Tab):
 
 
         self.portfolio_name_tuple_list = []
-        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.items():
             tuple_to_append = [portfolio_obj.name, portfolio_obj.id_number]
             self.portfolio_name_tuple_list.append(tuple_to_append)
-            #print line_number(), self.portfolio_name_tuple_list
 
         self.accounts_drop_down = wx.ComboBox(self,
                                      pos=gui_position.CustomAnalysisPage.accounts_drop_down,
@@ -2743,7 +2717,7 @@ class CustomAnalysisPage(Tab):
         self.ticker_display = None
         self.screen_grid = None
 
-        #print line_number(), self.panel_name + " loaded"
+        logging.info(self.panel_name + " loaded")
 
 
     def addOneStock(self, event):
@@ -2752,7 +2726,7 @@ class CustomAnalysisPage(Tab):
             return
         stock = utils.return_stock_by_symbol(ticker)
         if stock is None:
-            print line_number(), "Error: Stock %s doesn't appear to exist" % ticker
+            logging.error("Error: Stock %s doesn't appear to exist" % ticker)
             return
         if stock in self.all_stocks_currently_included:
             # it's already included
@@ -2766,12 +2740,12 @@ class CustomAnalysisPage(Tab):
         self.ticker_input.SetValue("")
         try:
             self.ticker_display.Destroy()
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         try:
             self.screen_grid.Destroy()
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.clear_button.Hide()
         self.save_button.Hide()
         self.analyse.Hide()
@@ -2786,8 +2760,8 @@ class CustomAnalysisPage(Tab):
 
         try:
             self.ticker_display.Destroy()
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.info(e)
 
         if not stock_list:
             stock_list = self.all_stocks_currently_included
@@ -2801,12 +2775,10 @@ class CustomAnalysisPage(Tab):
         height_offset = gui_position.CustomAnalysisPage.height_offset
         try:
             width, height = gui_position.main_frame_size()
-            #print line_number(), width, height
             height = height - height_offset
-        except Exception, e:
-            print line_number(), e
-        #print line_number()
-        #pp.pprint(config.GLOBAL_STOCK_DICT)
+        except Exception as e:
+            logging.error(e)
+
         self.ticker_display_horizontal_offset = gui_position.CustomAnalysisPage.ticker_display_horizontal_offset
         self.ticker_display_horizontal_size = gui_position.CustomAnalysisPage.ticker_display_horizontal_size
         self.ticker_display = wx.TextCtrl(self, -1,
@@ -2841,8 +2813,8 @@ class CustomAnalysisPage(Tab):
         selected_screen_name = self.screen_drop_down.GetValue()
         try:
             screen_stock_list = db.load_named_screen(selected_screen_name)
-        except Exception, exception:
-            print line_number(), exception
+        except Exception as exception:
+            logging.error(exception)
             error = wx.MessageDialog(self,
                                      "Something went wrong. This file doesn't seem to exist.",
                                      'Error: File Does Not Exist',
@@ -2870,23 +2842,18 @@ class CustomAnalysisPage(Tab):
 
         try:
             self.custom_spreadsheet.Destroy()
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
 
         list_of_spreadsheet_cells = process_user_function.process_custom_analysis_spreadsheet_data(self.all_stocks_currently_included, self.custom_spreadsheet_builder)
-        #print line_number(), list_of_spreadsheet_cells
 
         #You need this code to resize
         size = gui_position.CustomAnalysisPage.spreadsheet_size
-        #print line_number()
-        # print "main size=", gui_position.MainFrame_size
-        # print "size=", size
         try:
             width, height = size
             size = (width-gui_position.CustomAnalysisPage.spreadsheet_width_height_offset[0], height-gui_position.CustomAnalysisPage.spreadsheet_width_height_offset[1])
-        except Exception, e:
-            print line_number(), e
-        # print line_number(), "size=", size
+        except Exception as e:
+            logging.error(e)
 
         self.inner_inner_sizer = None
 
@@ -2908,8 +2875,7 @@ class CustomAnalysisPage(Tab):
         ):
 
         if len(cell_list) > 10000:
-            print line_number()
-            print "Creating extremely large custom analysis spreadsheet, this may take a few minutes... seriously."
+            logging.info("Creating extremely large custom analysis spreadsheet, this may take a few minutes... seriously.")
 
         num_rows = 0
         num_columns = 0
@@ -3014,7 +2980,7 @@ class ResearchPage(Tab):
         self.bingbong.Bind(wx.EVT_BUTTON, self.development_examples_load_into_page, self.bingbong)
 
 
-        print line_number(), "ResearchPage loaded"
+        logging.info("ResearchPage loaded")
     def development_examples_load_into_page(self, event):
         for ticker in self.development_sample_stocks:
             utils.add_ticker_to_research_page(ticker)
@@ -3029,7 +2995,7 @@ class ResearchPage(Tab):
 
         stock = utils.return_stock_by_symbol(ticker)
         if not stock:
-            print line_number(), "Stock with symbol %s does not appear to exist" % ticker.upper()
+            logging.info("Stock with symbol %s does not appear to exist" % ticker.upper())
             return
 
         self.stock_list.append(stock)
@@ -3049,7 +3015,7 @@ class ResearchPage(Tab):
 
         stock = utils.return_stock_by_symbol(ticker)
         if not stock:
-            print line_number(), "Stock with symbol %s does not appear to exist" % ticker.upper()
+            logging.info("Stock with symbol %s does not appear to exist" % ticker.upper())
             return
 
         confirm = wx.MessageDialog(None,
@@ -3243,7 +3209,6 @@ class SalePrepPage(Tab):
             horizontal_offset = gui_position.SalePrepPage.horizontal_offset
             if i>=5:
                 horizontal_offset = gui_position.SalePrepPage.horizontal_offset_i_greater_than_n
-            #print line_number(), config.PORTFOLIO_OBJECTS_DICT
             checkbox_to_add = wx.CheckBox(self, -1,
                                           config.PORTFOLIO_OBJECTS_DICT.get(str(i+1)).name,
                                           pos=((gui_position.SalePrepPage.checkbox_initial_offset + horizontal_offset), (gui_position.SalePrepPage.checkbox_vertical_offset_factor*i)),
@@ -3278,14 +3243,13 @@ class SalePrepPage(Tab):
             box = self.checkbox_list[i]
             if box:
                 is_checked = box.GetValue()
-                #print line_number(), is_checked
                 if is_checked:
                     self.spreadSheetFill('event')
                     break
 
 
 
-        print line_number(), "SalePrepPage loaded"
+        logging.info("SalePrepPage loaded")
 
     def resetPage(self):
         self.rows_dict = {}
@@ -3417,7 +3381,7 @@ class SalePrepPage(Tab):
                     error = self.grid.GetCellValue(row_num, column_num - 1) # error column is one less than stock column
                     if error != "Error":
                         error = None
-                    print line_number(), not_empty
+                    logging.info(not_empty)
                     if not_empty and not error:
                         if int(not_empty):
                             portfolio_id_number = str(self.grid.GetCellValue(row_num, self.first_cell.col))
@@ -3427,10 +3391,10 @@ class SalePrepPage(Tab):
                             sell_tuple = (ticker, number_of_shares_to_sell, relevant_portfolio)
                             sell_tuple_list.append(sell_tuple)
                     elif error:
-                        print line_number(), "ERROR: Could not save sell list. There are errors in quantity syntax."
+                        logging.info("ERROR: Could not save sell list. There are errors in quantity syntax.")
                         return
         for i in sell_tuple_list:
-            print line_number(), i
+            logging.info(i)
 
 
         # Here, i'm not sure whether to save to file or not (currently not saving to file, obviously)
@@ -3445,7 +3409,7 @@ class SalePrepPage(Tab):
                                                                 relevant_portfolios_list,
                                                                 sell_tuple_list
                                                                 ]
-        print line_number(), config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
+        logging.info(config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE)
         self.saved_text.Show()
 
         trade_page = config.GLOBAL_PAGES_DICT.get(config.TRADE_PAGE_UNIQUE_ID).obj
@@ -3457,21 +3421,21 @@ class SalePrepPage(Tab):
         for i in self.checkbox_list:
             try:
                 i.Destroy()
-            except Exception, exception:
-                print line_number(), exception
+            except Exception as exception:
+                logging.error(exception)
         self.checkbox_list = []
-        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        for key, portfolio_obj in config.PORTFOLIO_OBJECTS_DICT.items():
             try:
                 index = int(key)-1
             except Exception as e:
-                print line_number(), e
-                print "Note: Something has gone wrong with the keys to the config.PORTFOLIO_OBJECTS_DICT, which is throwing this error, they should be indexed starting with 1"
+                logging.error(e)
+                logging.info("Note: Something has gone wrong with the keys to the config.PORTFOLIO_OBJECTS_DICT, which is throwing this error, they should be indexed starting with 1")
             if not portfolio_obj:
                 continue
             else:
                 for attribute in dir(portfolio_obj):
                     if not attribute.startswith("_"):
-                        print str(attribute)+":", getattr(portfolio_obj, attribute)
+                        logging.info(str(attribute)+": ()".format(getattr(portfolio_obj, attribute)))
             horizontal_offset = 0
             if index>=5:
                 horizontal_offset = 200
@@ -3489,11 +3453,11 @@ class SalePrepPage(Tab):
         # This function has been deactivated, unfortunately it causes too many false positives...
 
         # color = self.grid.GetCellBackgroundColour(event.GetRow(), event.GetCol())
-        # print line_number(), color
-        # print type(color)
-        # print "---------"
+        # logging.info(color)
+        # logging.info(type(color))
+        # logging.info("---------")
         # if color != (255, 255, 255, 255):
-        #   print 'it works'
+        #   logging.info('it works')
         #   self.save_button.Hide()
         # event.Skip()
 
@@ -3503,9 +3467,9 @@ class SalePrepPage(Tab):
     def spreadSheetFill(self, event):
         try:
             self.grid.Hide() # destroying grid will throw a segmentation fault for some reason
-        except Exception, exception:
+        except Exception as exception:
             pass
-            #print line_number(), exception
+            #logging.error(exception)
 
         relevant_portfolios_list = []
         for i in range(len(self.checkbox_list)):
@@ -3524,17 +3488,16 @@ class SalePrepPage(Tab):
                 num_rows += 1 # for account name
                 num_stocks = len(account.stock_shares_dict)
                 num_rows += num_stocks
-                #print line_number(), num_rows
-            except Exception, exception:
-                print line_number(), exception
+            except Exception as exception:
+                logging.error(exception)
 
         # set size for grid
         size = gui_position.SalePrepPage.size
         try:
             width, height = gui_position.MainFrame_size
             size = (width-gui_position.SalePrepPage.width_adjust, height-gui_position.SalePrepPage.height_adjust) # find the difference between the Frame and the grid size
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
         self.sizer = None
         self.inner_sizer = None
 
@@ -3544,10 +3507,7 @@ class SalePrepPage(Tab):
 
         new_grid = SalePrepGrid(self, -1, size=size, pos=gui_position.SalePrepPage.new_grid_position)
         new_grid.CreateGrid(num_rows, num_columns)
-        try: # this crashes on startup for some reason
-            new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, self.updateGrid, new_grid)
-        except:
-            logging.debug("EVT_GRID_CELL_CHANGE startup error")
+        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, self.updateGrid, new_grid)
         #You need this code to resize
         self.inner_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
         self.SetSizer(self.inner_sizer)
@@ -3606,7 +3566,8 @@ class SalePrepPage(Tab):
                 throw_error = account.stock_shares_dict
                 # intentionally throws an error if account hasn't been imported
             except Exception as e:
-                print line_number(), e, ": An account appears to not be loaded, but this isn't a problem."
+                logging.error(e)
+                logging.info(": An account appears to not be loaded, but this isn't a problem.")
                 continue
 
             # set portfolio name
@@ -3631,14 +3592,11 @@ class SalePrepPage(Tab):
                     sale_value = None
                     stocks_capital_gains = None
 
-
-                    #print line_number()
-                    #print ticker
                     # set all cell values for stock
                     stock = utils.return_stock_by_symbol(ticker)
 
                     if not stock:
-                        print line_number(), "Stock %s does not appear to exist" % ticker
+                        logging.info("Stock %s does not appear to exist" % ticker)
                         continue
                     # set account index cell
                     account_index_cell = SpreadsheetCell(row = row_count, col = self.first_cell.col, text = str(account.id_number), text_color = "white")
@@ -3654,7 +3612,7 @@ class SalePrepPage(Tab):
                                 cost_basis_per_share = float(cost_basis_per_share)
                                 stocks_cost_basis_cell = SpreadsheetCell(row = row_count, col = self.cost_basis_cell.col, text = config.locale.currency(cost_basis_per_share, grouping = True), value = (cost_basis_per_share), align_right = True)
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
                             cost_basis_per_share = None
 
                     # set firm name cell
@@ -3670,8 +3628,8 @@ class SalePrepPage(Tab):
                     try:
                         stocks_last_price = float(utils.return_last_price_if_possible(stock))
                         stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
-                    except Exception, exception:
-                        print line_number(), exception
+                    except Exception as exception:
+                        logging.error(exception)
 
                     # set capital gains
                     if cost_basis_per_share:
@@ -3711,11 +3669,10 @@ class SalePrepPage(Tab):
 
                     # set row
                     if cost_basis_per_share and stocks_last_price and stocks_capital_gains:
-                        #print line_number(), ticker, "3: cost_basis_per_share and stocks_last_price and stocks_capital_gains"
                         try:
                             this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
                         if not this_row:
                             this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
@@ -3728,11 +3685,10 @@ class SalePrepPage(Tab):
                         this_row.cell_dict[stocks_capital_gains_adjustment_cell.col] = stocks_capital_gains_adjustment_cell
 
                     elif cost_basis_per_share and stocks_last_price:
-                        #print line_number(), ticker, "2: cost_basis_per_share and stocks_last_price"
                         try:
                             this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
                         if not this_row:
                             this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
@@ -3741,14 +3697,12 @@ class SalePrepPage(Tab):
                         this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
                         this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
                         this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
-                        #print line_number(), this_row.cell_dict
 
                     elif cost_basis_per_share:
-                        #print line_number(), ticker, "cost_basis_per_share"
                         try:
                             this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
                         if not this_row:
                             this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
@@ -3757,11 +3711,10 @@ class SalePrepPage(Tab):
                         this_row.cell_dict[stocks_quantity_cell.col] = stocks_quantity_cell
                         this_row.cell_dict[stocks_cost_basis_cell.col] = stocks_cost_basis_cell
                     elif stocks_last_price:
-                        #print line_number(), ticker, "stocks_last_price"
                         try:
                             this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
                         if not this_row:
                             this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
@@ -3771,11 +3724,10 @@ class SalePrepPage(Tab):
                         this_row.cell_dict[stocks_last_price_cell.col] = stocks_last_price_cell
 
                     else:
-                        #print line_number(), ticker, "else"
                         try:
                             this_row = self.rows_dict.get(str(stock.symbol) + str(account.id_number))
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
                         if not this_row:
                             this_row = SpreadsheetRow(row_count, name = stock.symbol, row_title = str(ticker)+str(account.id_number), account = account, cell_dict = {})
                         this_row.cell_dict[account_index_cell.col] = account_index_cell
@@ -3789,11 +3741,8 @@ class SalePrepPage(Tab):
                 stock = None
                 row_count += 1
         # iterate over cells to fill in grid
-        for ticker, row_obj in self.rows_dict.iteritems():
-            for col_num, cell_obj in row_obj.cell_dict.iteritems():
-                #print line_number()
-                #print cell_obj.row, cell_obj.col, cell_obj.text
-
+        for ticker, row_obj in self.rows_dict.items():
+            for col_num, cell_obj in row_obj.cell_dict.items():
                 # check if row moved:
                 if cell_obj.row != row_obj.row:
                     cell_obj.row = row_obj.row
@@ -3811,7 +3760,7 @@ class SalePrepPage(Tab):
 
         ### Set Totals ###
         # set total sale
-        for ticker, row_obj in self.rows_dict.iteritems():
+        for ticker, row_obj in self.rows_dict.items():
             cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
             if cell_obj:
                 if cell_obj.text is not None and cell_obj.text is not "":
@@ -3835,7 +3784,7 @@ class SalePrepPage(Tab):
         # set total commission
         if config.DEFAULT_COMMISSION:
             num_trades = 0.
-            for row, row_obj in self.rows_dict.iteritems():
+            for row, row_obj in self.rows_dict.items():
                 cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
                 if cell_obj:
                     if cell_obj.text is not None and cell_obj.text is not "":
@@ -3850,7 +3799,7 @@ class SalePrepPage(Tab):
             self.grid.SetCellValue(self.totals_cell.row, self.commission_cell.col, "")
 
         # set captial gains
-        for ticker, row_obj in self.rows_dict.iteritems():
+        for ticker, row_obj in self.rows_dict.items():
             cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
             if cell_obj:
                 if cell_obj.text is not None and cell_obj.text is not "":
@@ -3881,7 +3830,7 @@ class SalePrepPage(Tab):
 
         if self.carryover_input_cell.value and total_capital_gains:
             adjustment_left = self.carryover_input_cell.value
-            for row, row_obj in sorted(self.rows_dict.iteritems()):
+            for row, row_obj in sorted(self.rows_dict.items()):
                 cell_obj = row_obj.cell_dict.get(self.number_of_shares_copy_cell.col)
                 if cell_obj:
                     if cell_obj.text is not None and cell_obj.text is not "":
@@ -3912,7 +3861,7 @@ class SalePrepPage(Tab):
             try:
                 value = float(value)
             except:
-                print line_number(), "Error: invalid carryover input."
+                logging.error("Error: invalid carryover input.")
                 return
             self.carryover_input_cell.text = value
             self.carryover_input_cell.value = value
@@ -3932,26 +3881,19 @@ class SalePrepPage(Tab):
         percent_to_commission = None
 
         row_obj = self.rows_dict.get(str(ticker)+str(account_id_number))
-        #if row_obj:
-        #    print line_number()
-        #    print row_obj.cell_dict
-        #    for ref, cell_obj in row_obj.cell_dict.iteritems():
-        #        print cell_obj.text
         stocks_ticker_cell = row_obj.cell_dict.get(str(self.ticker_cell.col))
         if stocks_ticker_cell:
             ticker = stocks_ticker_cell.text
         else:
             ticker = str(self.grid.GetCellValue(row, self.ticker_cell.col))
             if not ticker:
-                print line_number()
-                print "Error: something went wrong here"
+                logging.error("Error: something went wrong here")
 
 
-        print line_number()
-        print ticker
+        logging.info(ticker)
         stock = utils.return_stock_by_symbol(ticker)
         if not stock:
-            print line_number(), "Error, stock %s doesn't appear to exist" % ticker
+            logging.error("Error, stock %s doesn't appear to exist" % ticker)
             return
 
         stocks_price_cell = row_obj.cell_dict.get(str(self.price_cell.col))
@@ -3972,11 +3914,6 @@ class SalePrepPage(Tab):
         stocks_percent_to_commission_cell = row_obj.cell_dict.get(str(self.commission_cell.col))
         stocks_cost_basis_per_share_cell = row_obj.cell_dict.get(str(self.cost_basis_cell.col))
         stocks_capital_gains_cell = row_obj.cell_dict.get(str(self.capital_gains_cell.col))
-
-        #print line_number()
-        #print stocks_num_of_shares_cell
-        #print stocks_percent_of_shares_cell
-        #print stocks_num_of_shares_copy_cell
 
         if not stocks_num_of_shares_cell:
             stocks_num_of_shares_cell = SpreadsheetCell(row = row, col = self.num_of_shares_cell.col, align_right = True)
@@ -4006,17 +3943,12 @@ class SalePrepPage(Tab):
             stocks_capital_gains_cell = SpreadsheetCell(row = row, col = self.capital_gains_cell.col, align_right = True)
             row_obj.cell_dict[self.capital_gains_cell.col] = stocks_capital_gains_cell
 
-        #print line_number(), row_obj.cell_dict
-
-
         if column == self.num_of_shares_cell.col: # sell by number
             try:
                 number_of_shares_to_sell = int(value)
-            except Exception, exception:
-                print line_number(), exception
+            except Exception as exception:
+                logging.error(exception)
                 number_of_shares_to_sell = None
-                #self.setGridError(row) # this should actually be changed below
-            #print line_number(), "# of stocks to sell changed"
 
             # blank percentage of shares col
             #self.grid.SetCellValue(row, self.percent_of_shares_cell.col, "")
@@ -4071,8 +4003,8 @@ class SalePrepPage(Tab):
                 value = value.strip("%")
                 try:
                     value = float(value)/100
-                except Exception, exception:
-                    print line_number(), exception
+                except Exception as exception:
+                    logging.error(exception)
                     self.setGridError(row, row_obj.row_title, percentage = value)
                     return
             else:
@@ -4080,8 +4012,8 @@ class SalePrepPage(Tab):
                     value = float(value)
                     if value >= 1:
                         value = value / 100
-                except Exception, exception:
-                    print line_number(), exception
+                except Exception as exception:
+                    logging.error(exception)
                     if value != "":
                         self.setGridError(row, row_obj.row_title, percentage = value)
                         return
@@ -4173,8 +4105,8 @@ class SalePrepPage(Tab):
 
     def setGridError(self, row, row_obj_row_title, number = None, percentage = None):
         row_obj = self.rows_dict.get(str(row_obj_row_title))
-        print line_number(), self.rows_dict
-        print line_number(), row_obj
+        logging.info(self.rows_dict)
+        logging.info(row_obj)
 
         stocks_num_of_shares_copy_cell = row_obj.cell_dict.get(str(self.number_of_shares_copy_cell.col))
         stocks_percent_of_shares_copy_cell = row_obj.cell_dict.get(str(self.percent_of_shares_copy_cell.col))
@@ -4298,7 +4230,7 @@ class TradePage(Tab):
 
         self.makeGridOnButtonPush("event")
 
-        print line_number(), "TradePage loaded"
+        logging.info("TradePage loaded")
 
     def confirmExecuteTrades(self, event):
         confirm = wx.MessageDialog(None,
@@ -4315,12 +4247,10 @@ class TradePage(Tab):
 
 
     def executeCurrentlyScheduledTrades(self):
-        print line_number()
-        print "wah wah"
-        print "sale_tuple_list:", self.sale_tuple_list
-        print "SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE:", config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE
-        print "buy_candidate_tuples:", self.buy_candidate_tuples
-        print "buy_candidates:", self.buy_candidates
+        logging.info("sale_tuple_list: {}".format(self.sale_tuple_list))
+        logging.info("SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE: {}".format(config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE))
+        logging.info("buy_candidate_tuples: {}".format(self.buy_candidate_tuples))
+        logging.info("buy_candidates: {}".format(self.buy_candidates))
         full_execute_buy_list = []
         for this_tuple in self.buy_candidate_tuples:
             quantity = this_tuple[1]
@@ -4329,7 +4259,7 @@ class TradePage(Tab):
             if not execute_buy_tuple:
                 return # cancel entire event if one window is cancelled
             full_execute_buy_list.append(execute_buy_tuple)
-        print line_number(), full_execute_buy_list
+        logging.info(full_execute_buy_list)
         self.executeTradeFinal(self.sale_tuple_list, full_execute_buy_list)
 
     def executeTradeFinal(self, sell_tuple_list, buy_tuple_list):
@@ -4342,11 +4272,11 @@ class TradePage(Tab):
             if previous_shares is not None:
                 left_over_shares = float(previous_shares) - float(quantity)
             else:
-                print line_number(), "ERROR: something went quite wrong here."
+                logging.error("ERROR: something went quite wrong here.")
                 return
 
             if left_over_shares < 0:
-                print line_number(), "ERROR: you cannot sell more shares than you own."
+                logging.error("ERROR: you cannot sell more shares than you own.")
                 return
             elif not left_over_shares: # could be 0, 0., or None
                 account_obj.stock_shares_dict.pop(ticker, None)
@@ -4367,7 +4297,7 @@ class TradePage(Tab):
             if cost_basis:
                 old_cost_basis = account_obj.cost_basis_dict.get(ticker)
                 if old_cost_basis or previous_shares:
-                    print line_number(), "I'm not comfortable calculating your new cost basis for tax purposes. Please re-enter it on your account page."
+                    logging.info("I'm not comfortable calculating your new cost basis for tax purposes. Please re-enter it on your account page.")
                     account_obj.cost_basis_dict[ticker] = None
                 else:
                     account_obj.cost_basis_dict[ticker] = float(cost_basis)
@@ -4375,7 +4305,7 @@ class TradePage(Tab):
         save_list = utils.remove_list_duplicates(accounts_to_be_saved_list)
         for account in save_list:
             db.save_portfolio_object(account)
-        print line_number(), "TRADE EXECUTED"
+        logging.info("TRADE EXECUTED")
         self.clearGrid("event")
         sale_prep_page = config.GLOBAL_PAGES_DICT.get(config.SALE_PREP_PAGE_UNIQUE_ID).obj
         sale_prep_page.resetPage()
@@ -4391,16 +4321,16 @@ class TradePage(Tab):
         if confirm != wx.ID_OK:
             return
         if not portfolio:
-            print line_number(), "invalid portfolio choice"
+            logging.warning("invalid portfolio choice")
             self.executeTradeDialog(ticker=ticker, number_of_shares=number_of_shares, error_account = "You much choose a portfolio for this stock purchase", preset_cost_basis=cost_basis)
         float_cost_basis = utils.money_text_to_float(cost_basis)
         if cost_basis and (float_cost_basis is None): # it may be 0, but it shouldn't have a valid cost basis entry and then return None
-            print line_number(), "invalid cost basis"
+            logging.warning("invalid cost basis")
             self.executeTradeDialog(ticker=ticker, number_of_shares=number_of_shares, preset_account_choice=portfolio, error_cost_basis = "You entered an invalid cost basis")
         portfolio_obj = utils.return_account_by_name(portfolio)
         if not portfolio_obj:
-            print line_number(), "Something went wrong with grabbing the portfolio {portfolio} here.".format(portfolio=portfolio)
-        print line_number(), (ticker, number_of_shares, portfolio_obj, float_cost_basis)
+            logging.warning("Something went wrong with grabbing the portfolio {portfolio} here.".format(portfolio=portfolio))
+        logging.info("{} {} {} {}".format(ticker, number_of_shares, portfolio_obj, float_cost_basis))
         return (ticker, number_of_shares, portfolio_obj, float_cost_basis)
 
     def updateStocksWithErrors(self, event):
@@ -4409,7 +4339,7 @@ class TradePage(Tab):
             self.update_stocks_button.Hide()
             return
         if len(self.stocks_to_update) > config.SCRAPE_CHUNK_LENGTH:
-            print line_number(), "You should be able to remove this prompt by using newer scraping functions here."
+            logging.info("You should be able to remove this prompt by using newer scraping functions here.")
             error_message = wx.MessageDialog(None,
                                    "The number of stocks to scrape is too large. Please use the Scrape tab to perform a full scrape.",
                                    'Scrape Too Large',
@@ -4460,8 +4390,8 @@ class TradePage(Tab):
 
         position_of_this_chunk += 1
         percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
-        print line_number(), "%d%%" % percent_done, "done this scrape execution."
-        print line_number(), "%d%%" % percent_of_full_scrape_done, "done of all tickers."
+        logging.info("{}% done this scrape execution.".format(percent_done))
+        logging.info("{}% done of all tickers.".format(percent_of_full_scrape_done))
 
         if position_of_this_chunk >= len(ticker_chunk_list):
             for chunk in ticker_chunk_list:
@@ -4469,14 +4399,14 @@ class TradePage(Tab):
                     self.stocks_to_update.remove(ticker)
             self.updateGrid("event", cursor_positon = (0, 0))
             self.stock_update_pending_text.Hide()
-            print line_number(), "finished!"
+            logging.info("finished!")
             self.newGridFill()
         else:
             for chunk in ticker_chunk_list:
                 for ticker in chunk:
                     self.stocks_to_update.remove(ticker)
             self.updateGrid("event", cursor_positon = (0, 0))
-            print line_number(), "ready to loop again"
+            logging.info("ready to loop again")
             timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
             timer.start()
 
@@ -4493,7 +4423,7 @@ class TradePage(Tab):
         sale_prep_page.save_button.Show()
 
     def importSaleCandidates(self, event):
-        print line_number(), "Boom goes the boom!!!!!!!!" # My favorite logging text, please don't remove :(
+        logging.info("Boom goes the boom!!!!!!!!") # My favorite logging text, please don't remove :(
 
         self.relevant_portfolios_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[0]
         self.sale_tuple_list = config.SALE_PREP_PORTFOLIOS_AND_SALE_CANDIDATES_TUPLE[1]
@@ -4516,10 +4446,10 @@ class TradePage(Tab):
         # it will tell you how many grids have loaded, but it shouldn't affect performance (i think).
 
         if not grid:
-            print line_number(), "no grid"
+            logging.info("no grid")
             grid = self.grid
         else:
-            print line_number(), grid
+            logging.info(grid)
 
         if not cursor_positon:
             row = int(event.GetRow())
@@ -4534,19 +4464,13 @@ class TradePage(Tab):
             return
 
         buy_candidates_len = len(self.buy_candidates)
-        print line_number(), buy_candidates_len
-        print line_number(), buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1
+        logging.info(buy_candidates_len)
+        logging.info(buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1)
         self.buy_candidates = []
         self.buy_candidate_tuples = []
         for row in (range(buy_candidates_len + 1 + self.default_rows_above_buy_candidates + 1)):
-            #print line_number()
-            #print line_number(), row
             if row > self.default_rows_above_buy_candidates and grid.GetCellBackgroundColour(row, self.default_buy_candidate_column) in [self.default_buy_candidate_color, self.default_not_entered_buy_candidate_color]:
-                #print line_number()
-                #print line_number(),  row
                 ticker = grid.GetCellValue(row, self.default_buy_candidate_column)
-                #print line_number()
-                #print line_number(), ticker
                 if ticker:
                     stock = utils.return_stock_by_symbol(ticker)
                     if stock:
@@ -4558,26 +4482,24 @@ class TradePage(Tab):
                                 ticker_row = row
                                 self.buy_candidate_tuples.append((ticker_row, quantity, str(ticker), stock))
                     else:
-                        print line_number(), ticker, "doesn't seem to exist"
+                        logging.info("{} doesn't seem to exist".format(ticker))
                         self.grid.SetCellValue(row, column, ticker)
                         self.grid.SetCellAlignment(row, column, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
                         self.grid.SetCellValue(row, column + 1, "Error")
                         self.grid.SetCellAlignment(row, column + 1, horiz = wx.ALIGN_CENTER, vert = wx.ALIGN_BOTTOM)
                         self.grid.SetCellTextColour(row, column + 1, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
                         return
-        print line_number(), self.buy_candidates
+        logging.info(self.buy_candidates)
 
         # build new grid
         self.newGridFill(cursor_positon = cursor_positon)
 
     def newGridFill(self, cursor_positon = (0,0)):
-        #print line_number(), cursor_positon
         size = gui_position.TradePage.newGridFill_size
         width_adjust = gui_position.TradePage.width_adjust
         height_adjust = gui_position.TradePage.height_adjust
         try:
             width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            #print line_number(), width, height
             size = (width-gui_position.TradePage.width_adjust, height-gui_position.TradePage.height_adjust) # find the difference between the Frame and the grid size
         except:
             pass
@@ -4588,25 +4510,21 @@ class TradePage(Tab):
         self.relevant_portfolio_name_list = []
         try:
             # set initial rows, buy candidate rows checked below
-            # print line_number(), "relevant_portfolios_list"
             for account in self.relevant_portfolios_list:
                 id_number = account.id_number
                 self.relevant_portfolio_name_list.append(account.name)
-                print line_number(), "relevant_portfolio_name_list:", self.relevant_portfolio_name_list
+                logging.info("relevant_portfolio_name_list: {}".format(self.relevant_portfolio_name_list))
 
             num_rows = len(self.sale_tuple_list)
             num_rows += config.DEFAULT_ROWS_ON_TRADE_PREP_PAGE_FOR_TICKERS
-        except Exception, exception:
-            print line_number(), exception
-            print line_number(), "Error in loading trade grid, num_rows will be reset to zero."
+        except Exception as exception:
+            logging.error(exception)
+            logging.info("Error in loading trade grid, num_rows will be reset to zero.")
             num_rows = 0
 
         num_rows = max(num_rows, self.default_min_rows, (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 2))
         new_grid.CreateGrid(num_rows, self.default_columns)
-        try:
-            new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGE, lambda event: self.updateGrid(event, grid = new_grid), new_grid)
-        except:
-            logging.debug("EVT_GRID_CELL_CHANGE startup error")
+        new_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, lambda event: self.updateGrid(event, grid = new_grid), new_grid)
         #You need this code to resize
         self.sizer = None
         self.inner_sizer = None
@@ -4620,7 +4538,6 @@ class TradePage(Tab):
         self.sizer.Add(self, 1, wx.EXPAND|wx.ALL)
         ##
 
-        #print line_number(), self.buy_candidates
         for column_num in range(self.default_columns):
             for row_num in range(num_rows):
                 if row_num <= self.default_rows_above_buy_candidates or row_num > (self.default_rows_above_buy_candidates + len(self.buy_candidates) + 1) or column_num not in [self.default_buy_candidate_column,self.default_buy_candidate_quantity_column]:
@@ -4811,8 +4728,8 @@ class TradePage(Tab):
                         color = None
                     volume_cell = SpreadsheetCell(row = correct_row, col = this_column_number + 2, text = str(avg_daily_volume), value = avg_daily_volume, align_right = True, text_color = color)
                     spreadsheet_cell_list.append(volume_cell)
-                except Exception, exception:
-                    print line_number(), exception
+                except Exception as exception:
+                    logging.error(exception)
 
                 counter += 1
 
@@ -4825,7 +4742,7 @@ class TradePage(Tab):
             total_asset_value = 0.00
             for account in self.relevant_portfolios_list:
                 total_asset_value += float(str(account.available_cash).replace("$",""))
-                for ticker, quantity in account.stock_shares_dict.iteritems():
+                for ticker, quantity in account.stock_shares_dict.items():
                     stock = utils.return_stock_by_symbol(ticker)
                     quantity = float(str(quantity).replace(",",""))
                     last_price = utils.return_last_price_if_possible(stock)
@@ -4834,17 +4751,17 @@ class TradePage(Tab):
                         value_of_held_stock = last_price * quantity
                         total_asset_value += value_of_held_stock
                     except Exception as e:
-                        print line_number(), e
-                        print "No last price:", last_price, type(last_price)
+                        logging.error(e)
+                        logging.info("No last price: {} {}".format(last_price, type(last_price)))
                         try:
-                            print "quantity", quantity, type(quantity)
+                            logging.info("quantity {} {}".format(quantity, type(quantity)))
                         except:
-                            print "no quantity!"
+                            logging.info("no quantity!")
                         try:
-                            print "value_of_held_stock:", value_of_held_stock, type(value_of_held_stock)
+                            logging.info("value_of_held_stock: {} {}".format(value_of_held_stock, type(value_of_held_stock)))
                         except:
-                            print "No value_of_held_stock available"
-                        print "total_asset_value:", total_asset_value, type(total_asset_value)
+                            logging.info("No value_of_held_stock available")
+                        logging.info("total_asset_value: {} {}".format(total_asset_value, type(total_asset_value)))
 
             total_asset_value_cell = SpreadsheetCell(row = total_asset_value_row, col = this_column_number, text = config.locale.currency(total_asset_value, grouping = True), value = total_asset_value, align_right = True)
             spreadsheet_cell_list.append(total_asset_value_cell)
@@ -4862,10 +4779,10 @@ class TradePage(Tab):
                     value_of_single_stock_to_sell = float(last_price) * float(number_of_shares_to_sell)
                     value_of_all_stock_to_sell += value_of_single_stock_to_sell
                 except Exception as e:
-                    print line_number(), e
-                    print "No last price:", last_price, type(last_price)
-                    print "number_of_shares_to_sell:", number_of_shares_to_sell, type(number_of_shares_to_sell)
-                    print "value_of_all_stock_to_sell:", value_of_all_stock_to_sell, type(value_of_all_stock_to_sell)
+                    logging.error(e)
+                    logging.info("No last price: {} {}".format(last_price, type(last_price)))
+                    logging.info("number_of_shares_to_sell: {} {}".format(number_of_shares_to_sell, type(number_of_shares_to_sell)))
+                    logging.info("value_of_all_stock_to_sell: {} {}".format(value_of_all_stock_to_sell, type(value_of_all_stock_to_sell)))
             surplus_cash_cell = SpreadsheetCell(row = approximate_surplus_cash_row, col = this_column_number, text = config.locale.currency(value_of_all_stock_to_sell, grouping = True), value = value_of_all_stock_to_sell, align_right = True)
             spreadsheet_cell_list.append(surplus_cash_cell)
 
@@ -4939,7 +4856,7 @@ class TradePage(Tab):
                             # portfolio_dropdown = wx.grid.GridCellChoiceEditor(["test1", "test2"], allowOthers=True)
                             # new_grid.SetCellEditor(row_num, self.default_account_dropdown_column, portfolio_dropdown)
                             # new_grid.SetCellBackgroundColour(row_num, self.default_account_dropdown_column, self.default_buy_candidate_quantity_color)
-                            # print line_number(), 'HERE!'
+                            # logging.info('HERE!')
                         try:
                             last_price = float(utils.return_last_price_if_possible(stock))
                             company_to_buy_price = SpreadsheetCell(row = row_num, col = column_num + 2, text = config.locale.currency(last_price, grouping = True), value = last_price, align_right = True)
@@ -4947,7 +4864,7 @@ class TradePage(Tab):
 
                             update_error = False
                         except Exception as e:
-                            print line_number(), e
+                            logging.error(e)
 
                             company_to_buy_price_error = SpreadsheetCell( row = row_num, col = column_num + 2, text = "(Error: Update %s)" % stock.symbol, text_color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
                             spreadsheet_cell_list.append(company_to_buy_price_error)
@@ -4956,7 +4873,7 @@ class TradePage(Tab):
                             update_error = True
                             self.stocks_to_update.append(stock.symbol)
                             utils.remove_list_duplicates(self.stocks_to_update)
-                            print line_number(), self.stocks_to_update, "Row:", row_num, "Column:", column_num
+                            logging.info("{} {} {} {}".format(self.stocks_to_update, "Row:", row_num, "Column:", column_num))
                             self.update_stocks_button.Show()
 
                         column_shift = 3
@@ -4964,14 +4881,11 @@ class TradePage(Tab):
                             color = None
                             if not update_error:
                                 # total_asset_value calculated above
-                                #print total_asset_value
                                 max_cost = total_asset_value * percent
-                                #print max_cost
                                 number_of_shares_to_buy = int(math.floor(max_cost / last_price))
                             else:
                                 number_of_shares_to_buy = "-"
                                 color = config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX
-                                #print number_of_shares_to_buy
                             number_of_shares_to_buy_cell = SpreadsheetCell(row = row_num, col = column_num + column_shift, text = str(number_of_shares_to_buy), value = number_of_shares_to_buy, align_right = True, text_color = color)
                             spreadsheet_cell_list.append(number_of_shares_to_buy_cell)
 
@@ -4995,7 +4909,7 @@ class TradePage(Tab):
                 quantity_cell = [cell for cell in spreadsheet_cell_list if (cell.row == row_num and cell.col == (buy_cost_column - 1))]
                 if quantity_cell:
                     if len(quantity_cell) > 1:
-                        print line_number(), "Error: too many cells returned for cell list"
+                        logging.error("Error: too many cells returned for cell list")
                         return
                     quantity = quantity_cell[0].text
                 else:
@@ -5004,12 +4918,12 @@ class TradePage(Tab):
                     ticker_cell = [cell for cell in spreadsheet_cell_list if (cell.row == row_num and cell.col == (buy_cost_column - 8))]
                     if ticker_cell:
                         if len(ticker_cell) > 1:
-                            print line_number(), "Error: too many cells returned for cell list"
+                            logging.error("Error: too many cells returned for cell list")
                             return
                         ticker = ticker_cell[0].text
                     else:
                         ticker = None
-                    print line_number(), ticker
+                    logging.info(ticker)
                     stock = utils.return_stock_by_symbol(ticker)
                     if stock:
                         quantity = int(quantity)
@@ -5054,7 +4968,6 @@ class TradePage(Tab):
 
         # Finally, set cell values in list:
         for cell in spreadsheet_cell_list:
-            #print line_number(), cell
             new_grid.SetCellValue(cell.row, cell.col, cell.text)
             if cell.align_right:
                 new_grid.SetCellAlignment(cell.row, cell.col, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
@@ -5063,14 +4976,13 @@ class TradePage(Tab):
 
 
         new_grid.AutoSizeColumns()
-        #print line_number(), "done building grid"
         new_grid.SetGridCursor(cursor_positon[0] + 1, cursor_positon[1])
 
         for grid in self.grid_list:
             grid.Hide()
         self.grid_list.append(new_grid)
         if len(self.grid_list) > 1:
-            print line_number(), "number of grids created =", len(self.grid_list)
+            logging.info("number of grids created = {}".format(len(self.grid_list)))
         new_grid.SetFocus()
         self.grid = new_grid
 
@@ -5143,7 +5055,7 @@ class UserFunctionsPage(Tab):
 
         self.SetSizer(self.sizer)
 
-        print line_number(), "%s loaded" % self.function_page_obj.title
+        logging.info("%s loaded" % self.function_page_obj.title)
 
     def confirmSave(self, event):
         confirm = wx.MessageDialog(None,
@@ -5215,8 +5127,7 @@ class GridAllStocks(wx.grid.Grid):
                     num_attributes += 1
             if self.num_columns < num_attributes:
                 self.num_columns = num_attributes
-        #print line_number(), "Number of rows: %d" % self.num_rows
-        #print line_number(), "Number of columns: %d" % self.num_columns
+
 class StockScreenGrid(wx.grid.Grid):
     def __init__(self, *args, **kwargs):
         wx.grid.Grid.__init__(self, *args, **kwargs)
@@ -5542,12 +5453,12 @@ def create_megagrid_from_stock_list(stock_list, parent, size=gui_position.full_s
     # adjust list order for important terms
     try:
         attribute_list.insert(0, 'symbol')
-    except Exception, e:
-        print line_number(), e
+    except Exception as e:
+        logging.error(e)
     try:
         attribute_list.insert(1, 'firm_name')
-    except Exception, e:
-        print line_number(), e
+    except Exception as e:
+        logging.error(e)
 
 
     # Create correctly sized grid
@@ -5562,8 +5473,8 @@ def create_megagrid_from_stock_list(stock_list, parent, size=gui_position.full_s
     if stock_list:
         try:
             data = [(stock_list.index(stock), stock.__dict__) for stock in stock_list]
-        except Exception, e:
-            print line_number(), e
+        except Exception as e:
+            logging.error(e)
             pp.pprint(stock_list)
     spreadsheet = MegaGrid(parent = parent, data = data, colnames = attribute_list, size=size, pos=pos)
     #spreadsheet.SetColSize(1, renderer.colSize)
@@ -5580,12 +5491,12 @@ def create_ranked_megagrid_from_tuple_list(ranked_tuple_list, parent, rank_name,
     # adjust list order for important terms
     try:
         attribute_list.insert(0, 'symbol')
-    except Exception, e:
-        print line_number(), e
+    except Exception as e:
+        logging.error(e)
     try:
         attribute_list.insert(1, 'firm_name')
-    except Exception, e:
-        print line_number(), e
+    except Exception as e:
+        logging.error(e)
     attribute_list.insert(2, rank_name)
 
 
@@ -5618,14 +5529,12 @@ def create_account_spread_sheet(
 
     stock_list = []
     for ticker in account_obj.stock_shares_dict:
-        #print line_number(), ticker
         stock = config.GLOBAL_STOCK_DICT.get(ticker)
         if stock:
-            #print line_number(), "Stock:", stock.symbol
             if stock not in stock_list:
                 stock_list.append(stock)
         else:
-            print line_number(), "Ticker:", ticker, "not found..."
+            logging.info("Ticker: {} not found...".format(ticker))
     stock_list.sort(key = lambda x: x.ticker)
 
     attribute_list = ['symbol', 'firm_name', "Shares Held", "Last Close", "Value", "Cost Basis", "Change"]
@@ -5786,7 +5695,7 @@ def create_spread_sheet_for_one_stock(
     stock = utils.return_stock_by_symbol(ticker)
 
     if not stock:
-        print line_number(), 'Ticker "%s" does not appear to have basic data' % ticker
+        logging.info('Ticker "%s" does not appear to have basic data' % ticker)
         return
 
     attribute_list = []
@@ -5810,7 +5719,7 @@ def create_spread_sheet_for_one_stock(
                         num_attributes += 1
                         attribute_list.append(str(attribute))
                     else:
-                        print line_number(), "%s.%s" % (ticker, attribute), "is a duplicate"
+                        logging.info("%s.%s is a dublicate" % (ticker, attribute))
 
 
     if num_rows < num_attributes:
@@ -5850,7 +5759,7 @@ def create_spread_sheet_for_one_stock(
                 screen_grid.SetCellTextColour(row_count, col_count, config.NEGATIVE_SPREADSHEET_VALUE_COLOR_HEX)
 
         except Exception as e:
-            print line_number(), e
+            logging.error(e)
 
         row_count += 1
 
@@ -5867,8 +5776,8 @@ def screen_pe_less_than_10():
             if stock.PERatio:
                 if float(stock.PERatio) < 10:
                     screen.append(stock)
-        except Exception, e:
-            print line_number(),e
+        except Exception as e:
+            logging.error(e)
     return screen
 # ###########################################################################################
 

@@ -22,9 +22,8 @@ def neff_ratio_5y(Stock): # requires only primary scrape
 		#print "PE =", pe
 		#print "type =", type(pe)
 
-	except Exception, exception:
-		print exception
-		print line_number(), "%s is missing required data" % Stock.symbol
+	except Exception as e:
+		logging.error("{} is missing required data\n{}".format(Stock.symbol, e))
 		return None
 
 	if peg5 is None or str(peg5) == "N/A":
@@ -45,7 +44,7 @@ def neff_ratio_5y(Stock): # requires only primary scrape
 
 	#print "PEG =", peg5
 	#print "type =", type(peg5)
-	#print "Yield =", dividend_yield 
+	#print "Yield =", dividend_yield
 	#print "type =", type(dividend_yield)
 	#print "PE =", pe
 	#print "type =", type(pe)
@@ -62,55 +61,55 @@ def neff_ratio_5y(Stock): # requires only primary scrape
 
 def neff_5_Year_future_estimate(Stock): # done!
 	'''
-	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm 
+	[Dividend Yield% + 5year Estimate of future %% EPS Growth]/PEttm
 	(the last letter "F" in the name stands for "future" estimate, while "H" stands for "historical".)
 	'''
 	return neff_ratio_5y(Stock)
 def neff_TTM_historical(Stock, annual_data, diluted=False): # Maybe done... double check the math (complicate formula)
 	'''
-	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm 
-	In this formula you can see that I gave triple weight to dividends.  
+	[3 x Dividend Yield% + EPS (from continuing operations) historical Growth over TTM]/PEttm
+	In this formula you can see that I gave triple weight to dividends.
 	I thought that over the short run (TTM) dividends represent stability and "Dividends don't lie".
 	-- Robert Schoolfield
 	'''
 	if not annual_data:
-		print "You must update annual data for %s" % Stock.symbol
+		logging.error("You must update annual data for {}".format(Stock.symbol))
 		return None
 	try:
 		dividend_yield = float(Stock.DividendYield)/100
-	except Exception, exception:
-		print exception
+	except Exception as exception:
+		logging.error(exception)
 		dividend_yield = 0
 
 	# Get Eps from continuing operations (Income from continuing - Preferred Dividends)/Weight avg common shares
 	# Step 1: Income from continuing operations
 	try:
 		income_from_continuing_operations = annual_data.Net_income_from_continuing_operations_ttm
-	except Exception, exception:
-		print exception
+	except Exception as exception:
+		logging.error(exception)
 		try:
 			income_from_continuing_operations = annual_data.Net_income_from_continuing_ops_ttm
-		except Exception, exception:
-			print exception
+		except Exception as exception:
+			logging.error(exception)
 			income_from_continuing_operations = None
 
 	# Step 2: Calculate EPS from continuing operations t1y
 
 	try:
 		income_from_continuing_operations_t1y = annual_data.Net_income_from_continuing_operations_t1y
-	except Exception, exception:
-		print exception
+	except Exception as exception:
+		logging.error(exception)
 		try:
 			income_from_continuing_operations_t1y = annual_data.Net_income_from_continuing_ops_t1y
-		except Exception, exception:
-			print exception
+		except Exception as exception:
+			logging.error(exception)
 			income_from_continuing_operations_t1y = None
 
 	# Step 3: Preferred Dividends
 	try:
 		preferred_dividend = annual_data.Preferred_dividend_ttm
 		preferred_dividend = float(preferred_dividend)
-	except Exception, exception:
+	except Exception as exception:
 		#print exception
 		preferred_dividend = 0.00
 
@@ -118,7 +117,7 @@ def neff_TTM_historical(Stock, annual_data, diluted=False): # Maybe done... doub
 	try:
 		preferred_dividend_t1y = annual_data.Preferred_dividend_t1y
 		preferred_dividend_t1y = float(preferred_dividend_t1y)
-	except Exception, exception:
+	except Exception as exception:
 		#print exception
 		preferred_dividend_t1y = 0.00
 
@@ -176,20 +175,20 @@ def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to d
 				sort_list.append([margin, symbol])
 			else:
 				if error_count < 5:
-					print line_number(), "Format of profit margin unknown"
+					logging.warning("Format of profit margin unknown")
 				error_count+=1
 
-		except Exception, exception:
+		except Exception as exception:
 			# There needs to be a case here for stocks that fail... ideally there should be none though
 			if error_count < 5:
-				print line_number(), exception, "Stock appears to have no ProfitMargin_ttm attribute."
+				logging.error("Stock appears to have no ProfitMargin_ttm attribute.\n{}".format(exception))
 			error_count+=1
 
 	if len(sort_list) > 1:
 		sort_list.sort(key = lambda x: x[0], reverse=False) # Highest ranking ends last, i.e. closer to 100%
 
 	if len(stock_list) != len(sort_list):
-		print "Error: Some Stocks not included in margin rank function"
+		logging.error("Error: Some Stocks not included in margin rank function")
 		return
 
 	position = None
@@ -199,7 +198,7 @@ def marginPercentRank(Stock, stock_list): #mostly done, but need to add how to d
 			position = count
 
 	if not position:
-		print "Error: Something went wrong in margin rank function, no position for", Stock.symbol
+		logging.error("Error: Something went wrong in margin rank function, no position for {}".format(Stock.symbol))
 		return
 
 	position = float(position)
@@ -224,7 +223,7 @@ def roePercentRank(Stock, stock_list): #done!
 				ticker_roe_tuple_list.append((i.symbol, None)) # this should automatically sort to the back of the list
 				no_roe_list.append(i.symbol)
 
-		except Exception, exception:
+		except Exception as exception:
 			#print exception
 			ticker_roe_tuple_list.append((i.symbol, None)) # this should automatically sort to the back of the list
 			no_roe_list.append(i.symbol)
@@ -238,29 +237,29 @@ def roePercentRank(Stock, stock_list): #done!
 			position = ticker_roe_tuple_list.index(i)
 			position += 1 # This is necessary to prevent dividing by zero cases, also for the calculation
 	# check and see if Stock was actually in the stock list
-	if position is not None: 
+	if position is not None:
 		percentile = float(position)/float(total_number_of_stocks_in_list)
 		if Stock.symbol in no_roe_list:
 			percentile = 0.00 # tied for lowest possible percentile
-		print "total number of stocks =", total_number_of_stocks_in_list
-		print "%s's position =" % Stock.symbol, position
-		print "percentile =", percentile
+		logging.info("total number of stocks = {}".format(total_number_of_stocks_in_list))
+		logging.info("{}'s position = {}".format(Stock.symbol, position))
+		logging.info("percentile = {}".format(percentile))
 		return percentile
 	else:
 		logging.error("roePercentRank: Stock was not in stock_list")
 		return None
 def roePercentDev(Stock, annual_data): #done!
 	'''
-	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3)) 
+	Coefficient of Variation for (ROE(Y1), ROE(Y2), ROE(Y3))
 
-	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]  
-	This determines how "smooth" the graph is of ROE for the three different years.  
+	= [Standard Deviation of (ROE(Y1), ROE(Y2), ROE(Y3))]/[Average of (ROE(Y1), ROE(Y2), ROE(Y3))]
+	This determines how "smooth" the graph is of ROE for the three different years.
 	Less than one is "smooth" while greater than one is "not smooth".
-	It also determines if the average ROE over the three years is significantly greater than zero. 
+	It also determines if the average ROE over the three years is significantly greater than zero.
 	'''
 	# ROE = Net Income / Shareholder's Equity
 	if not annual_data:
-		print "Error: there is no annual data for %s" % Stock.symbol
+		logging.error("Error: there is no annual data for {}".format(Stock.symbol))
 		return
 
 	try:
@@ -283,21 +282,19 @@ def roePercentDev(Stock, annual_data): #done!
 
 		roe_percent_deviation = roe_standard_deviation / roe_mean
 		return roe_percent_deviation
-	except Exception, exception:
-		print "roePercentDev has failed due to the following exception:"
-		print exception
-		print "the equation will return None"
+	except Exception as exception:
+		logging.info("roePercentDev has failed due to the following exception: {} the equation will return None".format(exception))
 		return None
 
-	
+
 def price_to_book_growth(Stock):
 	'''
 	= Price Growth(over last 3 fiscal years)/Book Value Growth(over last 3 fiscal years)
 	= (Price(Y1)/Price(Y3)) / (Book Value(Y1)/Book Value(Y3))
 	= (Price(Y1)/Price(Y3)) x (Book Value(Y3)/Book Value(Y1))
-	
-	This is a ratio that Warren Buffet likes, so I thought I would throw it in.  
-	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.  
+
+	This is a ratio that Warren Buffet likes, so I thought I would throw it in.
+	He says it tells him if growth in the Book Value of the company is reflected in the Price growth.
 	He likes it around 1.
 	'''
 	price_year_3 = None # this is the present
@@ -329,32 +326,32 @@ def price_to_book_growth(Stock):
 			treasury_stock_year_1 = 0
 
 
-	except Exception, exception:
-		print "price_to_book_growth has failed due to the following exception:"
-		print exception
-	print "the equation will return None"
-	print "this equation is incomplete, view notes for more details"
+	except Exception as exception:
+		logging.info("price_to_book_growth has failed due to the following exception:")
+		logging.error(exception)
+	logging.info("the equation will return None")
+	logging.info("this equation is incomplete, view notes for more details")
 	return None
 
 	# So, here is the issue, we need price/book growth
 	# morningstar has book value trailing 5 years, but not price to book
 	# morningstar also has price trailing 5 years in a decent format, but they'll both have to be scraped
 	# should be able to combine the two and easily finish this formula
-	
+
 
 
 def kGrowth(Stock): # incomplete, no definition yet
-	print "kGrowth is incomplete ---- no definition for formula yet"
-	print "this function will return None"
+	logging.info("kGrowth is incomplete ---- no definition for formula yet")
+	logging.info("this function will return None")
 	return None
 def price_to_range(Stock): #done!
 	'''
-	= Price to (52 Week Price Range) 
+	= Price to (52 Week Price Range)
 	= ([Current Price] - [52 wk Low Price]) / ([52 wk High Price] - [52 wk Low Price])
 
 	If the current price is close to its 52 wk Low Price, then Prc2Rng is close to zero.
 	If the current price is close to its 52 wk High Price, then Prc2Rng is close to one.
-	If the current price is half way between its 52 wk High Price and its 52 wk Low Price, 
+	If the current price is half way between its 52 wk High Price and its 52 wk Low Price,
 	then Prc2Rng is close to 0.5.
 
 	I like to have it greater than 0.2.
@@ -380,35 +377,35 @@ def percentage_held_by_insiders(Stock): #done!
 			else:
 				percentage_held_by_insiders = float(Stock.PercentageHeldbyInsiders)
 			return percentage_held_by_insiders
-	except Exception, exception:
-		print line_number(), exception
+	except Exception as exception:
+		logging.error(exception)
 		return None
 def percentage_held_by_institutions(Stock): # this may not be necessary
 	try:
 		if Stock.PercentageHeldbyInstitutions:
 			if "%" in Stock.PercentageHeldbyInstitutions:
-				print Stock.PercentageHeldbyInstitutions
+				logging.info(Stock.PercentageHeldbyInstitutions)
 				percentage_held_by_institutions = Stock.PercentageHeldbyInstitutions[:-1]
-				print percentage_held_by_institutions
+				logging.info(percentage_held_by_institutions)
 				percentage_held_by_institutions = float(percentage_held_by_institutions)
 			else:
 				percentage_held_by_institutions = float(Stock.PercentageHeldbyInstitutions)
 			return percentage_held_by_institutions
-	except Exception, exception:
-		print line_number(), exception
+	except Exception as exception:
+		logging.error(exception)
 		return None
 def current_ratio(Stock): #done! (trivial)
 	try:
 		if Stock.CurrentRatio_mrq:
 			current_ratio = float(Stock.CurrentRatio_mrq)
 			return current_ratio
-	except Exception, exception:
-		print line_number(), exception
+	except Exception as exception:
+		logging.error(exception)
 		return None
 def longTermDebtToEquity(Stock, annual_data):
 	try:
 		if not annual_data:
-			print Stock.symbol, "has no annual data. The longTermDebtToEquity function should be updated here to download annual data in a pinch if it is not here."
+			logging.info("has no annual data. The longTermDebtToEquity function should be updated here to download annual data in a pinch if it is not here.".format(Stock.symbol))
 		long_term_debt = annual_data.Long_term_debt
 		equity = annual_data.Stockholders_equity
 		if long_term_debt == "-":
@@ -416,33 +413,33 @@ def longTermDebtToEquity(Stock, annual_data):
 		else:
 			long_term_debt = float(long_term_debt)
 		if equity == "-":
-			print 'Cannot divide by zero'
+			logging.info('Cannot divide by zero')
 			return "None"
 		else:
 			equity = float(equity)
 		return float(long_term_debt/equity)
-	except Exception, exception:
-		print "longTermDebtToEquity has failed due to the following exception:"
-		print exception
-		print "the equation will return None"
+	except Exception as exception:
+		logging.info("longTermDebtToEquity has failed due to the following exception:")
+		logging.error(exception)
+		logging.info("the equation will return None")
 		return None
 
 def neffEvEBIT(Stock): #incomplete
 	'''
-	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT]. 
-	With a double weight on Dividends.  
+	Neff ratio replacing Earnings with EBIT and PE with [Enterprise Value/EBIT].
+	With a double weight on Dividends.
 	(Data reported by database for Enterprise Value and EBIT are not per share, but it doesn't matter because:
 	[Enterprise Value/EBIT] = [Enterprise Value per share]/[EBIT per share]
-	i.e. # of shares cancels in the ratio.  
+	i.e. # of shares cancels in the ratio.
 	Also:
-	[EBIT growth %] = [EBIT per share growth %] 
+	[EBIT growth %] = [EBIT per share growth %]
 	are dimensionless ratios (written as percents).
-	
-	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years) 
-	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1) 
-	to the first fiscal year (Y2) before the most recent fiscal year(Y1).  
-	Why I didn't use Y1 I can't remember. The exact name of 
-	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100  
+
+	EBIT growth %% is calculated as the percent growth in EBIT (over 3 years)
+	from the 4th fiscal year (Y5) before the most recent fiscal year (Y1)
+	to the first fiscal year (Y2) before the most recent fiscal year(Y1).
+	Why I didn't use Y1 I can't remember. The exact name of
+	EBIT growth% = (([EBIT Y2]/[EBIT Y5]-1)^(1/3)) x 100
 	(The 100 makes it a percentage value.)
 
 	So NeffEv EBIT = (2 x [DivYield%] + [EBIT Growth%])/([Enterprise Value]/[EBIT])
@@ -450,8 +447,8 @@ def neffEvEBIT(Stock): #incomplete
 
 
 
-	print "neffEvEBIT is incomplete ---- has not been written yet"
-	print "this function will return None"
+	logging.info("neffEvEBIT is incomplete ---- has not been written yet")
+	logging.info("this function will return None")
 	return None
 def neffCf3Year(Stock): #incomplete: not sure if e/s should be eps growth... very confusing
 	'''
@@ -467,16 +464,16 @@ def neffCf3Year(Stock): #incomplete: not sure if e/s should be eps growth... ver
 	# Cash Flow Per Share = ("Operating" Cash Flow - Preferred Dividends) / Shares Outstanding
 	# either:
 	#### operating_cash_flow = float(Stock.OperatingCashFlow_ttm)
-	# or 
+	# or
 	operating_cash_flow = float(Stock.Cash_Flows_From_Operating_Activities)
 	# preferred stock dividends doesn't exist for many stocks:
 	try:
 		preferred_dividends = float(Stock.Preferred_dividend_ttm)
-	except Exception, exception:
-		print "if you have an exception here, it probably means that the stock doesn't pay preferred dividends, but it still should be noted."
-		print exception
+	except Exception as exception:
+		logging.info("if you have an exception here, it probably means that the stock doesn't pay preferred dividends, but it still should be noted.")
+		logging.error(exception)
 		preferred_dividends = 0.0
-		print "preferred dividends have been set to zero"
+		logging.info("preferred dividends have been set to zero")
 	shares_outstanding = float(Stock.SharesOutstanding)
 
 	# So CF/Share:
@@ -490,34 +487,29 @@ def neffCf3Year(Stock): #incomplete: not sure if e/s should be eps growth... ver
 	## Therefore
 	# Neff 5 year = (1 / PEG 5 year) + (Yield / PE)
 	# thus:
-	print "This formula is incomplete and will return None"
+	logging.info("This formula is incomplete and will return None")
 	return None
 
 stock_only_needed = [
-	neff_5_Year_future_estimate, 
-	price_to_book_growth, 
-	kGrowth, 
-	price_to_range, 
-	percentage_held_by_insiders, 
+	neff_5_Year_future_estimate,
+	price_to_book_growth,
+	kGrowth,
+	price_to_range,
+	percentage_held_by_insiders,
 	percentage_held_by_institutions,
 	current_ratio,
 	neffEvEBIT,
 	neffCf3Year
 	]
 stock_plus_stock_list_needed = [
-	marginPercentRank, 
-	roePercentRank 
+	marginPercentRank,
+	roePercentRank
 	]
 annual_data_needed = [
-	neff_TTM_historical, 
+	neff_TTM_historical,
 	roePercentDev,
 	longTermDebtToEquity
 	]
 formula_list = stock_only_needed + stock_plus_stock_list_needed + annual_data_needed
-
-####################### Utility functions #################################################
-def line_number():
-	"""Returns the current line number in our program."""
-	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
 
 ############################################################################################

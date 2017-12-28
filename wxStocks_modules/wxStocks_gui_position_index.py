@@ -2,10 +2,6 @@ import config, inspect
 #[osx, debian linux, windows]
 #[osx because the o is a 0, linux because the l is a 1, and windows because it deserves to be last]
 
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
 #MainFrame
 MainFrame_size = [(1020,800),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZE[1]*(3./4) ),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZE[1]*(3./4) )][config.OS_TYPE_INDEX]
 MainFrame_SetSizeHints = MainFrame_size
@@ -25,7 +21,7 @@ class WelcomePage(object):
     welcome_page_text = (10,10)
     instructions = [(10,20),(10,30),(10,30)][config.OS_TYPE_INDEX]
     if config.ENCRYPTION_POSSIBLE and (config.OS_TYPE_INDEX != 0): # if encryption and not on mac
-        print line_number(), "FINISH THIS TEMPORARY RESTRUCTURING TO WORK CROSSPLATFORM"
+        logging.info("FINISH THIS TEMPORARY RESTRUCTURING TO WORK CROSSPLATFORM")
     reset_password_button = [(5, 700),(default_width - 400, 0),(default_width - 400, 0)][config.OS_TYPE_INDEX]
     text_field_offset = 180
     text_field_vertical_offset = -3

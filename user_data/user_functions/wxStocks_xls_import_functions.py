@@ -36,10 +36,8 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 
 	# only 1 sheet
 	if not len(relevant_spreadsheet_list) == 1:
-		print ""
-		print "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
-		print "spreadsheet list > 1 sheet"
-		print ""
+		print("Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py")
+		print("spreadsheet list > 1 sheet")
 		return None
 	spreadsheet = relevant_spreadsheet_list[0]
 
@@ -64,12 +62,12 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 					if attribute_name:
 						dict_to_add[attribute_name] = datum
 					else:
-						print "Error: wxStocks_xls_import_functions: function: process_sample_dot_xls: Data present with no named attribute."
+						print("Error: wxStocks_xls_import_functions: function: process_sample_dot_xls: Data present with no named attribute.")
 
 		if dict_to_add:
 			dict_list.append(dict_to_add)
 
-	print dict_list
+	print(dict_list)
 
 	return (dict_list, attribute_suffix)
 

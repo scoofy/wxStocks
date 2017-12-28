@@ -1,8 +1,8 @@
-print "Startup may take a few moments..."
+print("Startup may take a few moments...")
 
 import wxStocks_modules.wxStocks_utilities as utils
 utils.start_whitespace()
-print "Startup may take a few moments..."
+print("Startup may take a few moments...")
 
 
 # Requirements that must be installed
@@ -10,6 +10,10 @@ import wx #, numpy
 
 # Standard Libraries
 import sys, inspect, hashlib, threading, base64
+
+import logging
+logging.basicConfig(format='  ---- %(filename)s|%(lineno)d ----\n%(message)s', level=logging.DEBUG)
+
 
 # Internal libraries
 import wxStocks_modules.wxStocks_db_functions as db
@@ -20,10 +24,6 @@ import wxStocks_modules.wxStocks_testing
 import config
 
 # Necessary in-module functions
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
 try:
     from cryptography.fernet import Fernet
     from cryptography.hazmat.backends import default_backend
@@ -43,19 +43,19 @@ except:
 if config.ENCRYPTION_POSSIBLE:
     db.load_encryption_strength()
     import getpass
-    print "\n"
+    print("\n")
     saved_hash = db.is_saved_password_hash()
     if saved_hash:
         # verify
         password = getpass.getpass("Enter your wxStocks encryption password: ")
         if not db.valid_pw(password, saved_hash):
-            print "\nPassword invalid, you are not authorized to view this account."
+            print("\nPassword invalid, you are not authorized to view this account.")
             reset =  raw_input('If you would like to delete all secure data and start over, please type "reset" -- otherwise, press enter: ')
             if reset == "reset":
                 db.delete_all_secure_files()
-                print "\nSecure files have been removed. Resart wxStocks to set a new password\n"
+                print("\nSecure files have been removed. Resart wxStocks to set a new password\n")
             else:
-                print "\nSorry, but you are not authorized to view this account.\n"
+                print("\nSorry, but you are not authorized to view this account.\n")
             sys.exit()
         else:
             valid_salt = db.return_salt(saved_hash)
@@ -71,7 +71,7 @@ if config.ENCRYPTION_POSSIBLE:
                     )
     config.PASSWORD = base64.urlsafe_b64encode(kdf.derive(password))
 
-    print "\n"
+    print("\n")
 ################################################################################################
 # Load data
 config.TIMER_THREAD_ON = True
