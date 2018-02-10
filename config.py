@@ -133,7 +133,6 @@ CLASS_ATTRIBUTES = ["testing_reset_fields",
 	"epoch",
 	"created_epoch",
 	"updated",
-	"ticker_relevant",
 	"last_yql_basic_scrape_update",
 	"last_balance_sheet_update_yf",
 	"last_balance_sheet_update_ms",
@@ -309,7 +308,7 @@ GLOBAL_TICKER_LIST = []
 GLOBAL_ATTRIBUTE_SET = set([])
 
 ENCRYPTION_POSSIBLE = None
-ENCRYPTION_HARDNESS_LEVEL = None
+ENCRYPTION_HARDNESS_LEVEL = DEFAULT_ENCRYPTION_HARDNESS_LEVEL
 
 # Portfolio globals
 PASSWORD = None

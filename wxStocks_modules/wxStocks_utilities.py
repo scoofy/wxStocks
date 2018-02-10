@@ -47,11 +47,11 @@ def return_all_up_to_date_stocks():
 
     current_time = float(time.time())
     for ticker in config.GLOBAL_STOCK_DICT:
-        logging.debug("{}".format(int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))))
+        logging.info("{}".format(int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))))
         stock = config.GLOBAL_STOCK_DICT[ticker]
         time_since_update = current_time - stock.last_yql_basic_scrape_update
         if int(time_since_update) > int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST):
-            logging.debug("Will not add {} to stock list, data is over {} days old, please rescrape".format(str(stock.symbol), int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))))
+            logging.info("Will not add {} to stock list, data is over {} days old, please rescrape".format(str(stock.symbol), int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))))
             continue
         else:
             stocks_up_to_date_list.append(stock)
@@ -265,12 +265,12 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
     relevant_sheets = []
     for i in range(xlrd_workbook.nsheets):
         sheet = xlrd_workbook.sheet_by_index(i)
-        logging.debug(sheet.name)
+        logging.info(sheet.name)
         if sheet.nrows or sheet.ncols:
-            logging.debug("{} {} {}\n".format("rows x cols:", sheet.nrows, sheet.ncols))
+            logging.info("{} {} {}\n".format("rows x cols:", sheet.nrows, sheet.ncols))
             relevant_sheets.append(sheet)
         else:
-            logging.debug("is empty\n")
+            logging.info("is empty\n")
     return relevant_sheets
 
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
@@ -298,7 +298,7 @@ def return_list_of_lists(csv_file):
     return full_data
 def openCSV_return_list_of_lists():
     csv_file = filedialog.askopenfile()
-    logging.debug("{} {}".format('opening', csv_file))
+    logging.info("{} {}".format('opening', csv_file))
     try:
         ticker_list = return_list_of_lists(csv_file)
         return ticker_list
@@ -523,12 +523,12 @@ def refresh_all_portfolio_spreadsheets():
     possible_number_of_portfolios = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
     for i in range(possible_number_of_portfolios):
         portfolio_account_ref_str = str(portfolio_main_tab_index) + "." + str(i + 1)
-        logging.debug(portfolio_account_ref_str)
+        #logging.info(portfolio_account_ref_str)
         portfolio_account_ref = config.GLOBAL_PAGES_DICT.get(portfolio_account_ref_str)
         if portfolio_account_ref:
             if portfolio_account_ref.obj.portfolio_obj:
                 portfolio_grid_update_function = portfolio_account_ref.obj.spreadSheetFill(portfolio_account_ref.obj.portfolio_obj)
-                logging.debug("{} {}".format(portfolio_account_ref.name, "has loaded a new spreadsheet"))
+                logging.info("{} {}".format(portfolio_account_ref.name, "has loaded a new spreadsheet"))
 
 def refresh_all_stocks_page_spreadsheet():
     # refresh all stock grid if it exists
@@ -536,9 +536,9 @@ def refresh_all_stocks_page_spreadsheet():
     if all_stocks_page_ref:
         if not all_stocks_page_ref.obj.first_spread_sheet_load:
             all_stocks_page_ref.obj.spreadSheetFillAllStocks('event')
-            logging.debug("{} {}".format(all_stocks_page_ref.name, "has loaded a new spreadsheet"))
+            logging.info("{} {}".format(all_stocks_page_ref.name, "has loaded a new spreadsheet"))
         else:
-            logging.debug("{} {}".format("all_stocks_page_ref.obj has no loaded spreadsheet"))
+            logging.info("{}".format("all_stocks_page_ref.obj has no loaded spreadsheet"))
 
 def refresh_one_stock_data_page_spreadsheet():
     # refresh one stock grid if it exists
@@ -546,23 +546,23 @@ def refresh_one_stock_data_page_spreadsheet():
     if one_stocks_data_page_ref:
         if one_stocks_data_page_ref.obj.current_ticker_viewed:
             one_stocks_data_page_ref.obj.createOneStockSpreadSheet('event', current_ticker_viewed = one_stocks_data_page_ref.obj.current_ticker_viewed)
-            logging.debug("{} {}".format(one_stocks_data_page_ref.name, "has loaded a new spreadsheet"))
+            logging.info("{} {}".format(one_stocks_data_page_ref.name, "has loaded a new spreadsheet"))
         else:
-            logging.debug("{}".format("one_stocks_data_page_ref.obj has no loaded spreadsheet"))
+            logging.info("{}".format("one_stocks_data_page_ref.obj has no loaded spreadsheet"))
 
 def refresh_sale_prep_page_spreadsheet():
     # refresh sale prep page
     sale_prep_page_ref = config.GLOBAL_PAGES_DICT.get(config.SALE_PREP_PAGE_UNIQUE_ID)
     if sale_prep_page_ref:
         sale_prep_page_ref.obj.spreadSheetFill("event")
-        logging.debug("{} {}".format(sale_prep_page_ref.name, "has loaded a new spreadsheet"))
+        logging.info("{} {}".format(sale_prep_page_ref.name, "has loaded a new spreadsheet"))
 
 def refresh_trade_page_spreadsheet():
     # refresh Trade Page spreadsheet if it exists
     trade_page_ref = config.GLOBAL_PAGES_DICT.get(config.TRADE_PAGE_UNIQUE_ID)
     if trade_page_ref:
         trade_page_ref.obj.newGridFill()
-        logging.debug("{} {}".format(trade_page_ref.name, "has loaded a new spreadsheet"))
+        logging.info("{} {}".format(trade_page_ref.name, "has loaded a new spreadsheet"))
 
 def update_all_screen_dropdowns_after_saving_a_new_screen():
     saved_screen_page_ref = config.GLOBAL_PAGES_DICT.get(config.SAVED_SCREEN_PAGE_UNIQUE_ID)
@@ -577,10 +577,10 @@ def update_all_screen_dropdowns_after_saving_a_new_screen():
     possible_number_of_analysis_pages = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
     for i in range(possible_number_of_analysis_pages):
         custom_analysis_page_ref_str = str(custom_analysis_meta_page_index) + str(i + 1)
-        logging.debug(custom_analysis_page_ref_str)
+        logging.info(custom_analysis_page_ref_str)
         custom_analysis_page_ref = config.GLOBAL_PAGES_DICT.get(custom_analysis_page_ref_str)
         if custom_analysis_page_ref:
-            logging.debug("success")
+            logging.info("success")
             custom_analysis_page_ref.obj.refreshScreens("event")
 
 ####################### end: utility functions involving pages #######################################
@@ -613,7 +613,7 @@ def convert_wx_grid_data_to_html_table(wx_grid):
                 elif alignment == (512, 1024):
                     alignment = "right"
                 else:
-                    logging.debug("{} {}".format("text alignment unknown value:", alignment))
+                    logging.info("{} {}".format("text alignment unknown value:", alignment))
 
             style = ""
             if background_color or text_color or alignment: #or other style thing
@@ -641,7 +641,7 @@ def save_grid_as(wx_window, wx_grid, title):
     num_rows = wx_grid.GetNumberRows()
     num_cells = num_rows*num_cols
     if num_cells > 10000:
-        logging.debug("Parsing extremely large spreadsheet for export, this may take a few minutes too...")
+        logging.info("Parsing extremely large spreadsheet for export, this may take a few minutes too...")
 
     html = convert_wx_grid_data_to_html_table(wx_grid)
 

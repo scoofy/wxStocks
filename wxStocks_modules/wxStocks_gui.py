@@ -27,6 +27,8 @@ import AAII.wxStocks_aaii_xls_data_importer as aaii
 
 class MainFrame(wx.Frame): # reorder tab postions here
     def __init__(self, *args, **kwargs):
+        start = time.time()
+
         wx.Frame.__init__(self, parent = None, id = wx.ID_ANY, title="wxStocks", pos = wx.DefaultPosition, size = gui_position.MainFrame_size)
         self.SetSizeHints(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1])
         self.title = "wxStocks"
@@ -79,7 +81,11 @@ class MainFrame(wx.Frame): # reorder tab postions here
         config.GLOBAL_PAGES_DICT["0"] = self
         config.GLOBAL_PAGES_DICT[self.title] = self
 
-        logging.info("done.\n\n------------------------- wxStocks startup complete -------------------------\n")
+        finish = time.time()
+        self.startup_time = finish-start
+        logging.info("done.\n\n------------------------- wxStocks startup complete: {} seconds -------------------------\n".format(round(self.startup_time)))
+        db.load_GLOBAL_STOCK_DICT_into_active_memory()
+
 
     def set_config_GLOBAL_PAGES_DICT_key_value_pairs(self, notebook, parent_index = None):
         for child in notebook.Children:
@@ -484,10 +490,10 @@ class TickerPage(Tab):
                     stock.Exchange_na = data[2]
                     stock.etf_na = data[3]
             else:
-                logging.debug(data)
+                logging.info(data)
 
         logging.info("Begin price data download...")
-        ticker_data = scrape.convert_nasdaq_csv_to_stock_objects()
+        scrape.convert_nasdaq_csv_to_stock_objects()
         db.save_GLOBAL_STOCK_DICT()
 
         self.showAllTickers()
@@ -511,26 +517,6 @@ class TickerPage(Tab):
             ticker_symbol_upper = utils.strip_string_whitespace(ticker_data_sublist[0]).upper()
             ticker_list.append(ticker_symbol_upper)
 
-        # check all stocks against that list
-        for ticker in config.GLOBAL_STOCK_DICT:
-            if ticker in ticker_list:
-                if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant == False:
-                    config.GLOBAL_STOCK_DICT[ticker].ticker_relevant = True
-                logging.info(ticker + "appears to be fine")
-            else:
-                # ticker may have been removed from exchange
-                logging.info(ticker + " appears to be dead")
-                dead_tickers.append(ticker)
-
-        # check for errors, and if not, mark stocks as no longer on exchanges:
-        if len(dead_tickers) > config.NUMBER_OF_DEAD_TICKERS_THAT_SIGNALS_AN_ERROR:
-            logging.error("Something went wrong with ticker download, probably a dead link")
-        else:
-            for dead_ticker_symbol in dead_tickers:
-                logging.info(dead_ticker_symbol)
-                dead_stock = utils.return_stock_by_symbol(dead_ticker_symbol)
-                dead_stock.ticker_relevant = False
-
         # save stocks if new
         for ticker_data_sublist in ticker_data_from_download:
             ticker_symbol = utils.strip_string_whitespace(ticker_data_sublist[0])
@@ -552,9 +538,9 @@ class TickerPage(Tab):
     def showAllTickers(self):
         logging.info("Loading Tickers")
         ticker_list = []
-        for ticker in config.GLOBAL_STOCK_DICT:
-            if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
-                ticker_list.append(ticker)
+
+        ticker_list = [ticker_key for ticker_key in config.GLOBAL_STOCK_DICT.keys()]
+
         ticker_list.sort()
         self.displayTickers(ticker_list)
         self.sizer.Add(self.file_display, 1, wx.ALL|wx.EXPAND)
@@ -595,6 +581,11 @@ class YqlScrapePage(Tab):
                              "Welcome to the scrape page",
                              gui_position.YqlScrapePage.text
                              )
+
+
+        self.time_button = wx.Button(self, label="Calculate Scrape Time", pos=gui_position.YqlScrapePage.time_button, size=(-1,-1))
+        self.time_button.Bind(wx.EVT_BUTTON, self.calculate_scrape_times, self.time_button)
+
         self.scrape_button = wx.Button(self, label="Scrape YQL", pos=gui_position.YqlScrapePage.scrape_button, size=(-1,-1))
         self.scrape_button.Bind(wx.EVT_BUTTON, self.confirmScrape, self.scrape_button)
 
@@ -630,12 +621,13 @@ class YqlScrapePage(Tab):
                      pos = gui_position.YqlScrapePage.scrape_time_text
                      )
 
-
-        self.calculate_scrape_times()
-
         logging.info("YqlScrapePage loaded")
 
-    def calculate_scrape_times(self):
+    def calculate_scrape_times(self, event=None):
+        scrape_thread = threading.Thread(target=self.calculate_scrape_times_worker)
+        scrape_thread.start()
+
+    def calculate_scrape_times_worker(self):
         logging.info("Calculating scrape times...")
         sleep_time = config.SCRAPE_SLEEP_TIME
 
@@ -643,12 +635,11 @@ class YqlScrapePage(Tab):
         self.numScrapedStocks = 0
         self.number_of_tickers_to_scrape = 0
         for stock in config.GLOBAL_STOCK_DICT:
-            if config.GLOBAL_STOCK_DICT[stock].ticker_relevant:
-                self.number_of_tickers_to_scrape += 1
-                current_time = float(time.time())
-                time_since_update = current_time - config.GLOBAL_STOCK_DICT[stock].last_yql_basic_scrape_update
-                if (int(time_since_update) < int(config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE) ):
-                    self.numScrapedStocks += 1
+            self.number_of_tickers_to_scrape += 1
+            current_time = float(time.time())
+            time_since_update = current_time - config.GLOBAL_STOCK_DICT[stock].last_yql_basic_scrape_update
+            if (int(time_since_update) < int(config.TIME_ALLOWED_FOR_BEFORE_RECENT_UPDATE_IS_STALE) ):
+                self.numScrapedStocks += 1
 
         self.number_of_unscraped_stocks = self.number_of_tickers_to_scrape - self.numScrapedStocks
         total_ticker_len = len(config.GLOBAL_STOCK_DICT)
@@ -955,12 +946,12 @@ class XlsImportPage(Tab):
         confirm.ShowModal()
 
     def import_AAII_files(self, event):
-        logging.info("Remove argument below this line after debugging")
-        path = None
         aaii_data_folder_dialogue = wx.DirDialog(self, "Choose a directory:")
         if aaii_data_folder_dialogue.ShowModal() == wx.ID_OK:
             path = aaii_data_folder_dialogue.GetPath()
             logging.info(path)
+        else:
+            path = None
         aaii_data_folder_dialogue.Destroy()
         if path:
             aaii.import_aaii_files_from_data_folder(path=path)
@@ -1634,8 +1625,8 @@ class AllStocksPage(Tab):
         #You need this code to resize
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            logging.info("{}, {}".format(width, height))
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
+            #logging.info("{}, {}".format(width, height))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except Exception as e:
             logging.error(e)
@@ -1778,8 +1769,8 @@ class StockDataPage(Tab):
         #You need this code to resize
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            logging.info("{}, {}".format(width, height))
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
+            #logging.info("{}, {}".format(width, height))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except Exception as e:
             logging.error(e)
@@ -1933,8 +1924,8 @@ class ScreenPage(Tab):
         #You need this code to resize
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            logging.info("{}, {}".format(width, height))
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
+            #logging.info("{}, {}".format(width, height))
             spreadsheet_width_height_offset = gui_position.ScreenPage.spreadsheet_width_height_offset
             size = (width-spreadsheet_width_height_offset[0], height-spreadsheet_width_height_offset[1]) # find the difference between the Frame and the grid size
         except Exception as e:
@@ -2138,7 +2129,7 @@ class SavedScreenPage(Tab):
         #You need this code to resize
         size = gui_position.full_spreadsheet_size_position_tuple[0]
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
             spreadsheet_width_height_offset = gui_position.SavedScreenPage.spreadsheet_width_height_offset
             size = (width-spreadsheet_width_height_offset[0], height-spreadsheet_width_height_offset[1]) # find the difference between the Frame and the grid size
         except Exception as e:
@@ -2313,7 +2304,7 @@ class RankPage(Tab):
         #You need this code to resize
         size = gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0]
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except Exception as e:
             logging.error(e)
@@ -2353,8 +2344,8 @@ class RankPage(Tab):
         #You need this code to resize
         size = gui_position.RankPage.rank_page_spreadsheet_size_position_tuple[0]
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
-            logging.info("{}, {}".format(width, height))
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
+            #logging.info("{}, {}".format(width, height))
             size = (width-20, height-128) # find the difference between the Frame and the grid size
         except Exception as e:
             logging.error(e)
@@ -4499,7 +4490,7 @@ class TradePage(Tab):
         width_adjust = gui_position.TradePage.width_adjust
         height_adjust = gui_position.TradePage.height_adjust
         try:
-            width, height = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
             size = (width-gui_position.TradePage.width_adjust, height-gui_position.TradePage.height_adjust) # find the difference between the Frame and the grid size
         except:
             pass
@@ -5188,7 +5179,7 @@ class AccountDataGrid(wx.grid.Grid):
     def __init__(self, *args, **kwargs):
         wx.grid.Grid.__init__(self, *args, **kwargs)
 
-class MegaTable(wx.grid.PyGridTableBase):
+class MegaTable(wx.grid.GridTableBase):
     """
     A custom wxGrid Table using user supplied data
     """
@@ -5199,7 +5190,7 @@ class MegaTable(wx.grid.PyGridTableBase):
         colname
         """
         # The base class must be initialized *first*
-        wx.grid.PyGridTableBase.__init__(self)
+        wx.grid.GridTableBase.__init__(self)
         self.data = data
         self.colnames = colnames
         self.plugins = plugins or {}
@@ -5367,7 +5358,8 @@ class MegaGrid(wx.grid.Grid):
         self.SetTable(self._table)
         self._plugins = plugins
 
-        wx.grid.EVT_GRID_LABEL_RIGHT_CLICK(self, self.OnLabelRightClicked)
+        wx.EvtHandler.Bind(self, wx.grid.EVT_GRID_LABEL_RIGHT_CLICK, self.OnLabelRightClicked)
+        #wx.grid.EVT_GRID_LABEL_RIGHT_CLICK(self, self.OnLabelRightClicked)
         self.EnableEditing(enable_editing)
 
     def Reset(self):

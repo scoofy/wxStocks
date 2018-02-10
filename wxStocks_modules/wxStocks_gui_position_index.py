@@ -51,6 +51,7 @@ class TickerPage(object):
 
 class YqlScrapePage(object):
     text = (10,10)
+    time_button = (100,100)
     scrape_button = (5,100)
     abort_scrape_button = (5,100)
     progress_bar = (0,200)

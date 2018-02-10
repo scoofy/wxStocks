@@ -50,7 +50,7 @@ if config.ENCRYPTION_POSSIBLE:
         password = getpass.getpass("Enter your wxStocks encryption password: ")
         if not db.valid_pw(password, saved_hash):
             print("\nPassword invalid, you are not authorized to view this account.")
-            reset =  raw_input('If you would like to delete all secure data and start over, please type "reset" -- otherwise, press enter: ')
+            reset = input('If you would like to delete all secure data and start over, please type "reset" -- otherwise, press enter: ')
             if reset == "reset":
                 db.delete_all_secure_files()
                 print("\nSecure files have been removed. Resart wxStocks to set a new password\n")
@@ -65,11 +65,11 @@ if config.ENCRYPTION_POSSIBLE:
     kdf = PBKDF2HMAC(
                     algorithm=hashes.SHA256(),
                     length=32,
-                    salt=valid_salt,
+                    salt=str.encode(valid_salt),
                     iterations=100000,
                     backend=default_backend()
                     )
-    config.PASSWORD = base64.urlsafe_b64encode(kdf.derive(password))
+    config.PASSWORD = base64.urlsafe_b64encode(kdf.derive(str.encode(password)))
 
     print("\n")
 ################################################################################################

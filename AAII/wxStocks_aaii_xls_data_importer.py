@@ -1,4 +1,4 @@
-import sys, pprint, os, inspect, string, time
+import sys, pprint, os, inspect, string, time, logging
 
 try:
 	import xlrd
@@ -36,7 +36,7 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
 	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
-def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 604800): # one week
+def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 999604800): # one week
 	""""import aaii .xls files"""
 	#current_directory = os.path.dirname(os.path.realpath(__file__))
 	#parent_directory = os.path.split(current_directory)[0]
@@ -69,6 +69,8 @@ def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 6048
 		#logging.info(("\n\nprocessing file %d of %d\n" % (aaii_filenames.index(filename)+1, len(aaii_filenames) )))
 		key_dict = process_aaii_xls_key_file(data_directory + "/" + filename[:-4] + "_Key.XLS")
 		process_aaii_xls_data_file(data_directory + "/" + filename, key_dict, index, len(aaii_filenames))
+		db.savepoint_db()
+	db.commit_db()
 	db.save_GLOBAL_STOCK_DICT()
 	logging.info("AAII import complete.")
 
@@ -178,9 +180,7 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 	attribute_string = str(attribute_string)
 	if "Inve$tWare" in attribute_string: # weird inve$tware names throwing errors below due to "$".
 		attribute_string = attribute_string.replace("Inve$tWare", "InvestWare")
-	acceptable_characters = list(string.letters + string.digits + "_")
-	unicode_acceptable_characters = [unicode(char.decode("utf-8", "ignore")) for char in acceptable_characters]
-	acceptable_characters = acceptable_characters + unicode_acceptable_characters
+	acceptable_characters = list(string.ascii_letters + string.digits + "_")
 	new_attribute_name = ""
 	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%", "#", u"#", ":", u":", "*", u"*"]
 	string_fails = [char for char in unacceptible_characters if char in attribute_string]

@@ -2,12 +2,13 @@ import time, datetime, inspect, config, sys
 from wxStocks_modules import wxStocks_db_functions as db
 from wxStocks_modules import wxStocks_utilities as utils
 import wx
+import persistent
 
 # Suffix key: "_yf" = yahoo finance YHOO, "_ms" = morningstar MORN, "_aa" = AAII stock investor pro, "_nq" = Nasdaq.com data NDAQ
 
-class Stock(object):
+class Stock(persistent.Persistent):
     def __init__(self, symbol, firm_name = ""):
-        self.held_list = []
+        self.held_list = persistent.list.PersistentList()
         # held list should take certain values into account
         # account where stock is held
         # number of shares held in that account
@@ -161,9 +162,6 @@ class Stock(object):
         self.created_epoch = float(time.time())
         self.updated = datetime.datetime.now()
 
-        self.ticker_relevant = True
-        # this will be false if stock falls off major exchanges
-
         # updates
 
         self.last_nasdaq_scrape_update = 0.0
@@ -197,8 +195,8 @@ class Stock(object):
 
         self.last_key_ratios_update_ms = 0.0
 
-class Account(object): #portfolio
-    def __init__(self, id_number, name = None, cash = 0, initial_ticker_shares_tuple_list = [], initial_ticker_cost_basis_dict = {}):
+class Account(persistent.Persistent): #portfolio
+    def __init__(self, id_number, name = None, cash = 0, initial_ticker_shares_tuple_list = persistent.list.PersistentList(), initial_ticker_cost_basis_dict = {}):
         self.id_number = id_number
         self.name = name
         self.available_cash = cash # there is a ticker "CASH" that already exists, ugh
@@ -212,7 +210,7 @@ class Account(object): #portfolio
                     logging.error("Error: {} is redundant, probably inproperly formatted data".format(a_tuple[0]))
         self.cost_basis_dict = initial_ticker_cost_basis_dict
 
-    def reset_account(name = None, cash = 0, new_stock_shares_tuple_list = [], new_ticker_cost_basis_dict = {}):
+    def reset_account(name = None, cash = 0, new_stock_shares_tuple_list = persistent.list.PersistentList(), new_ticker_cost_basis_dict = {}):
         self.name = name
         self.availble_cash = cash
         self.stock_shares_dict = {}

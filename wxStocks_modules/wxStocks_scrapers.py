@@ -298,6 +298,8 @@ def convert_nasdaq_csv_to_stock_objects():
                         db.set_Stock_attribute(stock, attribute, None, "_na")
             stock.Exchange_na = config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE
             stock.last_nasdaq_scrape_update = time.time()
+    db.commit_db()
+
 
 
 #################### Yahoo Finance Scrapers "_yf" ##############################################
@@ -328,36 +330,13 @@ def prepareYqlScrape(ticker_list = [], update_regardless_of_recent_updates = Fal
     chunk_length = config.SCRAPE_CHUNK_LENGTH # 145 appears to be the longest url string i can query with, but 50 seems more stable
     yql_ticker_list = []
 
-    relevant_tickers = []
-
     if not ticker_list: # added so you can update limited tickers
         for ticker in config.GLOBAL_STOCK_DICT:
             if config.GLOBAL_STOCK_DICT.get(ticker):
-                #if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
-                #    if "^" in ticker or "/" in ticker:
-                #        #logging.info("this ticker:")
-                #        #logging.info(ticker)
-                #        #logging.info(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
-                #        #logging.info("")
-                #        relevant_tickers.append(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
-                #    else:
-                #        relevant_tickers.append(ticker)
-                relevant_tickers.append(ticker)
-    else:
-        for ticker in ticker_list:
-            if config.GLOBAL_STOCK_DICT.get(ticker.upper()):
-                if config.GLOBAL_STOCK_DICT[ticker].ticker_relevant:
-                    #if "^" in ticker or "/" in ticker:
-                    #    #logging.info("this ticker:")
-                    #    #logging.info(ticker)
-                    #    #logging.info(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
-                    #    #logging.info("")
-                    #    relevant_tickers.append(config.GLOBAL_STOCK_DICT[ticker].yql_ticker)
-                    #else:
-                    #    relevant_tickers.append(ticker)
-                    relevant_tickers.append(ticker)
+                ticker_list.append(ticker)
+
     # Check if stock has already been recently update (this is important to prevent overscraping yahoo)
-    for ticker in sorted(relevant_tickers):
+    for ticker in sorted(ticker_list):
         stock = utils.return_stock_by_symbol(ticker) # initially we need only return stocks by ticker, later we will need to use the yql specific symbols
         if stock:
             time_since_update = float(time.time()) - stock.last_yql_basic_scrape_update
@@ -421,10 +400,10 @@ def prepareYqlScrape(ticker_list = [], update_regardless_of_recent_updates = Fal
         for ticker in chunk:
             number_of_tickers_in_chunk_list += 1
     logging.info("Number of tickers to scrape: {}".format(number_of_tickers_in_chunk_list))
-    number_of_tickers_previously_updated = len(relevant_tickers) - number_of_tickers_in_chunk_list
+    number_of_tickers_previously_updated = len(ticker_list) - number_of_tickers_in_chunk_list
     logging.info(number_of_tickers_previously_updated)
     total_number_of_tickers_done = number_of_tickers_previously_updated
-    percent_of_full_scrape_done = round(100 * float(total_number_of_tickers_done) / float(len(relevant_tickers)) )
+    percent_of_full_scrape_done = round(100 * float(total_number_of_tickers_done) / float(len(ticker_list)) )
 
     logging.info(str(percent_of_full_scrape_done) + "%%" +" already done")
 
@@ -705,7 +684,7 @@ def yf_annual_cash_flow_scrape(ticker):
         return
 
 
-    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/cf?s=%s&annual' % ticker), "html.parser")
     factor = 0
     thousands = soup.body.findAll(text= "All numbers in thousands")
     if thousands:
@@ -825,7 +804,7 @@ def yf_annual_income_statement_scrape(ticker):
         logging.info("YF income statement data for %s is up to date." % ticker)
         return
 
-    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/is?s=%s&annual' % ticker), "html.parser")
     factor = 0
     thousands = soup.body.findAll(text= "All numbers in thousands")
     if thousands:
@@ -954,7 +933,7 @@ def yf_annual_balance_sheet_scrape(ticker):
         logging.info("YF balance sheet data for %s is up to date." % ticker)
         return
 
-    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/bs?s=%s&annual' % ticker), "html.parser")
     factor = 0
     thousands = soup.body.findAll(text= "All numbers in thousands")
     if thousands:
@@ -1123,6 +1102,9 @@ def yf_annual_balance_sheet_scrape(ticker):
 
 
 def find_all_data_in_table(table, str_to_find, data_list_to_append_to, table_factor=1):
+    if not table:
+        logging.error("No table when looking for {}".format(str_to_find))
+        return
     for cell in table.findAll(str_to_find):
         text = cell.find(text=True)
         if text:
@@ -1300,8 +1282,8 @@ def create_or_update_yf_StockAnnualData(ticker, data_list, data_type):
 
     for attribute in dir(stock):
         if not attribute.startswith("_"):
-            logging.info(ticker+"."+attribute+": {}".format(getattr(stock, attribute)))
-
+            #logging.info(ticker+"."+attribute+": {}".format(getattr(stock, attribute)))
+            pass
     db.save_GLOBAL_STOCK_DICT()
 
 # Stock Analyst Estimates Scraping Functions
@@ -1312,7 +1294,7 @@ def yf_analyst_estimates_scrape(ticker):
     if not stock:
         return
 
-    soup = BeautifulSoup(urlopen('http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker), convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(urlopen('https://finance.yahoo.com/quote/{}/analysts'.format(ticker)), "html.parser")
 
     data_list = []
     date_list = [None, None, None, None]
@@ -1322,9 +1304,7 @@ def yf_analyst_estimates_scrape(ticker):
     logging.info("table: {} rows".format(len(table)))
     if int(len(table)) == 0:
         logging.info("there is either no data for %s, or something went wrong, you can check by visiting" % ticker)
-        logging.info("")
-        logging.info('http://finance.yahoo.com/q/ae?s=%s+Analyst+Estimates' % ticker)
-        logging.info("")
+        logging.info('https://finance.yahoo.com/quote/{}/analysts'.format(ticker))
     count = 0
     for i in table:
         rows = i.findChildren('tr')
@@ -1612,7 +1592,7 @@ def ms_annual_cash_flow_scrape(ticker):
             else:
                 dummy_str += char
     morningstar_html = dummy_str
-    soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(morningstar_html, "html.parser")
     full_data = []
 
     div_ids = ["tts", "s", "i"] # these are the three unique labels for divs on morningstar
@@ -1685,12 +1665,13 @@ def ms_annual_cash_flow_scrape(ticker):
                 data_list[i] = "-"
             try:
                 db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
-                logging.info("{} {} {}".format(stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", int(data_list[i])))
+                #logging.info("{} {} {}".format(stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", int(data_list[i])))
                 success = True
             except:
                 try:
+                    logging.info(data_list[i])
                     db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
-                    logging.info("{} {} {}".format(stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", str(data_list[i])))
+                    #logging.info("{} {} {}".format(stock.symbol, str(attribute + trailing_x_year_list[i]) + "_ms", str(data_list[i])))
                     success = True
                 except Exception as exception:
                     logging.error(exception)
@@ -1774,7 +1755,7 @@ def ms_annual_income_statement_scrape(ticker):
                 dummy_str += char
     morningstar_html = dummy_str
 
-    soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(morningstar_html, "html.parser")
     full_data = []
 
     div_ids = ["tts", "s", "i", "g", "gg"] # these are the three unique labels for divs on morningstar
@@ -1874,12 +1855,12 @@ def ms_annual_income_statement_scrape(ticker):
                 continue
             try:
                 db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
-                logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])))
+                #logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])))
                 success = True
             except:
                 try:
                     db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
-                    logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])))
+                    #logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])))
                     success = True
                 except Exception as exception:
                     logging.error(exception)
@@ -1905,7 +1886,7 @@ def ms_annual_balance_sheet_scrape(ticker):
         exchange = getattr(stock, config.DEFAULT_STOCK_EXCHANGE_ATTRIBUTE)
         if exchange == 'NYSE':
             exchange_code = "XNYS"
-        elif exchange == "NasdaqNM":
+        elif exchange in ["NasdaqNM", "NASDAQ"]:
             exchange_code = "XNAS"
         else:
             logging.info("Unknown Exchange Code for {}".format(stock.symbol))
@@ -1915,7 +1896,7 @@ def ms_annual_balance_sheet_scrape(ticker):
         return
 
     url = 'http://financials.morningstar.com/ajax/ReportProcess4HtmlAjax.html?&t=%s:%s&region=usa&culture=en-US&cur=USD&reportType=bs&period=12&dataType=A&order=asc&columnYear=5&rounding=3&view=raw'% (exchange_code, ticker)#&r=782238&callback=jsonp%d&_=%d' % (exchange_code, ticker, int(time.time()), int(time.time()+150))
-    logging.info("\n{}\n".format(url))
+    #logging.info("\n{}\n".format(url))
     morningstar_raw = urlopen(url)
 
     logging.info("morningstar_raw: {}\n".format(morningstar_raw))
@@ -1961,7 +1942,7 @@ def ms_annual_balance_sheet_scrape(ticker):
                 dummy_str += char
     morningstar_html = dummy_str
 
-    soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(morningstar_html, "html.parser")
     full_data = []
 
     div_ids = ["tts", "s", "i", "g", "gg"] # these are the three unique labels for divs on morningstar
@@ -2051,12 +2032,12 @@ def ms_annual_balance_sheet_scrape(ticker):
                 data_list[i] = "-"
             try:
                 db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
-                logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])))
+                #logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])))
                 success = True
             except:
                 try:
                     db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
-                    logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])))
+                    #logging.info("{} {} {}".format(stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])))
                     success = True
                 except Exception as exception:
                     logging.error(exception)
@@ -2083,6 +2064,7 @@ def ms_key_ratios_scrape(ticker):
         #   return
 
     exchange = getattr(stock, stock_exchange_var)
+    logging.info(exchange)
     if exchange == 'NYSE':
         exchange_code = "XNYS"
     elif exchange in ["NasdaqNM", "NASDAQ"]:
@@ -2129,7 +2111,7 @@ def ms_key_ratios_scrape(ticker):
 
 
     ### convert to soup ###
-    soup = BeautifulSoup(morningstar_html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    soup = BeautifulSoup(morningstar_html, "html.parser")
 
     full_data = []
 
@@ -2205,7 +2187,9 @@ def ms_key_ratios_scrape(ticker):
     data_list = morningstar_recursive_data_list_string_edit(data_list)
     data_list = morningstar_add_zeros_to_usd_millions(data_list)
     #########
-    pp.pprint(data_list)
+
+    #logging.info("data_list print follows:")
+    #pp.pprint(data_list)
 
     ### save data to object ###
     # datum is [name, units, [datalist]]
@@ -2219,16 +2203,12 @@ def ms_key_ratios_scrape(ticker):
             if data_list[i] == u'\u2014':
                 data_list[i] = "-"
             try:
-                # testing only commented out
                 db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), int(data_list[i]), "_ms")
-                #
-                logging.info((stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])))
+                #logging.info((stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", int(data_list[i])))
             except:
                 try:
-                    # testing only commented out
                     db.set_Stock_attribute(stock, str(attribute + trailing_x_year_list[i]), str(data_list[i]), "_ms")
-                    #
-                    logging.info((stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])))
+                    #logging.info((stock.symbol + "." + str(attribute + trailing_x_year_list[i] + "_ms"), "=", str(data_list[i])))
                 except Exception as exception:
                     logging.error(exception)
     # testing only
@@ -2252,9 +2232,9 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
             if recursion_count > 10:
                 logging.info("max recusions achieved")
                 return
-            logging.info("Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count)
+            #logging.info("Recursion (%d) for: morningstar_recursive_data_list_string_edit" % recursion_count)
             datum = morningstar_recursive_data_list_string_edit(datum, recursion_count = recursion_count)
-            logging.info("End recursion level %d" % recursion_count)
+            #logging.info("End recursion level %d" % recursion_count)
             recursion_count -= 1
         elif type(datum) is (str or unicode):
             try:
@@ -2262,7 +2242,7 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
                 if not datum.isdigit():
                     raise Exception("Not a number")
                 datum = datum.replace("\xe2\x80\x94","-")
-                logging.info(("string (number) saved:", datum))
+                #logging.info(("string (number) saved:", datum))
             except:
                 datum = datum.replace("%", "perc")
                 datum = datum.replace(" ","_")
@@ -2287,9 +2267,10 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
                 # datum = datum.replace(u"(expense)_", u"")
                 # datum = datum.replace(u"(used_for)", u"used_for")
                 # datum = datum.replace(u"__",u"_")
-                logging.info(("string saved:", datum))
+                #logging.info(("string saved:", datum))
         else:
-            logging.info(("Not able to parse:", datum))
+            #logging.info(("Not able to parse:", datum))
+            pass
 
         dummy_list.append(datum)
 
@@ -2301,16 +2282,16 @@ def morningstar_recursive_data_list_string_edit(data_list, recursion_count = 0):
 def morningstar_add_zeros_to_usd_millions(data_list):
     dummy_list = []
     for datum in data_list:
-        logging.info("edits:")
-        logging.info(datum[1])
+        #logging.info("edits:")
+        #logging.info(datum[1])
         if not len(datum) == 3:
             logging.error("morningstar_add_zeros_to_usd_millions error, not correctly formated list")
         if datum[1] in ["USD Mil", u"USD Mil", "USD_Mil", u"USD_Mil"]:
             dummy_list_2 = []
             for amount_of_dollars in datum[2]:
-                logging.info(amount_of_dollars)
+                #logging.info(amount_of_dollars)
                 if str(amount_of_dollars).isdigit():
-                    logging.info("converting %s to %s000" % (amount_of_dollars, amount_of_dollars))
+                    #logging.info("converting %s to %s000" % (amount_of_dollars, amount_of_dollars))
                     amount_of_dollars = amount_of_dollars + "000"
                 dummy_list_2.append(amount_of_dollars)
             datum[2] = dummy_list_2
