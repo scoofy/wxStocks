@@ -1,4 +1,4 @@
-import os, glob, config
+import os, glob, config, logging
 from wxStocks_modules.wxStocks_classes import SpreadsheetCell as Cell
 
 '''
@@ -229,7 +229,8 @@ def jas_stock_analysis(stock_list):
                     # no reason to look at data, all is None
                     continue
                 else:
-                    logging.info(unadjusted_attribute_data_list_valid_values_only)
+                    pass
+                    # logging.info(unadjusted_attribute_data_list_valid_values_only)
 
                 # unadjusted avg will be rounded to 3 instead of 2 for identification purposes
                 unadjusted_avg = round(numpy.mean(unadjusted_attribute_data_list_valid_values_only), 3)
@@ -265,14 +266,15 @@ def jas_stock_analysis(stock_list):
                     if type(data) is float:
                         if attribute_obj.minimum or attribute_obj.maximum:
                             # normalize data
-                            if data < attribute_obj.minimum:
-                                adjusted_data = attribute_obj.minimum
-                                data_cell.text_color = "#B8B8B8"
-                            elif data > attribute_obj.maximum:
-                                adjusted_data = attribute_obj.maximum
-                                data_cell.text_color = "#B8B8B8"
-                            else: # irrelevant
-                                adjusted_data = data
+                            adjusted_data = data
+                            if attribute_obj.minimum:
+                                if data < attribute_obj.minimum:
+                                    adjusted_data = attribute_obj.minimum
+                                    data_cell.text_color = "#B8B8B8"
+                            if attribute_obj.maximum:
+                                if data > attribute_obj.maximum:
+                                    adjusted_data = attribute_obj.maximum
+                                    data_cell.text_color = "#B8B8B8"
                             adjusted_attribute_data_list.append(adjusted_data)
                         elif data and attribute_obj.name == "Cur Ratio": # strange variation in rms code
                             if data > 10.:
@@ -345,10 +347,18 @@ def jas_stock_analysis(stock_list):
 
                         if attribute_obj.minimum or attribute_obj.maximum:
                             # normalize data
-                            if b < attribute_obj.minimum:
-                                b = attribute_obj.minimum
-                            elif b > attribute_obj.maximum:
-                                b = attribute_obj.maximum
+                            if attribute_obj.minimum and attribute_obj.maximum:
+                                if b < attribute_obj.minimum:
+                                    b = attribute_obj.minimum
+                                elif b > attribute_obj.maximum:
+                                    b = attribute_obj.maximum
+                            else:
+                                if attribute_obj.minimum:
+                                    if b < attribute_obj.minimum:
+                                        b = attribute_obj.minimum
+                                else:
+                                    if b > attribute_obj.maximum:
+                                        b = attribute_obj.maximum
                         elif b and attribute_obj.name == "Cur Ratio": # strange variation in rms code
                             if b > 10.:
                                 b = 1.7

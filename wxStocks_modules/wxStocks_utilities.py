@@ -98,7 +98,7 @@ def return_account_by_id(id_number):
         return None
 
 def return_account_by_name(account_obj_name_str):
-    for key, account_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+    for key, account_obj in config.PORTFOLIO_OBJECTS_DICT.items():
         if account_obj.name == account_obj_name_str:
             relevant_account = account_obj
             return relevant_account
@@ -227,7 +227,7 @@ def return_stocks_website_if_possible(stock):
 
 def return_list_of_account_names_that_contain_stock(stock):
     return_list = []
-    for index, portfolio in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+    for index, portfolio in config.PORTFOLIO_OBJECTS_DICT.items():
         print(index, portfolio)
         if stock.ticker in portfolio.stock_shares_dict:
             return_list.append(portfolio.name)
@@ -502,7 +502,12 @@ def return_dictionary_of_object_attributes_and_values(obj):
         #   print attribute, ":", obj_attribute_value_dict[attribute]
 
         return obj_attribute_value_dict
-
+def return_human_readable_file_size(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.2f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.2f%s%s" % (num, 'Yi', suffix)
 ####################### utility functions involving pages #######################################
 def add_ticker_to_research_page(ticker):
     research_page_ref = config.GLOBAL_PAGES_DICT.get(config.RESEARCH_PAGE_UNIQUE_ID)

@@ -17,6 +17,10 @@ from wxStocks_modules import wxStocks_utilities as utils
 import traceback, sys
 
 ###### DB ######
+try:
+    logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+except:
+    pass
 storage = ZODB.FileStorage.FileStorage(os.path.join('DO_NOT_COPY','mydata.fs'))
 db = ZODB.DB(storage)
 connection = db.open()
@@ -85,6 +89,8 @@ def savepoint_db():
     transaction.savepoint(True)
 def commit_db():
     transaction.commit()
+    logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+
 
 # start up try/except clauses below
 
@@ -169,7 +175,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
     if not stock:
         stock = wxStocks_classes.Stock(symbol)
         root.Stock[symbol] = stock
-        transaction.savepoint(True)
+        transaction.commit()
     return stock
 def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
     full_attribute_name = attribute_name + data_source_suffix
@@ -187,7 +193,20 @@ def load_GLOBAL_STOCK_DICT_into_active_memory():
     unpack_stock_data_thread.start()
 def load_GLOBAL_STOCK_DICT_into_active_memory_worker():
     start = time.time()
-    unpack = [x.ticker for x in config.GLOBAL_STOCK_DICT.values()]
+    length = len(config.GLOBAL_STOCK_DICT.keys())
+    count = 0
+    logging.info("Unpacking database:")
+    for stock in config.GLOBAL_STOCK_DICT.values():
+        count += 1
+        data = stock.ticker
+        percent = int(count/float(length)*100)
+        percent_str = str(percent)
+        if percent<10:
+            percent_str = " {}".format(percent)
+        end = "\r"
+        if percent == 100:
+            end = "\n"
+        print("{}% {}".format(percent_str, "%" + "█"*round(percent/2) + " "*(50-round(percent/2)) + "%"), end=end)
     finish = time.time()
     logging.info("Stocks now in active memory: {} seconds".format(round(finish-start)))
 def save_GLOBAL_STOCK_DICT(): ##### no need to update
@@ -398,7 +417,7 @@ def load_portfolio_object(id_number): ###### updated
     portfolio_obj = decrypt_if_possible("Account", "Account{}".format(id_number))
     if portfolio_obj:
         config.PORTFOLIO_OBJECTS_DICT[str(portfolio_obj.id_number)] = portfolio_obj
-        #logging.info("Portfolio objects dict: {}".formatconfig.PORTFOLIO_OBJECTS_DICT))
+        # logging.info("Portfolio {}, {}: loaded".format(portfolio_obj.id_number, portfolio_obj.name))
         return portfolio_obj
     else:
         logging.warning("Account object failed {id_num} to load.".format(id_num = id_number))
@@ -407,6 +426,7 @@ def load_all_portfolio_objects(): ###### updated
     if not config.ENCRYPTION_POSSIBLE:
         logging.info("config.ENCRYPTION_POSSIBLE: {}".format(config.ENCRYPTION_POSSIBLE))
     num_of_portfolios = len(root.Account.values())
+    config.NUMBER_OF_PORTFOLIOS = num_of_portfolios
     logging.info("attempting to load {} possible portfolios".format(num_of_portfolios))
     for i in range(num_of_portfolios):
         portfolio_obj = load_portfolio_object(i+1)
@@ -414,8 +434,11 @@ def load_all_portfolio_objects(): ###### updated
             config.PORTFOLIO_OBJECTS_DICT[str(i+1)] = portfolio_obj
 def delete_portfolio_object(id_number): ###### updated
     "delete account"
-    del config.PORTFOLIO_OBJECTS_DICT[str(portfolio_obj.id_number)]
+    config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_PORTFOLIOS - 1
+    del config.PORTFOLIO_OBJECTS_DICT[str(id_number)]
     del root.Account['Account{}'.format(id_number)]
+    commit_db()
+    return "success"
 
 ### Password data
 def is_saved_password_hash(path = password_path):

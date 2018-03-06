@@ -30,9 +30,9 @@ def holding_period_return(initial_share_price,
 						  share_price_after_holding_period,
 						  per_share_dividend_after_holding_period):
 	# r 	= rate_of_return
-	
+
 	### holding period: t = 0 -> t = h
-	
+
 	D_H = float(per_share_dividend_after_holding_period) 	# D = dividend, H = Holding period time unit
 	P_H = float(share_price_after_holding_period)			# P = price, H = Holding period time unit
 	P_0 = float(initial_share_price)						# P = price, 0 = Time unit value of 0
@@ -93,11 +93,11 @@ def equity_risk_premium_via_gordon_growth_model(dividend_yield_on_index_based_on
 	B_y 	= float(current_long_term_govt_bond_yield)
 
 	GGM_ERP = D_1 + E_g - B_y
-	
+
 	gordon_growth_model_equity_risk_premium = GGM_ERP
 	return gordon_growth_model_equity_risk_premium
 
-# Macroeconomic estimates for equity risk premium 
+# Macroeconomic estimates for equity risk premium
 # Total Return to Equity (Ibbotson & Chen)
 def equity_risk_premium_ibbotson_and_chen(expected_inflation,
 											real_EPS_expected_growth_rate,
@@ -230,14 +230,14 @@ def fama_french_model(risk_free_rate,
 		R_big = float(average_return_on_large_cap_portfolios)
 	else:
 		SMB = float(small_minus_big)
-	
+
 	# value return premium
 	if high_minus_low is None:
 		R_HBM = float(value_return_premium_equal_to_the_average_return_on_high_book_to_market_portfolios)
 		R_LBM = float(average_return_on_low_book_to_market_portfolios)
 		HML = R_HBM - R_LBM
 	else:
-		HML = float(high_minus_low) 
+		HML = float(high_minus_low)
 
 	beta_mkt_sub_i = float(beta_mkt_sub_i)
 	beta_size_sub_i = float(beta_size_sub_i)
@@ -374,11 +374,11 @@ def return_on_capital_employed(total_value_of_debt,
 # Present Value Models
 
 # V_0 = sigma_1_to_n(CF_t/((1 + r)**t))
-def present_value__holding_period_return(number_of_payments, 
-										payment_list_or_value_if_stable, 
+def present_value__holding_period_return(number_of_payments,
+										payment_list_or_value_if_stable,
 										discount_rate
 										):
-	
+
 	#         n    CF_t
 	# V_0 = sigma -------
 	#        t=1  (1+r)^t
@@ -405,7 +405,7 @@ def present_value__holding_period_return(number_of_payments,
 	for i in range(number_of_payments):
 		cash_flow_time_payment_dict[str(i+1)] = float(payment_list[i]) # must adjust for 0th numbers
 	sum_of_discounted_CFs = 0
-	for t, CF_t in cash_flow_time_payment_dict.iteritems():
+	for t, CF_t in cash_flow_time_payment_dict.items():
 		PV_t = CF_t/((1.+r)**t)
 		# present value if this payment = payment / (1+ discount rate) ** periods_till_payment
 		sum_of_discounted_CFs += PV_t
@@ -414,8 +414,8 @@ def present_value__holding_period_return(number_of_payments,
 
 # Discount Dividend Value
 
-def dividend_discount_model_for_multiple_holding_periods(number_of_periods, 
-														dividend_list_or_stable_value, 
+def dividend_discount_model_for_multiple_holding_periods(number_of_periods,
+														dividend_list_or_stable_value,
 														share_price_at_final_period
 														):
 
@@ -439,13 +439,13 @@ def dividend_discount_model_for_multiple_holding_periods(number_of_periods,
 		dividend_list = []
 		for i in range(number_of_periods):
 			dividend_list.append(stable_dividend_value)
-	
+
 	# dividends
 	dividend_payment_dict = {}
 	for t in range(n):
 		dividend_payment_dict[str(i+1)] = float(dividend_list[t])
 	sum_of_discounted_dividends = 0
-	for t, D_t in dividend_payment_dict.iteritems():
+	for t, D_t in dividend_payment_dict.items():
 		PV_D_t = D_t/((1.+r)**t)
 		sum_of_discounted_dividends += PV_D_t
 	PV_D = sum_of_discounted_dividends
@@ -453,15 +453,15 @@ def dividend_discount_model_for_multiple_holding_periods(number_of_periods,
 	# sale price
 	PV_P_n = P_n/((1.+r)**n)
 
-	V_0 = PV_D + PV_P_n 
+	V_0 = PV_D + PV_P_n
 	return V_0
 
 # Gordon Growth Model
-def gordon_growth_model(discount_rate, 
-						growth_rate, 
-						current_dividend_amount = None, 
+def gordon_growth_model(discount_rate,
+						growth_rate,
+						current_dividend_amount = None,
 						next_dividend_amount = None):
-	
+
 	#       D_0(1+g)   D_1
 	# V_0 = -------- = ---
 	#         r-g      r-g
@@ -479,7 +479,7 @@ def gordon_growth_model(discount_rate,
 	if not r > g:
 		print "Error: V_0 infinite"
 		return
-	
+
 	if (D_1 and D_0) and not (D_1 == D_0 * (1. + g)):
 		print "Error: values for dividends do not conform to model"
 		return
@@ -490,7 +490,7 @@ def gordon_growth_model(discount_rate,
 	else:
 		print "Error: need dividend entered"
 		return
-	
+
 	V_0 = numerator / (r - g)
 	return V_0
 
@@ -520,11 +520,11 @@ def no_growth_value_per_share(capitalization_rate, earnings_next_period):
 
 	r = float(capitalization_rate)
 	E_1 = float(earnings_next_period)
-	no_growth_value_per_share = E_1/r 
+	no_growth_value_per_share = E_1/r
 	return no_growth_value_per_share
 
 def growth_value_per_share(present_value_of_growth_opprotunities, capitalization_rate, earnings_next_period):
-	
+
 	#       E_1
 	# V_0 = --- + PVGO
 	#        r
@@ -532,7 +532,7 @@ def growth_value_per_share(present_value_of_growth_opprotunities, capitalization
 	PVGO = float(present_value_of_growth_opprotunities)
 	r = float(capitalization_rate)
 	E_1 = float(earnings_next_period)
-	no_growth_value_per_share = E_1/r 
+	no_growth_value_per_share = E_1/r
 	V_0 = no_growth_value_per_share + PVGO
 	return V_0
 
@@ -544,7 +544,7 @@ def implied_PVGO(share_price, capitalization_rate, earnings_next_period):
 
 	r = float(capitalization_rate)
 	E_1 = float(earnings_next_period)
-	no_growth_value_per_share = E_1/r 
+	no_growth_value_per_share = E_1/r
 	P_0 = float(share_price)
 	implied_PVGO = P_0 - no_growth_value_per_share
 	return implied_PVGO
@@ -588,14 +588,14 @@ def payout_rate(retention_rate = None,
 
 
 
-def justified_leading_PE_via_gordon_growth(equity_risk_premium, 
-										 	growth_rate, 
-								 			next_dividend_amount = None, 
+def justified_leading_PE_via_gordon_growth(equity_risk_premium,
+										 	growth_rate,
+								 			next_dividend_amount = None,
 											predicted_earnings_this_period = None,
 											retention_rate = None,
 											payout_ratio = None,
 											):
-	
+
 	# P_0   D_1/E_0   (1-b)
 	# --- = ------- = -----
 	# E_1     r-g      r-g
@@ -612,7 +612,7 @@ def justified_leading_PE_via_gordon_growth(equity_risk_premium,
 
 	if predicted_earnings_this_period is not None:
 		E_1 = float(predicted_earnings_this_period)
-	
+
 	if retention_rate is not None:
 		b = float(retention_rate)
 	else:
@@ -639,14 +639,14 @@ def justified_leading_PE_via_gordon_growth(equity_risk_premium,
 		return
 	return justified_leading_PE
 
-def justified_trailing_PE_via_gordon_growth(equity_risk_premium, 
-										 	growth_rate, 
-								 			current_dividend_amount = None, 
+def justified_trailing_PE_via_gordon_growth(equity_risk_premium,
+										 	growth_rate,
+								 			current_dividend_amount = None,
 											earnings_last_period = None,
 											retention_rate = None,
 											payout_ratio = None,
 											):
-	
+
 	# P_0   D_0(1+g)/E_0   (1-b)(1+g)
 	# --- = ------------ = ----------
 	# E_0       r-g           r-g
@@ -829,7 +829,7 @@ def three_stage_H_model_dividend_discount(half_life_in_years_of_high_growth_peri
 
 # Spreadsheet (General) Modeling
 
-def estimate_long_term_growth_rate(long_term_retention_rate_estimate, 
+def estimate_long_term_growth_rate(long_term_retention_rate_estimate,
 									long_term_ROE_or_required_return_estimate_or_median_industry_ROE):
 	# g_LT = (b in mature phase) * (ROE in mature phase)
 	# b (retention rate) estimate -> empirical from industry or current rates
@@ -1085,7 +1085,7 @@ def FCFE_via_EBITDA(earnings_before_interest_tax_depreciation_and_amortization,
 	FCInv = float(fixed_capital_investment)
 	WCInv = float(working_capital_investment)
 	net_borrowing = float(net_borrowing)
-	
+
 	FCFF = FCFF_via_EBITDA(EBITDA, tax_rate, Dep, FCInv, WCInv)
 
 	FCFE = FCFF - Int(1.-tax_rate) + net_borrowing
@@ -1152,7 +1152,7 @@ def FCFF_two_stage_model(number_of_periods,
 		raise Exception("The FCFF estimate list needs to be the same length as the number of periods")
 	g = float(FCFF_growth_rate)
 	FCFF_terminal = float(FCFF_estimate_list[-1] * (1.+g))
-	
+
 	V_s1 = 0.
 	while t <= n:
 		V_t = FCFF_estimate_list[t]/((1.+WACC)**t)
@@ -1179,7 +1179,7 @@ def FCFE_two_stage_model(number_of_periods,
 		raise Exception("The FCFF estimate list needs to be the same length as the number of periods")
 	g = float(FCFE_growth_rate)
 	FCFE_terminal = float(FCFE_estimate_list[-1] * (1.+g))
-	
+
 	V_s1 = 0.
 	while t <= n:
 		V_t = FCFE_estimate_list[t]/((1.+r)**t)
@@ -1208,7 +1208,7 @@ def forward_pe_ratio_annual(current_price, next_period_earnings):
 	earnings_1 = float(next_period_earnings)
 	PE_f = price_0/earnings_1
 	return PE_f
-def forward_pe_ratio_quarterly(current_price, 
+def forward_pe_ratio_quarterly(current_price,
 								EPS_estimate_list_for_next_four_quarters):
 	#CFA uses forcasted quarters # terms below: "EPS (expected for) Quarter t+1"
 	price_0 = float(current_price)
@@ -1217,7 +1217,7 @@ def forward_pe_ratio_quarterly(current_price,
 	EPS_eQ_t2 = float(EPS_estimate_list_for_next_four_quarters[1])
 	EPS_eQ_t3 = float(EPS_estimate_list_for_next_four_quarters[2])
 	EPS_eQ_t4 = float(EPS_estimate_list_for_next_four_quarters[3])
-	
+
 	EPS_eY1 = EPS_eQ_t1 + EPS_eQ_t2 + EPS_eQ_t3 + EPS_eQ_t4
 
 	forward_PE = price_0/EPS_eY1
@@ -1225,12 +1225,12 @@ def forward_pe_ratio_quarterly(current_price,
 
 def next_12_months_pe(this_years_expected_earnings,
 						next_years_expected_earnings,
-						number_of_months_since_last_annual_report): 
+						number_of_months_since_last_annual_report):
 	# Less used than quarterly. Acheieve by an offset of predicted eps from next two years.
 	EPS_eY1 = float(this_years_expected_earnings)
 	EPS_eY2 = float(next_years_expected_earnings)
 	month_offset_ratio = float(number_of_months_since_last_annual_report)
-	
+
 	months_till = 12-months_offset_ratio
 
 	NTM_PE = ((months_till/12)*EPS_eY1) + ((month_offset_ratio/12)*EPS_eY2)
@@ -1376,10 +1376,10 @@ def price_to_book_via_equity(current_price, shareholders_equity, shares_outstand
 	PB = price/(shareholders_equity/number_of_common_shares)
 	return PB
 
-def price_to_book_via_assets_and_liabilities(current_price, 
+def price_to_book_via_assets_and_liabilities(current_price,
 											total_assets,
 											total_labilities,
-											shares_outstanding): 
+											shares_outstanding):
 	price = float(current_price)
 	total_assets = float(total_assets)
 	total_labilities = float(total_labilities)
@@ -1389,7 +1389,7 @@ def price_to_book_via_assets_and_liabilities(current_price,
 
 def book_value_per_share(common_shareholders_equity, common_shares_outstanding):
 	BVPS = float(common_shareholders_equity)/float(number_of_common_shares)
-	# or 
+	# or
 def book_value_per_share_via_assets_and_liabilities(total_assets, total_liabilities, number_of_common_shares):
 	BVPS = (float(total_assets)-float(total_liabilities))/float(number_of_common_shares)
 	return BVPS
@@ -1445,8 +1445,8 @@ def justified_dividend_yield(dividend_growth_rate, required_return_on_equity):
 
 # enterprise value / ebitda
 
-def enterprise_value(cash, 
-					cash_equivalents, 
+def enterprise_value(cash,
+					cash_equivalents,
 					short_term_investments,
 					market_value_of_common_equity,
 					market_value_of_preferred_stock,
@@ -1484,7 +1484,7 @@ def standardized_unexpected_earnings():
 	#
 	# sigma is st dev over some historical time period
 	raise Exception("not finished yet, look this up")
-# issues in practice 
+# issues in practice
 
 
 def harmonic_mean(data_list):

@@ -30,7 +30,6 @@ class Stock(persistent.Persistent):
         symbol = symbol.upper()
         if symbol.isalpha():
             self.symbol = symbol
-            self.ticker = symbol
 
             self.nasdaq_symbol = symbol
             self.aaii_symbol = symbol
@@ -43,7 +42,6 @@ class Stock(persistent.Persistent):
                 if ".P" in symbol:
                     # preferred
                     self.symbol = symbol
-                    self.ticker = symbol
 
                     self.nasdaq_symbol = symbol.replace(".P", "^")
                     self.yahoo_symbol = symbol.replace(".P", "-P")
@@ -65,7 +63,6 @@ class Stock(persistent.Persistent):
             if "^" in symbol:
                 # Nasdaq preferred
                 self.symbol = symbol.replace("^", ".P")
-                self.ticker = symbol.replace("^", ".P")
 
                 self.nasdaq_symbol = symbol
                 self.yahoo_symbol = symbol.replace("^", "-P")
@@ -93,7 +90,6 @@ class Stock(persistent.Persistent):
 
                 # Nasdaq class share
                 self.symbol = symbol.replace("/", ".")
-                self.ticker = symbol.replace("/", ".")
 
                 self.nasdaq_symbol = symbol
                 self.aaii_symbol = symbol.replace("/", ".")
@@ -105,7 +101,6 @@ class Stock(persistent.Persistent):
                 if "-P" in symbol:
                     # Yahoo preferred
                     self.symbol = symbol.replace("-P", ".P")
-                    self.ticker = symbol.replace("-P", ".P")
 
 
                     self.yahoo_symbol = symbol
@@ -117,7 +112,6 @@ class Stock(persistent.Persistent):
                 else:
                     # Yahoo Class
                     self.symbol = symbol.replace("-", ".")
-                    self.ticker = symbol.replace("-", ".")
 
 
                     self.yahoo_symbol = symbol
@@ -129,7 +123,6 @@ class Stock(persistent.Persistent):
             if " PR" in symbol:
                 # AAII preferred
                 self.symbol = symbol.replace(" PR", ".P")
-                self.ticker = symbol.replace(" PR", ".P")
 
 
                 self.aaii_symbol = symbol
@@ -141,9 +134,9 @@ class Stock(persistent.Persistent):
 
         # Finally:
         # if morningstar preferred notation "XXXPRX", i don't know how to fix that since "PRE" is a valid ticker
+
         elif "_" in symbol:
             self.symbol = symbol
-            self.ticker = symbol
 
             self.nasdaq_symbol = None
             self.aaii_symbol = symbol
@@ -155,7 +148,7 @@ class Stock(persistent.Persistent):
             logging.error("illegal ticker symbol: {}, {}\nThe program will now close without saving, you need to add this to the wxStocks_classes exceptions list immediately.".format(symbol, firm_name))
             sys.exit()
 
-
+        self.ticker = self.symbol
         self.firm_name = firm_name
 
         self.epoch = float(time.time())
@@ -331,7 +324,7 @@ class StockBuyDialog(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.closeWindow)  #Bind the EVT_CLOSE event to closeWindow()
 
         choices = []
-        for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        for key, obj in config.PORTFOLIO_OBJECTS_DICT.items():
             choices.append(obj.name)
         choice_index = None
         if preset_account_choice:

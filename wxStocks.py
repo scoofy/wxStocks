@@ -1,8 +1,10 @@
 print("Startup may take a few moments...")
+import logging
+logging.basicConfig(format='  ---- %(filename)s|%(lineno)d ----\n%(message)s', level=logging.DEBUG)
 
 import wxStocks_modules.wxStocks_utilities as utils
 utils.start_whitespace()
-print("Startup may take a few moments...")
+print("Startup may take a few moments...\n")
 
 
 # Requirements that must be installed
@@ -10,10 +12,6 @@ import wx #, numpy
 
 # Standard Libraries
 import sys, inspect, hashlib, threading, base64
-
-import logging
-logging.basicConfig(format='  ---- %(filename)s|%(lineno)d ----\n%(message)s', level=logging.DEBUG)
-
 
 # Internal libraries
 import wxStocks_modules.wxStocks_db_functions as db
@@ -74,12 +72,7 @@ if config.ENCRYPTION_POSSIBLE:
     print("\n")
 ################################################################################################
 # Load data
-config.TIMER_THREAD_ON = True
-
-config.TIMER_THREAD()
 db.load_all_data()
-
-config.TIMER_THREAD_ON = False
 
 ### START ###################################################################
 def main():

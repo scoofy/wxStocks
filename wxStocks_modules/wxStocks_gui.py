@@ -539,15 +539,16 @@ class TickerPage(Tab):
         logging.info("Loading Tickers")
         ticker_list = []
 
-        ticker_list = [ticker_key for ticker_key in config.GLOBAL_STOCK_DICT.keys()]
+        ticker_list = list(config.GLOBAL_STOCK_DICT.keys())
 
-        ticker_list.sort()
+        if ticker_list:
+            ticker_list.sort()
         self.displayTickers(ticker_list)
         self.sizer.Add(self.file_display, 1, wx.ALL|wx.EXPAND)
         self.file_display.Show()
-        logging.info("Done")
 
     def displayTickers(self, ticker_list):
+        ticker_list = list(ticker_list)
         ticker_list.sort()
         ticker_list_massive_str = ""
         for ticker in ticker_list:
@@ -962,8 +963,8 @@ class PortfolioPage(Tab):
         self.uid = config.PORTFOLIO_PAGE_UNIQUE_ID
         wx.Panel.__init__(self, parent)
         ####
-        portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
-        portfolio_account_notebook = wx.Notebook(portfolio_page_panel)
+        self.portfolio_page_panel = wx.Panel(self, -1, pos=(0,5), size=( wx.EXPAND, wx.EXPAND))
+        self.portfolio_account_notebook = wx.Notebook(self.portfolio_page_panel)
 
         portfolios_that_already_exist = []
 
@@ -983,24 +984,24 @@ class PortfolioPage(Tab):
                     portfolio_name = default_portfolio_names[i]
                 portfolio_obj = db.create_new_Account_if_one_doesnt_exist(i+1, name=portfolio_name)
                 logging.info("Portfolio: {} {}, created at startup".format(portfolio_obj.id_number, portfolio_obj.name))
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (i+1), portfolio_name)
+                portfolio_account = PortfolioAccountTab(self.portfolio_account_notebook, (i+1), portfolio_name)
                 portfolio_account.title = portfolio_name
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+                self.portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
 
 
         else: # portfolios already exist
             need_to_save = False
             portfolios_to_save = []
             for portfolio_obj in portfolios_that_already_exist:
-                portfolio_account = PortfolioAccountTab(portfolio_account_notebook, portfolio_obj.id_number, portfolio_obj.name)
+                portfolio_account = PortfolioAccountTab(self.portfolio_account_notebook, portfolio_obj.id_number, portfolio_obj.name)
                 portfolio_account.title = portfolio_obj.name
-                portfolio_account_notebook.AddPage(portfolio_account, portfolio_obj.name)
+                self.portfolio_account_notebook.AddPage(portfolio_account, portfolio_obj.name)
             if need_to_save == True:
                 for portfolio_obj in portfolios_to_save:
                     db.save_portfolio_object(portfolio_obj)
 
         sizer2 = wx.BoxSizer()
-        sizer2.Add(portfolio_account_notebook, 1, wx.EXPAND)
+        sizer2.Add(self.portfolio_account_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
         ####
 
@@ -1042,8 +1043,8 @@ class PortfolioAccountTab(Tab):
         self.rename_button = wx.Button(self, label="Rename this portfolio", pos=gui_position.PortfolioAccountTab.rename_button, size=(-1,-1))
         self.rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, self.rename_button)
 
-        self.change_number_of_portfolios_button = wx.Button(self, label="Change number of portfolios", pos=gui_position.PortfolioAccountTab.change_number_of_portfolios_button, size=(-1,-1))
-        self.change_number_of_portfolios_button.Bind(wx.EVT_BUTTON, self.changeNumberOfPortfolios, self.change_number_of_portfolios_button)
+        self.add_a_portfolio_button = wx.Button(self, label="Add a portfolio", pos=gui_position.PortfolioAccountTab.add_a_portfolio_button, size=(-1,-1))
+        self.add_a_portfolio_button.Bind(wx.EVT_BUTTON, self.addPortfolio, self.add_a_portfolio_button)
 
         #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
         #print_portfolio_data_button.Bind(wx.EVT_BUTTON, self.printData, print_portfolio_data_button)
@@ -1150,33 +1151,27 @@ class PortfolioAccountTab(Tab):
         self.share_input.SetValue("")
 
 
-    def changeNumberOfPortfolios(self, event):
-        # num_of_portfolios_popup = wx.NumberEntryDialog(None,
-        #                               "What would you like to call this portfolio?",
-        #                               "Rename tab",
-        #                               "Caption",
-        #                               config.NUMBER_OF_PORTFOLIOS,
-        #                               0,
-        #                               10
-        #                               )
-        # if num_of_portfolios_popup.ShowModal() != wx.ID_OK:
-        #     return
+    def addPortfolio(self, event):
 
-        # new_number_of_portfolios = num_of_portfolios_popup.GetValue()
-        # num_of_portfolios_popup.Destroy()
-
-        # config.NUMBER_OF_PORTFOLIOS = new_number_of_portfolios
-        # # password = ""
-        # # if config.ENCRYPTION_POSSIBLE:
-        # #   password = self.get_password()
-        # confirm = wx.MessageDialog(self,
-        #                          "The number of portfolios has changed. The change will be applied the next time you launch this program.",
-        #                          'Restart Required',
-        #                          style = wx.ICON_EXCLAMATION
-        #                          )
-        # confirm.ShowModal()
-        # confirm.Destroy()
-        logging.error("Changing number of portfolios currently not functional")
+        confirm = wx.MessageDialog(self,
+                                        "You are about to add a portfolio. The change will be applied the next time you launch this program.",
+                                        'Restart Required',
+                                        wx.OK | wx.CANCEL
+                                       )
+        if confirm.ShowModal() != wx.ID_OK:
+            confirm.Destroy()
+            return
+        confirm.Destroy()
+        config.NUMBER_OF_PORTFOLIOS = config.NUMBER_OF_PORTFOLIOS + 1
+        id_number = config.NUMBER_OF_PORTFOLIOS
+        portfolio_name = "Portfolio {}".format(id_number)
+        portfolio_obj = db.create_new_Account_if_one_doesnt_exist(config.NUMBER_OF_PORTFOLIOS, name=portfolio_name)
+        logging.info("Portfolio: {} {}, created".format(portfolio_obj.id_number, portfolio_obj.name))
+        portfolio_account_notebook = config.GLOBAL_PAGES_DICT.get(config.PORTFOLIO_PAGE_UNIQUE_ID).obj.portfolio_account_notebook
+        portfolio_account = PortfolioAccountTab(portfolio_account_notebook, (id_number), portfolio_name)
+        portfolio_account.title = portfolio_name
+        portfolio_account_notebook.AddPage(portfolio_account, portfolio_name)
+        db.save_portfolio_object(portfolio_obj)
         return
 
     def fillSpreadsheetWithCurrentPortfolio(self):
@@ -1450,22 +1445,20 @@ class PortfolioAccountTab(Tab):
         logging.info("Not sure if necessary, but saving here after update.")
         db.save_GLOBAL_STOCK_DICT()
 
-        #self.saveTickerDataAsStocks(ticker_data) # no longer used
-        # Update scrape page?
-        # Don't want to take the time to figure this out just now.
-        logging.info("Add function here to update scrape time.")
 
-
-    def changeTabName(self, event):
+    def changeTabName(self, event, name=None):
         old_name = self.portfolio_obj.name
-        rename_popup = wx.TextEntryDialog(None,
-                                      "What would you like to call this portfolio?",
-                                      "Rename tab",
-                                      str(self.name)
-                                      )
-        rename_popup.ShowModal()
-        new_name = str(rename_popup.GetValue())
-        rename_popup.Destroy()
+        if not name:
+            rename_popup = wx.TextEntryDialog(None,
+                                              "What would you like to call this portfolio?",
+                                              "Rename tab",
+                                              str(self.name)
+                                              )
+            rename_popup.ShowModal()
+            new_name = str(rename_popup.GetValue())
+            rename_popup.Destroy()
+        else:
+            new_name = name
 
 
         portfolio_name_list = [obj.name for key, obj in config.PORTFOLIO_OBJECTS_DICT.items()]
@@ -1517,37 +1510,16 @@ class PortfolioAccountTab(Tab):
     def deleteAccountList(self):
         '''delete account'''
 
-        try:
-            # Reset to default name in data about portfolios
-            default_portfolio_names = ["Primary", "Secondary", "Tertiary"]
-            if self.portfolio_id < 10:
-                portfolio_name = "Portfolio %d" % (self.portfolio_id+1)
-            else:
-                portfolio_name = "%dth" % (self.portfolio_id+1)
-            if self.portfolio_id in range(len(default_portfolio_names)):
-                portfolio_name = default_portfolio_names[self.portfolio_id]
-        except Exception as e:
-            logging.error(e)
-
-
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
-
-
-
-        # password = ""
-        # if config.ENCRYPTION_POSSIBLE:
-        #   password = self.get_password()
+        portfolio_account_notebook = config.GLOBAL_PAGES_DICT.get(config.PORTFOLIO_PAGE_UNIQUE_ID).obj.portfolio_account_notebook
+        portfolio_account_notebook.SetPageText(self.portfolio_id - 1, " ")
 
         deleted = db.delete_portfolio_object(self.portfolio_id) #, password = password)
+
 
         if not deleted:
             logging.info("Something weird is going on with deleting a portfolio.")
 
 
-        self.portfolio_obj = Account(self.portfolio_id, name = portfolio_name)
-        db.save_portfolio_object(self.portfolio_obj)
 
         if deleted:
             confirm = wx.MessageDialog(self,
@@ -1560,8 +1532,25 @@ class PortfolioAccountTab(Tab):
 
         if self.current_account_spreadsheet:
             self.current_account_spreadsheet.Destroy()
-            self.current_account_spreadsheet = AccountDataGrid(self, -1, size=(980,637), pos=(0,50))
-            utils.update_all_dynamic_grids()
+
+        self.add_button.Hide()
+        self.add_button.Show()
+        self.add_button.Hide() # seems to still appear after deletion
+        self.drop_down.Hide()
+        self.delete_button.Hide()
+        self.rename_button.Hide()
+        self.add_a_portfolio_button.Hide()
+        self.ticker_input.Hide()
+        self.share_input.Hide()
+        self.cost_basis_input.Hide()
+        self.update_button.Hide()
+        self.update_prices_button.Hide()
+        self.remove_data_button.Hide()
+
+        text = wx.StaticText(self, -1,
+                             "This tab will disappear on restart",
+                             (wx.ALIGN_CENTRE_HORIZONTAL, 10)
+                             )
         return
 ###
 class ViewDataPage(Tab):
@@ -4343,7 +4332,9 @@ class TradePage(Tab):
         self.update_stocks_button.Hide()
         self.stock_update_pending_text.Show()
 
-        chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape = scrape.prepareYqlScrape(self.stocks_to_update)
+        for stock.ticker in self.stocks_to_update:
+            time.sleep(5)
+            update = scrape.bloomberg_us_stock_quote_scrape(stock.ticker)
 
         chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
         percent_of_full_scrape_done = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[1]

@@ -1,4 +1,4 @@
-import config, inspect, threading, time, logging, sys, ast, datetime
+import config, inspect, threading, time, logging, sys, ast, datetime, os, json
 import pprint as pp
 from urllib.request import urlopen, Request
 import urllib.error
@@ -441,7 +441,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
 
     for stock in data:
         new_stock = None
-        for key, value in stock.iteritems():
+        for key, value in stock.items():
             if key == "symbol":
                 new_stock = utils.return_stock_by_yql_symbol(value) # must use yql return here for ticker that include a "^" or "/", a format yahoo finance does not use.
                 if not new_stock:
@@ -451,7 +451,7 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
                 else:
                     new_stock.updated = datetime.datetime.now()
                     new_stock.epoch = float(time.time())
-        for key, value in stock.iteritems():
+        for key, value in stock.items():
             # Here we hijack the power of the python object structure
             # This adds the attribute of every possible attribute that can be passed
             if key == "symbol":
@@ -462,14 +462,14 @@ def executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successfu
     db.save_GLOBAL_STOCK_DICT()
 
     for stock2 in data2:
-        for key, value in stock2.iteritems():
+        for key, value in stock2.items():
             if key == "symbol":
                 new_stock = utils.return_stock_by_yql_symbol(value)
                 if not new_stock:
                     # this should not, ever, happen:
                     logging.error("New Stock should not need to be created here, but we are going to create it anyway, there is a problem with the yql ticker %s" % value)
                     new_stock = db.create_new_Stock_if_it_doesnt_exist(value)
-        for key, value in stock2.iteritems():
+        for key, value in stock2.items():
             if key == "symbol":
                 continue # already have this, don't need it again, in fact, the yql symbol is different for many terms
             if isinstance(value, (list, dict)):
@@ -645,7 +645,7 @@ def yqlQuickStockQuoteScrape(ticker_list): # len < 50
 
     for stock in data:
         new_stock = None
-        for key, value in stock.iteritems():
+        for key, value in stock.items():
             if key == "symbol":
                 new_stock = utils.return_stock_by_yql_symbol(value) # must use yql return here for ticker that include a "^" or "/", a format yahoo finance does not use.
                 if not new_stock:
@@ -655,7 +655,7 @@ def yqlQuickStockQuoteScrape(ticker_list): # len < 50
                 else:
                     new_stock.updated = datetime.datetime.now()
                     new_stock.epoch = float(time.time())
-        for key, value in stock.iteritems():
+        for key, value in stock.items():
             # Here we hijack the power of the python object structure
             # This adds the attribute of every possible attribute that can be passed
             if key == "symbol":
@@ -2316,9 +2316,129 @@ def morningstar_add_zeros_to_usd_millions(data_list):
 
 
 ###################### Bloomberg Scrapers "_bb" ################################################
+
+def bloomberg_us_stock_quote_scrape(ticker):
+    url = "https://www.bloomberg.com/quote/{ticker}:US".format(ticker=ticker)
+    #page = urlopen(url)
+    import pprint as pp
+    page = open(os.path.join("bb_test2.html"), "r").read()
+    logging.warning("")
+    soup = BeautifulSoup(page, "html.parser")
+    data_units = soup.find_all("script")
+    output_list = []
+    for unit in data_units:
+        if "window.__bloomberg__" in unit.text:
+            unit_text = str(unit)
+            str_list = unit_text.split("window.__bloomberg__")
+            for str_unit in str_list:
+                dict_str = str_unit.split(" = ", 1)[-1]
+                value = dict_str.strip()
+                if value.endswith("</script>"):
+                    value = value.rsplit("</script>", 1)[0]
+                    value = value.strip()
+                if not value:
+                    continue
+                #print(value[-1])
+                if value.endswith(";"):
+                    value = value[:-1]
+                #print("\t", value[-1])
+                if value and value.startswith("{") and value.endswith("}"):
+                    value = json.loads(value)
+                    output_list.append(value)
+                else:
+                    #logging.warning(value)
+                    continue
+    data = replace_bloomberg_values_list(output_list)
+    if len(data) == 1:
+        data = data[0]
+    bloomberg_dict = data
+    convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict)
+    # pp.pprint(data)
+    # with open('output{}.txt'.format(ticker), 'wt') as out:
+    #     pp.pprint(data, stream=out)
+
+
+def replace_bloomberg_values_dict(input_dict, original_list):
+    bloomberg_dict = {}
+    for key, value in input_dict.items():
+        if key in ["adCode", "api", "balance", "cash", "income", "dataStrip", "news", "sectors", "time"]:
+            continue
+        new_value = None
+        if type(value) is dict:
+            new_value = replace_bloomberg_values_dict(value, original_list)
+        elif type(value) is list:
+            new_value = replace_bloomberg_values_list(value, original_list)
+        elif type(value) in [str, int, float, bool]:
+            if type(value) is str:
+                if value.startswith("$"):
+                    new_value = replace_bloomberg_dollarsign_keys_with_values(value, original_list)
+        elif value:
+            logging.warning(type(value))
+
+
+        if new_value:
+            bloomberg_dict[key] = new_value
+        elif value and (value != "None"):
+            if not key.startswith("$"):
+                bloomberg_dict[key] = value
+    if bloomberg_dict:
+        return bloomberg_dict
+def replace_bloomberg_values_list(input_list, original_list=None):
+    if original_list is None:
+        original_list = input_list
+    new_list = []
+    for item in input_list:
+        if type(item) is dict:
+            new_value = replace_bloomberg_values_dict(item, original_list)
+            if new_value:
+                new_list.append(new_value)
+        elif type(item) is list:
+            new_value = replace_bloomberg_values_list(item, original_list)
+            if new_value:
+                new_list.append(new_value)
+        elif type(item) in [str, int, float, bool]:
+            if item and (item != "None"):
+                new_list.append(item)
+        elif item:
+            logging.warning(type(item))
+    return new_list
+def replace_bloomberg_dollarsign_keys_with_values(ref_str, original_list):
+    for ref_dict in original_list:
+        ref_list = [x for x in ref_dict.keys() if x.startswith("$")]
+        if ref_list:
+            if ref_str in ref_list:
+                return ref_dict[ref_str]
+def convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict):
+    stock = utils.return_stock_by_symbol(ticker)
+
+    # key stats
+    key_stats = bloomberg_dict.get("keyStats")
+    key_stats_list = None
+    if key_stats:
+        key_stats_list = key_stats.get("keyStatsList")
+    if key_stats_list:
+        for stat_dict in key_stats_list:
+            stat_id = stat_dict.get("id")
+            stat_value = stat_dict.get("fieldValue")
+            if stat_id:
+                setattr(stock, str(stat_id)+"_bb", stat_value)
+
+    # quote
+    quote = bloomberg_dict.get("quote")
+    if quote:
+        if type(quote) is dict:
+            for key, value in quote.items():
+                if type(value) in [list, dict, set]:
+                    # lots of unhelpful large amounts of data
+                    continue
+                setattr(stock, str(key)+"_bb", value)
+
+
 ################################################################################################
 
 ###################### EDGAR Scrapers "_ed" ####################################################
+
+
 ################################################################################################
 
 ################################################################################################

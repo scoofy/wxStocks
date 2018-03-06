@@ -7,7 +7,7 @@ MainFrame_size = [(1020,800),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZ
 MainFrame_SetSizeHints = MainFrame_size
 
 def main_frame_size():
-    size = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+    size = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSize()
     return size
 
 #shortcuts
@@ -83,7 +83,7 @@ class PortfolioAccountTab(object):
     drop_down = [(11,25),(5,35),(6,27)][config.OS_TYPE_INDEX]
     delete_button = [(800,0),(default_width-162,2),(655,0)][config.OS_TYPE_INDEX]
     rename_button = [(568,22),(492,35),(479,26)][config.OS_TYPE_INDEX]
-    change_number_of_portfolios_button = [(568,0),(492,2),(479,0)][config.OS_TYPE_INDEX]
+    add_a_portfolio_button = [(568,0),(492,2),(479,0)][config.OS_TYPE_INDEX]
     ticker_input = [(250,3),(160,4),(160,1)][config.OS_TYPE_INDEX]
     share_input = [(250,25),(160,36),(160,27)][config.OS_TYPE_INDEX]
     cost_basis_input = [(350,3),(255,4),(273,1)][config.OS_TYPE_INDEX]

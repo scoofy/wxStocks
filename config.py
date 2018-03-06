@@ -339,15 +339,6 @@ CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
 SCRAPE_LOOP_STARTED = 0.0
 SCRAPE_LOOP_QUEUE = [] # for "scrape_loop_for_missing_portfolio_stocks()" in scrapers
 
-TIMER_THREAD_ON = False
-def TIMER_PRINT():
-	if TIMER_THREAD_ON:
-		sys.stdout.write('.')
-		sys.stdout.flush()
-		threading.Thread(target = TIMER_THREAD).run()
-def TIMER_THREAD():
-	dot = threading.Timer(1., TIMER_PRINT)
-	dot.start()
 
 
 

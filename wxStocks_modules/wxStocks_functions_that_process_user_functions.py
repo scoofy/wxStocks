@@ -146,7 +146,7 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 			else:
 				success = "fail"
 			continue
-		for key, value in this_dict.iteritems():
+		for key, value in this_dict.items():
 			if key == "stock":
 				continue
 			else:
@@ -200,7 +200,7 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 			else:
 				success = "fail"
 			continue
-		for key, value in this_dict.iteritems():
+		for key, value in this_dict.items():
 			if key == "stock":
 				continue
 			else:
