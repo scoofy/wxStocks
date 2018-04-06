@@ -49,6 +49,36 @@ class TickerPage(object):
     display_tickers_size_vertical_adjustment = 90 + (vertical_offset_per_tab*2)
     display_tickers_size_horizontal_adjustment = horizontal_offset_per_tab*2
 
+class XbrlImportPage(object):
+    row_one = 100
+    row_two = 125
+    row_three = 150
+    row_four = 175
+
+    text = (10,10)
+
+    from_file_button = (5, row_one)
+    from_folder_button = (122, row_one)
+
+    sec_download_button = (5, row_two)
+    abort_import_button = (5, row_two)
+
+    radio_year_month = (5, row_three+2)
+    xbrl_year_input = (28, row_three)
+    xbrl_month_dropdown = (135, row_three)
+
+    radio_from_year_to_year = (5, row_four+2)
+    xbrl_from_year_input = (28, row_four)
+    xbrl_to_year_input = (135, row_four)
+
+    progress_bar = (0,400)
+    progress_bar_size = [(995,-1), ((default_width- 35),-1), ((default_width- 35),-1)][config.OS_TYPE_INDEX]
+    total_relevant_tickers = (10,30)
+    tickers_to_import = (10,50)
+    import_time_text = (10,70)
+
+
+
 class YqlScrapePage(object):
     text = (10,10)
     time_button = (100,100)

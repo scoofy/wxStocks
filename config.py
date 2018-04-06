@@ -219,6 +219,7 @@ GET_DATA_PAGE_UNIQUE_ID 		= "g"
 #
 # ## second level tabs
 TICKER_PAGE_UNIQUE_ID				= "g_ti"
+XBRL_IMPORT_PAGE_UNIQUE_ID			= "g_xb"
 YQL_SCRAPE_PAGE_UNIQUE_ID			= "g_yq"
 SPREADSHEET_IMPORT_PAGE_UNIQUE_ID	= "g_sp"
 # ## ### third level tabs
@@ -262,6 +263,7 @@ GLOBAL_UNIQUE_ID_LIST = [
 	WELCOME_PAGE_UNIQUE_ID,
 	GET_DATA_PAGE_UNIQUE_ID,
 	TICKER_PAGE_UNIQUE_ID,
+	XBRL_IMPORT_PAGE_UNIQUE_ID,
 	YQL_SCRAPE_PAGE_UNIQUE_ID,
 	SPREADSHEET_IMPORT_PAGE_UNIQUE_ID,
 	XLS_IMPORT_PAGE_UNIQUE_ID,
@@ -339,7 +341,9 @@ CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
 SCRAPE_LOOP_STARTED = 0.0
 SCRAPE_LOOP_QUEUE = [] # for "scrape_loop_for_missing_portfolio_stocks()" in scrapers
 
-
+### xbrl stuff ####
+DEFAULT_PERIOD_TAG = "{http://www.xbrl.org/2003/instance}period"
+########
 
 
 

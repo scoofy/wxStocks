@@ -1,5 +1,7 @@
 import config, inspect, threading, time, logging, sys, ast, datetime, os, json
 import pprint as pp
+import zipfile as zf
+import xml.etree.ElementTree as ET
 from urllib.request import urlopen, Request
 import urllib.error
 from bs4 import BeautifulSoup
@@ -8,6 +10,7 @@ from modules.pyql import pyql
 
 from wxStocks_modules import wxStocks_utilities as utils
 from wxStocks_modules import wxStocks_db_functions as db
+import sec_xbrl
 
 # something is clearly broken with additional data scrapes
 def scrape_all_additional_data_prep(list_of_ticker_symbols): # Everything except basic yql and nasdaq
@@ -2436,8 +2439,257 @@ def convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict):
 
 ################################################################################################
 
-###################### EDGAR Scrapers "_ed" ####################################################
+###################### EDGAR Scrapers "_us" ####################################################
 
+def return_xbrl_tree_and_namespace(zipfile):
+    ticker = None
+    # logging.info(zipfile)
+    archive = zf.ZipFile(zipfile, 'r')
+    name_list = archive.namelist()
+    main_file_name = None
+    for name in name_list:
+        if name.endswith(".xml") and "_" not in name:
+            # logging.info(name)
+            ticker = name.split("-")[0].upper()
+            main_file_name = name
+
+    ns = {}
+    for event, (name, value) in ET.iterparse(archive.open(main_file_name), ['start-ns']):
+        if name:
+            ns[name] = value
+
+    tree = ET.parse(archive.open(main_file_name))
+    return [tree, ns, ticker]
+
+def return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=None, period=None):
+    if period:
+        if period == "period":
+            attribute_str = str(accounting_item) + "_" + str(institution) +  "__us"
+        else:
+            attribute_str = str(accounting_item) + "_" + str(institution) +  "_most_recent_" + period + "__us"
+    elif xbrl_dict:
+        attribute_str = str(accounting_item) + "_" + str(institution) + "__dict__us"
+    else:
+        attribute_str = str(accounting_item) + "_" + str(institution) +  "__us"
+    attribute_str = attribute_str.replace("-", "_")
+    return attribute_str
+
+def return_simple_xbrl_dict(xbrl_tree, namespace, ticker):
+    tree = xbrl_tree
+    root = tree.getroot()
+    ns = namespace
+    reverse_ns = {v: k for k, v in ns.items()}
+    context_element_list = tree.findall("xbrli:context", ns)
+    stock = utils.return_stock_by_symbol(ticker)
+    xbrl_stock_dict = {ticker: {}}
+    for element in context_element_list:
+        period_dict = {}
+        dimension = None
+        dimension_value = None
+        previous_entry = None
+        # get period first:
+        period_element = element.find(config.DEFAULT_PERIOD_TAG)
+        for item in period_element.iter():
+            if "startDate" in item.tag:
+                period_dict["startDate"] = item.text
+            elif "endDate" in item.tag:
+                period_dict["endDate"] = item.text
+            elif "instant" in item.tag:
+                period_dict["instant"] = item.text
+            elif "forever" in item.tag:
+                period_dict["forever"] = item.text
+        if not period_dict:
+            logging.error("No period")
+        else:
+            # logging.warning(period_dict)
+            pass
+
+        # datetime YYYY-MM-DD
+        datetime_delta = None
+        if period_dict.get("startDate"):
+            start_date = period_dict.get("startDate")
+            end_date = period_dict.get("endDate")
+            if start_date != end_date:
+                period_serialized = end_date + ":" + start_date
+            else:
+                period_serialized = end_date
+            start_datetime = utils.iso_date_to_datetime(start_date)
+            end_datetime = utils.iso_date_to_datetime(end_date)
+            datetime_delta = end_datetime - start_datetime
+            datetime_to_save = end_datetime
+            iso_date_to_save = end_date
+            iso_start_date = start_date
+        elif period_dict.get("instant"):
+            instant = period_dict.get("instant")
+            period_serialized = instant
+            instant_datetime = utils.iso_date_to_datetime(instant)
+            datetime_to_save = instant_datetime
+            iso_date_to_save = instant
+        elif period_dict.get("forever"):
+            forever = period_dict.get("forever")
+            period_serialized = forever
+            forever_datetime = utils.iso_date_to_datetime(forever)
+            datetime_to_save = forever_datetime
+            iso_date_to_save = forever
+        else:
+            logging.error("no period_serialized")
+            period_serialized = None
+            datetime_to_save = None
+
+        context_id = element.get("id")
+        context_ref_list = [x for x in root if x.get("contextRef") == context_id]
+        for context_element in context_ref_list:
+            if "TextBlock" in str(context_element.tag):
+                continue
+            elif "&lt;" in str(context_element.text):
+                continue
+            elif "<div " in str(context_element.text) and "</div>" in str(context_element.text):
+                continue
+
+            tag = context_element.tag
+            split_tag = tag.split("}")
+            if len(split_tag) > 2:
+                logging.error(split_tag)
+            institution = reverse_ns.get(split_tag[0][1:])
+            accounting_item = split_tag[1]
+            value = context_element.text
+            unitRef = context_element.get("unitRef")
+            decimals = context_element.get("decimals")
+            if not xbrl_stock_dict[ticker].get(institution):
+                xbrl_stock_dict[ticker][institution] = {accounting_item: {period_serialized: {"value": value}}}
+            elif xbrl_stock_dict[ticker][institution].get(accounting_item) is None:
+                xbrl_stock_dict[ticker][institution][accounting_item] = {period_serialized: {"value": value}}
+            else:
+                xbrl_stock_dict[ticker][institution][accounting_item].update({period_serialized: {"value": value}})
+            period_dict = xbrl_stock_dict[ticker][institution][accounting_item][period_serialized]
+            period_dict.update({"datetime": iso_date_to_save})
+            if datetime_delta:
+                period_dict.update({"timedeltastart": iso_start_date})
+            if unitRef:
+                period_dict.update({"unitRef": unitRef})
+            if decimals:
+                period_dict.update({"decimals": decimals})
+    return(xbrl_stock_dict)
+
+def save_stock_dict(xbrl_stock_dict):
+    ticker = list(xbrl_stock_dict.keys())[0] # Note, i use this notation because it's more clear
+    stock = utils.return_stock_by_symbol(ticker)
+    if not stock:
+        logging.info("No stock listed for {}".format(ticker))
+        return
+    base_dict = xbrl_stock_dict[ticker]
+    today = datetime.date.today()
+
+    for institution in list(base_dict.keys()):
+        institution_dict = base_dict[institution]
+        for accounting_item in list(institution_dict.keys()):
+            period_dict = institution_dict[accounting_item]
+            period_dict_str = return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=True)
+
+            try:
+                stock_accounting_item_dict = getattr(stock, period_dict_str)
+                # logging.warning("woot woot")
+            except:
+                stock_accounting_item_dict = None
+                # logging.warning('poop')
+
+            if stock_accounting_item_dict:
+                stock_accounting_item_dict.update(period_dict)
+            else:
+                setattr(stock, period_dict_str, period_dict)
+
+            stock_period_dict = getattr(stock, period_dict_str)
+
+            datetime_fourple_list = [] #[serialize, end dt, start dt, range]
+            for period in list(stock_period_dict.keys()):
+                period_datetime_str = stock_period_dict[period].get("datetime")
+                period_datetime = utils.iso_date_to_datetime(period_datetime_str)
+                timedelta_start = stock_period_dict[period].get("timedeltastart")
+
+                serialize_index_to_save = period_datetime_str
+                if timedelta_start:
+                    serialize_index_to_save = str(period_datetime_str) + ":" + str(timedelta_start)
+
+                    period_endtime_datetime = utils.iso_date_to_datetime(timedelta_start)
+                    datetime_delta = period_datetime - period_endtime_datetime
+                    if datetime_delta >= datetime.timedelta(days=359) and datetime_delta < datetime.timedelta(days=370):
+                        timedelta_range = "year"
+                    elif datetime_delta > datetime.timedelta(days=85) and datetime_delta < datetime.timedelta(days=95):
+                        timedelta_range = "quarter"
+                    elif datetime_delta >= datetime.timedelta(days=27) and datetime_delta <= datetime.timedelta(days=32):
+                        timedelta_range = "month"
+                    else:
+                        timedelta_range = "other"
+                        # logging.warning('"other" length: {} days for {}'.format(datetime_delta.days, accounting_item))
+                else:
+                    timedelta_range = None
+                    period_endtime_datetime = None
+                period_and_serialized_fourple = [serialize_index_to_save, period_datetime, period_endtime_datetime, timedelta_range]
+                datetime_fourple_list.append(period_and_serialized_fourple)
+            set_of_ranges = set([fourple[3] for fourple in datetime_fourple_list])
+
+            youngest_datetime = max(fourple[1] for fourple in datetime_fourple_list if fourple[1] <= today)
+            youngest_fourple_list = [fourple for fourple in datetime_fourple_list if fourple[1] == youngest_datetime]
+            if len(youngest_fourple_list) > 1:
+                relevant_list = [fourple for fourple in datetime_fourple_list if fourple[2]]
+                youngest_start_datetime = max(fourple[2] for fourple in relevant_list if fourple[2] <= today)
+                youngest_start_dt_fourple = [fourple for fourple in relevant_list if fourple[2] == youngest_start_datetime]
+                youngest = youngest_start_dt_fourple[0]
+            else:
+                youngest = youngest_fourple_list[0]
+
+            can_be_updated = period_dict.get("most_recent")
+            if can_be_updated:
+                can_be_updated.update({time_range: youngest[0]})
+            else:
+                period_dict.update({"most_recent": {"period": youngest[0]}})
+            if len(set_of_ranges) > 1:
+                for time_range in set_of_ranges:
+                    time_range_list = [fourple for fourple in datetime_fourple_list if fourple[3] == time_range]
+                    youngest_datetime = max(fourple[1] for fourple in time_range_list if fourple[1] <= today)
+                    youngest_datetime_delta = today - youngest_datetime
+                    if youngest_datetime_delta.days > 366:
+                        # very old data, over a year old, use most recent period instead
+                        continue
+                    youngest_fourple_list = [fourple for fourple in time_range_list if fourple[1] == youngest_datetime]
+                    youngest = youngest_fourple_list[0]
+                    can_be_updated = period_dict.get("most_recent")
+                    if can_be_updated:
+                        can_be_updated.update({time_range: youngest[0]})
+                    else:
+                        period_dict.update({"most_recent": {time_range: youngest[0]}})
+
+
+            most_recent_dict = period_dict.get("most_recent")
+            for time_range in list(most_recent_dict.keys()):
+                period_index = period_dict["most_recent"][time_range]
+                value = period_dict[period_index]["value"]
+                if len(list(most_recent_dict.keys())) > 1:
+                    setattr(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution, period=time_range), value)
+                else:
+                    setattr(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution), value)
+    # utils.print_attributes(stock)
+    db.commit_db()
+
+def scrape_xbrl_from_file(path_to_zipfile=None):
+    tree, ns, ticker = return_xbrl_tree_and_namespace(path_to_zipfile)
+    # logging.warning("return_xbrl_tree_and_namespace: {}".format(ticker))
+    # print(ns)
+    # print(ticker)
+    stock_dict = return_simple_xbrl_dict(tree, ns, ticker)
+    # logging.warning("return_simple_xbrl_dict")
+    # pp.pprint(stock_dict)
+    save_stock_dict(stock_dict)
+
+def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None):
+    # loadSECfilings.py -y <year> -m <month> | -f <from_year> -t <to_year>
+    if not (year and month) or (from_year and to_year):
+        logging.error("improper inputs")
+        return "error"
+    if year and month:
+        sec_xbrl.loadSECfilings.main(['-y', str(year), '-m', str(month)])
+    elif from_year and to_year:
+        sec_xbrl.loadSECfilings.main(['-f', str(year), '-t', str(month)])
 
 ################################################################################################
 

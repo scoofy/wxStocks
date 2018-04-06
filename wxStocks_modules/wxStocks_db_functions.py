@@ -188,7 +188,30 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
 def load_GLOBAL_STOCK_DICT(): ###### updated
     config.GLOBAL_STOCK_DICT = root.Stock
     load_GLOBAL_ATTRIBUTE_SET()
+def create_loading_status_bar():
+    # set status bar on main frame
+    main_frame = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID)
+    main_frame.status_bar = main_frame.CreateStatusBar(name="Database status")
+    main_frame.SetStatusText(text="Loading database:")
+    from wxStocks_modules import wxStocks_gui_position_index as gui_position
+    status_bar_width, status_bar_height = main_frame.status_bar.Size
+    print(status_bar_width, status_bar_height)
+    main_frame.SetSize(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1] + status_bar_height)
+
+
+def update_loading_status_bar(percent_str):
+    main_frame = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID)
+    main_frame.SetStatusText(text="Loading database: {}%".format(percent_str))
+def remove_loading_status_bar():
+    main_frame = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID)
+    # remove status bar since we're done
+    main_frame.status_bar.Hide()
+    from wxStocks_modules import wxStocks_gui_position_index as gui_position
+    # this weird manuver is require to prevent the screen from going black until clicked on
+    main_frame.SetSize(gui_position.MainFrame_SetSizeHints[0]+1,gui_position.MainFrame_SetSizeHints[1]+1)
+    main_frame.SetSize(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1])
 def load_GLOBAL_STOCK_DICT_into_active_memory():
+    create_loading_status_bar()
     unpack_stock_data_thread = threading.Thread(target=load_GLOBAL_STOCK_DICT_into_active_memory_worker)
     unpack_stock_data_thread.start()
 def load_GLOBAL_STOCK_DICT_into_active_memory_worker():
@@ -207,8 +230,11 @@ def load_GLOBAL_STOCK_DICT_into_active_memory_worker():
         if percent == 100:
             end = "\n"
         print("{}% {}".format(percent_str, "%" + "█"*round(percent/2) + " "*(50-round(percent/2)) + "%"), end=end)
+        update_loading_status_bar(percent_str)
     finish = time.time()
     logging.info("Stocks now in active memory: {} seconds".format(round(finish-start)))
+    remove_loading_status_bar()
+
 def save_GLOBAL_STOCK_DICT(): ##### no need to update
     logging.info("Saving GLOBAL_STOCK_DICT")
     commit_db()

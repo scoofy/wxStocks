@@ -36,7 +36,7 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
 	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
-def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 999604800): # one week
+def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 999604800): # one week 604800
 	""""import aaii .xls files"""
 	#current_directory = os.path.dirname(os.path.realpath(__file__))
 	#parent_directory = os.path.split(current_directory)[0]

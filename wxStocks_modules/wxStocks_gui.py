@@ -7,7 +7,7 @@
 #       4: Grid objects                                         #
 #################################################################
 import wx, numpy
-import config, threading, logging, sys, time, os, math, webbrowser
+import config, threading, logging, sys, time, os, math, webbrowser, calendar, datetime
 import inspect
 import pprint as pp
 
@@ -33,6 +33,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         self.SetSizeHints(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1])
         self.title = "wxStocks"
         self.uid = config.MAIN_FRAME_UNIQUE_ID
+
 
         # Here we create a panel and a notebook on the panel
         main_frame = wx.Panel(self)
@@ -84,6 +85,7 @@ class MainFrame(wx.Frame): # reorder tab postions here
         finish = time.time()
         self.startup_time = finish-start
         logging.info("done.\n\n------------------------- wxStocks startup complete: {} seconds -------------------------\n".format(round(self.startup_time)))
+
         db.load_GLOBAL_STOCK_DICT_into_active_memory()
 
 
@@ -407,6 +409,9 @@ class GetDataPage(Tab):
         self.ticker_page = TickerPage(self.get_data_notebook)
         self.get_data_notebook.AddPage(self.ticker_page, self.ticker_page.title)
 
+        self.xbrl_import_page = XbrlImportPage(self.get_data_notebook)
+        self.get_data_notebook.AddPage(self.xbrl_import_page, self.xbrl_import_page.title)
+
         self.yql_scrape_page = YqlScrapePage(self.get_data_notebook)
         self.get_data_notebook.AddPage(self.yql_scrape_page, self.yql_scrape_page.title)
 
@@ -417,6 +422,8 @@ class GetDataPage(Tab):
         sizer2.Add(self.get_data_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
         ####
+
+
 
 class TickerPage(Tab):
     def __init__(self, parent):
@@ -573,6 +580,137 @@ class TickerPage(Tab):
                                     size = size,
                                     style = wx.TE_READONLY | wx.TE_MULTILINE ,
                                     )
+class XbrlImportPage(Tab):
+    def __init__(self, parent):
+        self.title = "XBRL import"
+        self.uid = config.XBRL_IMPORT_PAGE_UNIQUE_ID
+        wx.Panel.__init__(self, parent)
+        text = wx.StaticText(self, -1,
+                             "XBRL import page",
+                             gui_position.XbrlImportPage.text
+                             )
+
+        self.sec_download_button = wx.Button(self, label="Download XBRL files from the SEC", pos=gui_position.XbrlImportPage.sec_download_button, size=(-1,-1))
+        self.sec_download_button.Bind(wx.EVT_BUTTON, self.confirmSecDownload, self.sec_download_button)
+
+        self.radio_year_month = wx.RadioButton(self, pos=gui_position.XbrlImportPage.radio_year_month)
+        self.radio_year_month.SetValue(True)
+
+        self.radio_from_year_to_year = wx.RadioButton(self, pos=gui_position.XbrlImportPage.radio_from_year_to_year)
+
+        now = datetime.datetime.now()
+
+        self.xbrl_year_input = wx.TextCtrl(self, -1,
+                                   str(now.year),
+                                   gui_position.XbrlImportPage.xbrl_year_input,
+                                   )
+        self.xbrl_year_input.SetHint("year")
+        self.xbrl_year_input.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_year_month))
+
+        self.xbrl_month_dropdown = wx.ComboBox(self, pos=gui_position.XbrlImportPage.xbrl_month_dropdown, choices= calendar.month_name[1:])
+        self.xbrl_month_dropdown.SetSelection(now.month-1) # ordianals
+        self.xbrl_month_dropdown.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_year_month))
+
+        self.xbrl_from_year_input = wx.TextCtrl(self, pos=gui_position.XbrlImportPage.xbrl_from_year_input)
+        self.xbrl_from_year_input.SetHint("from year")
+        self.xbrl_from_year_input.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_from_year_to_year))
+
+        self.xbrl_to_year_input = wx.TextCtrl(self, pos=gui_position.XbrlImportPage.xbrl_to_year_input)
+        self.xbrl_to_year_input.SetHint("to year")
+        self.xbrl_to_year_input.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_from_year_to_year))
+
+        self.from_file_button = wx.Button(self, label="Import XBRL file", pos=gui_position.XbrlImportPage.from_file_button, size=(-1,-1))
+        self.from_file_button.Bind(wx.EVT_BUTTON, self.import_XBRL_files, self.from_file_button)
+
+        self.from_folder_button = wx.Button(self, label="Import XBRL folder", pos=gui_position.XbrlImportPage.from_folder_button, size=(-1,-1))
+        self.from_folder_button.Bind(wx.EVT_BUTTON, self.import_XBRL_folder, self.from_folder_button)
+
+
+        self.abort_import_button = wx.Button(self, label="Cancel Import", pos=gui_position.XbrlImportPage.abort_import_button, size=(-1,-1))
+        self.abort_import_button.Bind(wx.EVT_BUTTON, self.abortImport, self.abort_import_button)
+        self.abort_import_button.Hide()
+        self.abort_import = False
+
+        self.progress_bar = wx.Gauge(self, -1, 100, size=gui_position.XbrlImportPage.progress_bar_size, pos = gui_position.XbrlImportPage.progress_bar)
+        self.progress_bar.Hide()
+
+        self.num_of_imported_stocks = 0
+        self.number_of_tickers_to_import = 0
+        self.total_relevant_tickers = 0
+        self.tickers_to_import = 0
+        self.import_time_text = 0
+        self.number_of_nonimported_stocks = 0
+
+
+        self.total_relevant_tickers = wx.StaticText(self, -1,
+                             label = "Total number of tickers = %d" % (self.num_of_imported_stocks + self.number_of_tickers_to_import),
+                             pos = gui_position.XbrlImportPage.total_relevant_tickers
+                             )
+        self.tickers_to_import = wx.StaticText(self, -1,
+                             label = "Tickers that need to be scraped = %d" % self.number_of_tickers_to_import,
+                             pos = gui_position.XbrlImportPage.tickers_to_import
+                             )
+        sleep_time = config.SCRAPE_SLEEP_TIME
+        import_time_secs = (self.number_of_tickers_to_import/config.SCRAPE_CHUNK_LENGTH) * sleep_time * 2
+        import_time = utils.time_from_epoch(import_time_secs)
+        self.import_time_text = wx.StaticText(self, -1,
+                     label = "Time = %s" % import_time,
+                     pos = gui_position.XbrlImportPage.import_time_text
+                     )
+
+        logging.info("XbrlImportPage loaded")
+
+    def set_radio_button(self, event, radio_button=None):
+        if not radio_button.GetValue():
+            radio_button.SetValue(True)
+
+    def import_XBRL_files(self, event):
+        xbrl_data_folder_dialogue = wx.FileDialog(self, "Choose a File:")
+        if xbrl_data_folder_dialogue.ShowModal() == wx.ID_OK:
+            path = xbrl_data_folder_dialogue.GetPath()
+            logging.info(path)
+        else:
+            path = None
+        xbrl_data_folder_dialogue.Destroy()
+        if path:
+            scrape.scrape_xbrl_from_file(path)
+
+
+    def import_XBRL_folder(self, event):
+        xbrl_data_folder_dialogue = wx.DirDialog(self, "Choose a directory:")
+        if xbrl_data_folder_dialogue.ShowModal() == wx.ID_OK:
+            path = xbrl_data_folder_dialogue.GetPath()
+            logging.info(path)
+        else:
+            path = None
+        xbrl_data_folder_dialogue.Destroy()
+        if path:
+            for file in os.listdir(path):
+                if file.endswith(".zip"):
+                    logging.warning("Importing from: {}".format(os.path.join(path, file)))
+                    scrape.scrape_xbrl_from_file(path)
+
+    def confirmSecDownload(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to import XBRL data from the SEC's database. If you do this too often, they may temporarily block your IP address. Please do this at night.",
+                                   'Import stock data?',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Import"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        confirm.Destroy()
+
+        if yesNoAnswer == wx.ID_YES:
+            self.scrapeYQL()
+
+    def abortImport(self, event):
+        logging.info("Canceling import... this may take up to {} seconds.".format(config.SCRAPE_SLEEP_TIME))
+        if self.abort_import == False:
+            self.abort_import = True
+            self.abort_import_button.Hide()
+            self.import_button.Show()
+            self.calculate_import_times()
+
 class YqlScrapePage(Tab):
     def __init__(self, parent):
         self.title = "Scrape YQL"
@@ -956,6 +1094,7 @@ class XlsImportPage(Tab):
         aaii_data_folder_dialogue.Destroy()
         if path:
             aaii.import_aaii_files_from_data_folder(path=path)
+
 ##
 class PortfolioPage(Tab):
     def __init__(self, parent):

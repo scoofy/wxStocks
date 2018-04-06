@@ -1,4 +1,4 @@
-import wx, inspect, logging, time, csv
+import wx, inspect, logging, time, csv, datetime
 import config
 def print_attributes(obj):
     for attribute in dir(obj):
@@ -508,6 +508,10 @@ def return_human_readable_file_size(num, suffix='B'):
             return "%3.2f%s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.2f%s%s" % (num, 'Yi', suffix)
+
+def iso_date_to_datetime(date_str):
+    return datetime.date(int(date_str.split("-")[0]), int(date_str.split("-")[1]), int(date_str.split("-")[2]))
+
 ####################### utility functions involving pages #######################################
 def add_ticker_to_research_page(ticker):
     research_page_ref = config.GLOBAL_PAGES_DICT.get(config.RESEARCH_PAGE_UNIQUE_ID)
@@ -657,8 +661,22 @@ def save_grid_as(wx_window, wx_grid, title):
     output_file.close()
 ############################################################################################
 
+############################# logging assistance ###########################################
+def convert_to_log_str(*args):
+    relevant_args = locals().values()
+    str_to_return = ""
+    for arg in relevant_args:
+        str_to_return = str_to_return + str(arg) + "\n"
+    return str_to_return
 
-
+def print_attributes(obj):
+    logging.info("printing attribute for {}".format(obj))
+    print(obj.ticker)
+    for attribute in dir(obj):
+        if not attribute.startswith("_"):
+            print(attribute)
+    print("----------------")
+############################################################################################
 
 
 
