@@ -11,6 +11,7 @@ from modules.pyql import pyql
 from wxStocks_modules import wxStocks_utilities as utils
 from wxStocks_modules import wxStocks_db_functions as db
 import sec_xbrl
+from sec_xbrl import loadSECfilings
 
 # something is clearly broken with additional data scrapes
 def scrape_all_additional_data_prep(list_of_ticker_symbols): # Everything except basic yql and nasdaq
@@ -2671,8 +2672,13 @@ def save_stock_dict(xbrl_stock_dict):
     # utils.print_attributes(stock)
     db.commit_db()
 
-def scrape_xbrl_from_file(path_to_zipfile=None):
-    tree, ns, ticker = return_xbrl_tree_and_namespace(path_to_zipfile)
+def scrape_xbrl_from_file(path_to_zipfile=None, actual_zipfile=None):
+    if path_to_zipfile:
+        tree, ns, ticker = return_xbrl_tree_and_namespace(path_to_zipfile)
+    elif actual_zipfile:
+        tree, ns, ticker = return_xbrl_tree_and_namespace(actual_zipfile)
+    else:
+        logging.warning("Error in zipfile to xbrl business")
     # logging.warning("return_xbrl_tree_and_namespace: {}".format(ticker))
     # print(ns)
     # print(ticker)
@@ -2686,10 +2692,23 @@ def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None):
     if not (year and month) or (from_year and to_year):
         logging.error("improper inputs")
         return "error"
+    elif (from_year and to_year) and (from_year > to_year):
+        logging.error("improper inputs")
+        return "error"
     if year and month:
-        sec_xbrl.loadSECfilings.main(['-y', str(year), '-m', str(month)])
+        if not (year, month) in config.XBRL_DATES_DOWNLOADED_SET:
+            loadSECfilings.main(['-y', str(year), '-m', str(month)])
     elif from_year and to_year:
-        sec_xbrl.loadSECfilings.main(['-f', str(year), '-t', str(month)])
+        # Not using:
+        # loadSECfilings.main(['-f', str(from_year), '-t', str(to_year)])
+        # because in the file, it actually seperates by months anyway
+        for year in range(from_year, to_year+1):
+            for month in range(1, 13):
+                if not (year, month) in config.XBRL_DATES_DOWNLOADED_SET:
+                    loadSECfilings.main(['-y', str(year), '-m', str(month)])
+
+
+
 
 ################################################################################################
 

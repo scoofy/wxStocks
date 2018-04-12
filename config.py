@@ -342,7 +342,9 @@ SCRAPE_LOOP_STARTED = 0.0
 SCRAPE_LOOP_QUEUE = [] # for "scrape_loop_for_missing_portfolio_stocks()" in scrapers
 
 ### xbrl stuff ####
+XBRL_DATES_DOWNLOADED_SET = set()
 DEFAULT_PERIOD_TAG = "{http://www.xbrl.org/2003/instance}period"
+
 ########
 
 

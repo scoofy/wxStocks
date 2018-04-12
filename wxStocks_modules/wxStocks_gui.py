@@ -382,20 +382,12 @@ class WelcomePage(Tab):
             self.deleteAllStockDataConfirm()
 
     def deleteAllStockDataConfirm(self):
-        config.GLOBAL_TICKER_LIST = []
-        db.save_GLOBAL_TICKER_LIST()
-
-        config.GLOBAL_STOCK_DICT = {}
-        config.GLOBAL_ATTRIBUTE_SET = set([])
-        db.save_GLOBAL_STOCK_DICT()
-
-        logging.info("Data deleted.")
+        db.deleteAllStockDataConfirmed()
 
         ticker_page = config.GLOBAL_PAGES_DICT.get(config.TICKER_PAGE_UNIQUE_ID).obj
         ticker_page.downloadTickers()
 
         sys.exit()
-
 ##
 class GetDataPage(Tab):
     def __init__(self, parent):
@@ -590,7 +582,7 @@ class XbrlImportPage(Tab):
                              gui_position.XbrlImportPage.text
                              )
 
-        self.sec_download_button = wx.Button(self, label="Download XBRL files from the SEC", pos=gui_position.XbrlImportPage.sec_download_button, size=(-1,-1))
+        self.sec_download_button = wx.Button(self, label="Download XBRL files from the SEC folder", pos=gui_position.XbrlImportPage.sec_download_button, size=(-1,-1))
         self.sec_download_button.Bind(wx.EVT_BUTTON, self.confirmSecDownload, self.sec_download_button)
 
         self.radio_year_month = wx.RadioButton(self, pos=gui_position.XbrlImportPage.radio_year_month)
@@ -692,7 +684,7 @@ class XbrlImportPage(Tab):
 
     def confirmSecDownload(self, event):
         confirm = wx.MessageDialog(None,
-                                   "You are about to import XBRL data from the SEC's database. If you do this too often, they may temporarily block your IP address. Please do this at night.",
+                                   "You are about to import XBRL data from the SEC's database. Please don't do this during business hours, do it at night. Also, these downloads can be very, very large. Make sure you have a large amount of memory available.\n\nData saved limited for memory purpose. You can edit the scraper section to expand this.",
                                    'Import stock data?',
                                    style = wx.YES_NO
                                    )
@@ -701,7 +693,25 @@ class XbrlImportPage(Tab):
         confirm.Destroy()
 
         if yesNoAnswer == wx.ID_YES:
-            self.scrapeYQL()
+            self.scrapeSEC()
+
+    def scrapeSEC(self):
+        year_month = self.radio_year_month.GetValue()
+        from_to = self.radio_from_year_to_year.GetValue()
+        year, month, from_year, to_year = None, None, None, None
+        if year_month:
+            year = self.xbrl_year_input.GetValue()
+            month = self.xbrl_month_dropdown.GetValue()
+            month = list(calendar.month_name).index(month)
+        elif from_to:
+            from_year = self.xbrl_from_year_input.GetValue()
+            to_year = self.xbrl_to_year_input.GetValue()
+        else:
+            return
+        logging.warning("({}, {}, {}, {})".format(year, month, from_year, to_year))
+        scrape.sec_xbrl_download(year=year, month=month, from_year=from_year, to_year=to_year)
+        logging.warning("convert to files here?")
+
 
     def abortImport(self, event):
         logging.info("Canceling import... this may take up to {} seconds.".format(config.SCRAPE_SLEEP_TIME))

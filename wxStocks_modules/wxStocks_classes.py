@@ -239,6 +239,10 @@ class Account(persistent.Persistent): #portfolio
         else: # Redundent, but i'm leaving it in here in case i need to edit this later.
             self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
 
+class PersistantUserData(persistent.Persistent): # user data that must persist
+    def __init__(self):
+        self.xbrl_date_set_repr_str = persistent.list.PersistentList()
+
 class SpreadsheetCell(object):
     def __init__(self,
         row = None,
