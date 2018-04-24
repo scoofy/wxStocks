@@ -56,15 +56,7 @@ def scrape_all_additional_data_execute(list_of_ticker_symbols, list_of_functions
 #################### Nasdaq Ticker Symbol Scraper ##############################################
 # no longer used
 def download_ticker_symbols(): # from nasdaq.com
-    headers = {
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-                'Accept-Encoding': 'none',
-                'Accept-Language': 'en-US,en;q=0.8',
-                'Connection': 'keep-alive',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                }
+    headers = config.HEADERS
 
     exchanges = config.STOCK_EXCHANGE_LIST
     exchange_data = []
@@ -122,15 +114,7 @@ def download_ticker_symbols(): # from nasdaq.com
 def nasdaq_full_ticker_list_downloader() : # from nasdaq.com
     ''' returns list of the form [nasdaq_ticker, firm_name, exchange, is_etf_bool]'''
 
-    headers = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
-    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,;q=0.3',
-    'Accept-Encoding': 'none',
-    'Accept-Language': 'en-US,en;q=0.8',
-    'Connection': 'keep-alive',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/*;q=0.8'
-    }
+    headers = config.HEADERS
 
     url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt"
 
@@ -192,15 +176,7 @@ def nasdaq_full_ticker_list_downloader() : # from nasdaq.com
 
 # suggestion from Soncrates
 def nasdaq_stock_csv_url_and_headers_generator(exchanges=config.STOCK_EXCHANGE_LIST) : # from nasdaq.com
-    headers = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
-    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,;q=0.3',
-    'Accept-Encoding': 'none',
-    'Accept-Language': 'en-US,en;q=0.8',
-    'Connection': 'keep-alive',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/*;q=0.8'
-    }
+    headers = config.HEADERS
     for exchange in exchanges :
         config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = exchange.upper()
         yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange, headers
@@ -213,8 +189,12 @@ def return_webpage(url, headers, delay=15) : # I set the delay here at 15
     if delay:
         logging.info("Sleeping for %d seconds to prevent potential blocking of your ip address. You may change this as a keyword argument of this function." % delay)
     time.sleep(delay)
+    logging.warning("past delay")
     response = Request(url, headers=headers)
+    logging.warning('past response')
+    utils.print_attributes(response)
     page = urlopen(response)
+    logging.warning("page achieved")
     return page.read()
 
 def nasdaq_csv_stock_data_parsing_generator(csv_file):
@@ -261,6 +241,7 @@ def nasdaq_csv_stock_data_parsing_generator(csv_file):
 # suggestion from Soncrates
 def convert_nasdaq_csv_to_stock_objects():
     for url, headers in nasdaq_stock_csv_url_and_headers_generator():
+        logging.warning("here 1")
         if len(config.STOCK_EXCHANGE_LIST) < 5: # it should be
             nasdaq_csv = return_webpage(url, headers, delay=0)
         else: # incase this program grows beyond my wildest dreams
@@ -304,7 +285,58 @@ def convert_nasdaq_csv_to_stock_objects():
             stock.last_nasdaq_scrape_update = time.time()
     db.commit_db()
 
+#################### Rank and Filed Scrapers "_rd" ##############################################
+def download_cik_ticker_csv_mapping():
+    headers = config.HEADERS
+    url = "http://rankandfiled.com/static/export/cik_ticker.csv"
+    response = Request(url, headers=headers)
+    try:
+        page = urlopen(response)
+    except urllib.error.HTTPError as e:
+        logging.info(e.fp.read())
 
+    content = page.read()
+    return content
+def parse_cik_ticker_mapping(rf_content):
+    content = rf_content.splitlines()
+    # ['CIK','Name','Ticker','Exchange','SIC','Business','Incorporated','Industry','IRS']
+    reference_list = []
+    ticker_keyed_cik_data_dict = {}
+    for line in content:
+        decoded_line = line.decode("utf-8")
+        if decoded_line.startswith("CIK"):
+            reference_list = [ '{}__rf'.format(line) for line in decoded_line.split('|')]
+            continue
+        dummy_list = decoded_line.split('|')
+        parsed_dummy_list = []
+        for datum in dummy_list:
+            if datum:
+                formatted_datum = datum.strip()
+            else:
+                formatted_datum = None
+            parsed_dummy_list.append(formatted_datum)
+        mapping_dict = {x:y for x,y in zip(reference_list, parsed_dummy_list)}
+        ticker_keyed_cik_data_dict[mapping_dict.get("Ticker__rf")] = mapping_dict
+    pp.pprint(ticker_keyed_cik_data_dict)
+    return ticker_keyed_cik_data_dict
+def add_cik_data_to_stocks(ticker_keyed_cik_data_dict):
+    for key, value_dict in ticker_keyed_cik_data_dict.items():
+        if value_dict.get("Exchange"):
+            stock = db.create_new_Stock_if_it_doesnt_exist(key)
+        else:
+            stock = utils.return_stock_by_symbol(key)
+            if not stock:
+                continue
+        for subkey, subvalue in value_dict.items():
+            if subvalue:
+                if subkey == "CIK__rf":
+                    setattr(stock, "cik", int(subvalue))
+                setattr(stock, subkey, subvalue)
+
+def download_and_save_cik_ticker_mappings():
+    rf_content = download_cik_ticker_csv_mapping()
+    ticker_keyed_cik_data_dict = parse_cik_ticker_mapping(rf_content)
+    add_cik_data_to_stocks(ticker_keyed_cik_data_dict)
 
 #################### Yahoo Finance Scrapers "_yf" ##############################################
 def scrape_loop_for_missing_portfolio_stocks(ticker_list = [], update_regardless_of_recent_updates = False):
@@ -2442,25 +2474,32 @@ def convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict):
 
 ###################### EDGAR Scrapers "_us" ####################################################
 
-def return_xbrl_tree_and_namespace(zipfile):
+def return_xbrl_tree_and_namespace(path_to_zipfile=None):
     ticker = None
     # logging.info(zipfile)
-    archive = zf.ZipFile(zipfile, 'r')
+    try:
+        archive = zf.ZipFile(path_to_zipfile, 'r')
+    except Exception as e:
+        logging.error(e)
+        return[None, None, None]
     name_list = archive.namelist()
     main_file_name = None
     for name in name_list:
         if name.endswith(".xml") and "_" not in name:
             # logging.info(name)
-            ticker = name.split("-")[0].upper()
             main_file_name = name
+            logging.warning(main_file_name)
 
     ns = {}
-    for event, (name, value) in ET.iterparse(archive.open(main_file_name), ['start-ns']):
-        if name:
-            ns[name] = value
-
+    try:
+        for event, (name, value) in ET.iterparse(archive.open(main_file_name), ['start-ns']):
+            if name:
+                ns[name] = value
+    except Exception as e:
+        logging.error(e)
+        return[None, None, None]
     tree = ET.parse(archive.open(main_file_name))
-    return [tree, ns, ticker]
+    return [tree, ns, main_file_name]
 
 def return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=None, period=None):
     if period:
@@ -2475,13 +2514,30 @@ def return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=
     attribute_str = attribute_str.replace("-", "_")
     return attribute_str
 
-def return_simple_xbrl_dict(xbrl_tree, namespace, ticker):
+def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
     tree = xbrl_tree
     root = tree.getroot()
     ns = namespace
     reverse_ns = {v: k for k, v in ns.items()}
-    context_element_list = tree.findall("xbrli:context", ns)
-    stock = utils.return_stock_by_symbol(ticker)
+    # get CIK for stock, else return empty dict
+    logging.warning("lots of prints below this")
+    try:
+        context_tag = tree.find(config.DEFAULT_CONTEXT_TAG, ns)
+        entity_tag = context_tag.find(config.DEFAULT_ENTITY_TAG, ns)
+        identifier_tag = entity_tag.find(config.DEFAULT_IDENTIFIER_TAG, ns)
+        cik = identifier_tag.text
+    except:
+        logging.error('CIK could not be found for: {}\nReturning empty dict...'.format(file_name))
+        return None
+    stock = utils.return_stock_by_cik(cik)
+    if not stock:
+        logging.info('No stock for CIK: {}\nReturning empty dict.'.format(cik))
+        return None
+    # Stock with CIK found, time to save stuff
+    try:
+        context_element_list = tree.findall(config.DEFAULT_IDENTIFIER_TAG, ns)
+    except:
+        context_element_list = tree.findall("context", ns)
     xbrl_stock_dict = {ticker: {}}
     for element in context_element_list:
         period_dict = {}
@@ -2573,6 +2629,8 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, ticker):
     return(xbrl_stock_dict)
 
 def save_stock_dict(xbrl_stock_dict):
+    if not xbrl_stock_dict:
+        return
     ticker = list(xbrl_stock_dict.keys())[0] # Note, i use this notation because it's more clear
     stock = utils.return_stock_by_symbol(ticker)
     if not stock:
@@ -2602,8 +2660,21 @@ def save_stock_dict(xbrl_stock_dict):
             stock_period_dict = getattr(stock, period_dict_str)
 
             datetime_fourple_list = [] #[serialize, end dt, start dt, range]
+
             for period in list(stock_period_dict.keys()):
+                if period == "most_recent":
+                    continue
                 period_datetime_str = stock_period_dict[period].get("datetime")
+                try:
+                    period_datetime_str = period_datetime_str.replace("\n", "")
+                except Exception as e:
+                    print(e)
+                    logging.warning(period_datetime_str)
+
+                logging.warning(accounting_item)
+                logging.warning(period_datetime_str)
+                pp.pprint(stock_period_dict)
+                print(period)
                 period_datetime = utils.iso_date_to_datetime(period_datetime_str)
                 timedelta_start = stock_period_dict[period].get("timedeltastart")
 
@@ -2625,17 +2696,22 @@ def save_stock_dict(xbrl_stock_dict):
                 else:
                     timedelta_range = None
                     period_endtime_datetime = None
+
                 period_and_serialized_fourple = [serialize_index_to_save, period_datetime, period_endtime_datetime, timedelta_range]
+
                 datetime_fourple_list.append(period_and_serialized_fourple)
             set_of_ranges = set([fourple[3] for fourple in datetime_fourple_list])
-
-            youngest_datetime = max(fourple[1] for fourple in datetime_fourple_list if fourple[1] <= today)
+            youngest_datetime = max(fourple[1] for fourple in datetime_fourple_list if fourple[1])
             youngest_fourple_list = [fourple for fourple in datetime_fourple_list if fourple[1] == youngest_datetime]
             if len(youngest_fourple_list) > 1:
                 relevant_list = [fourple for fourple in datetime_fourple_list if fourple[2]]
-                youngest_start_datetime = max(fourple[2] for fourple in relevant_list if fourple[2] <= today)
-                youngest_start_dt_fourple = [fourple for fourple in relevant_list if fourple[2] == youngest_start_datetime]
-                youngest = youngest_start_dt_fourple[0]
+                try:
+                    youngest_start_datetime = max(fourple[2] for fourple in relevant_list if fourple[2])
+                    youngest_start_dt_fourple = [fourple for fourple in relevant_list if fourple[2] == youngest_start_datetime]
+                    youngest = youngest_start_dt_fourple[0]
+                except:
+                    logging.warning("Accounting item has multiple simultanious, instantanious entries, choosing the first")
+                    youngest = youngest_fourple_list[0]
             else:
                 youngest = youngest_fourple_list[0]
 
@@ -2647,7 +2723,12 @@ def save_stock_dict(xbrl_stock_dict):
             if len(set_of_ranges) > 1:
                 for time_range in set_of_ranges:
                     time_range_list = [fourple for fourple in datetime_fourple_list if fourple[3] == time_range]
-                    youngest_datetime = max(fourple[1] for fourple in time_range_list if fourple[1] <= today)
+                    try:
+                        youngest_datetime = max(fourple[1] for fourple in time_range_list)
+                    except:
+                        logging.warning(datetime_fourple_list)
+                        logging.warning(accounting_item)
+                        sys.exit()
                     youngest_datetime_delta = today - youngest_datetime
                     if youngest_datetime_delta.days > 366:
                         # very old data, over a year old, use most recent period instead
@@ -2672,22 +2753,21 @@ def save_stock_dict(xbrl_stock_dict):
     # utils.print_attributes(stock)
     db.commit_db()
 
-def scrape_xbrl_from_file(path_to_zipfile=None, actual_zipfile=None):
-    if path_to_zipfile:
-        tree, ns, ticker = return_xbrl_tree_and_namespace(path_to_zipfile)
-    elif actual_zipfile:
-        tree, ns, ticker = return_xbrl_tree_and_namespace(actual_zipfile)
-    else:
-        logging.warning("Error in zipfile to xbrl business")
-    # logging.warning("return_xbrl_tree_and_namespace: {}".format(ticker))
-    # print(ns)
-    # print(ticker)
-    stock_dict = return_simple_xbrl_dict(tree, ns, ticker)
+def scrape_xbrl_from_file(path_to_zipfile):
+    filename_to_be_recorded = path_to_zipfile
+    tree, ns, file_name = return_xbrl_tree_and_namespace(path_to_zipfile = path_to_zipfile)
+    if [tree, ns, file_name] == [None, None, None]:
+        return
+    stock_dict = return_simple_xbrl_dict(tree, ns, file_name)
+    if not stock_dict:
+        return
     # logging.warning("return_simple_xbrl_dict")
     # pp.pprint(stock_dict)
+    config.SEC_XBRL_FILES_DOWNLOADED_SET.add(filename_to_be_recorded)
     save_stock_dict(stock_dict)
+    db.save_filenames_of_sec_xbrl_files_downloaded()
 
-def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None):
+def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None, add_to_wxStocks_database=None):
     # loadSECfilings.py -y <year> -m <month> | -f <from_year> -t <to_year>
     if not (year and month) or (from_year and to_year):
         logging.error("improper inputs")
@@ -2696,16 +2776,14 @@ def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None):
         logging.error("improper inputs")
         return "error"
     if year and month:
-        if not (year, month) in config.XBRL_DATES_DOWNLOADED_SET:
-            loadSECfilings.main(['-y', str(year), '-m', str(month)])
+        loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database)
     elif from_year and to_year:
         # Not using:
         # loadSECfilings.main(['-f', str(from_year), '-t', str(to_year)])
         # because in the file, it actually seperates by months anyway
         for year in range(from_year, to_year+1):
             for month in range(1, 13):
-                if not (year, month) in config.XBRL_DATES_DOWNLOADED_SET:
-                    loadSECfilings.main(['-y', str(year), '-m', str(month)])
+                loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database)
 
 
 

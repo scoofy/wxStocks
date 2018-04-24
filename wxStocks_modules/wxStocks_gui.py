@@ -493,12 +493,10 @@ class TickerPage(Tab):
 
         logging.info("Begin price data download...")
         scrape.convert_nasdaq_csv_to_stock_objects()
+        scrape.download_and_save_cik_ticker_mappings()
         db.save_GLOBAL_STOCK_DICT()
 
         self.showAllTickers()
-        # Update scrape page
-        scrape_page = config.GLOBAL_PAGES_DICT.get(config.YQL_SCRAPE_PAGE_UNIQUE_ID).obj
-        scrape_page.calculate_scrape_times()
         # Update view all stocks
         view_all_stocks_page = config.GLOBAL_PAGES_DICT.get(config.ALL_STOCKS_PAGE_UNIQUE_ID).obj
         view_all_stocks_page.spreadSheetFillAllStocks("event")
@@ -582,7 +580,7 @@ class XbrlImportPage(Tab):
                              gui_position.XbrlImportPage.text
                              )
 
-        self.sec_download_button = wx.Button(self, label="Download XBRL files from the SEC folder", pos=gui_position.XbrlImportPage.sec_download_button, size=(-1,-1))
+        self.sec_download_button = wx.Button(self, label="Download XBRL files from the SEC", pos=gui_position.XbrlImportPage.sec_download_button, size=(-1,-1))
         self.sec_download_button.Bind(wx.EVT_BUTTON, self.confirmSecDownload, self.sec_download_button)
 
         self.radio_year_month = wx.RadioButton(self, pos=gui_position.XbrlImportPage.radio_year_month)
@@ -590,17 +588,28 @@ class XbrlImportPage(Tab):
 
         self.radio_from_year_to_year = wx.RadioButton(self, pos=gui_position.XbrlImportPage.radio_from_year_to_year)
 
+        self.checkbox_dont_save_sec_files = wx.CheckBox(self, pos=gui_position.XbrlImportPage.checkbox_dont_save_sec_files, label="Download without backups")
+        self.checkbox_dont_save_sec_files.SetValue(True)
+
         now = datetime.datetime.now()
+        this_month = int(now.month)
+        this_months_year = int(now.year)
+        if this_month == 1:
+            last_month = 12
+            last_months_year = this_months_year - 1
+        else:
+            last_month = this_month - 1
+            last_months_year = this_months_year
 
         self.xbrl_year_input = wx.TextCtrl(self, -1,
-                                   str(now.year),
+                                   str(last_months_year),
                                    gui_position.XbrlImportPage.xbrl_year_input,
                                    )
         self.xbrl_year_input.SetHint("year")
         self.xbrl_year_input.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_year_month))
 
         self.xbrl_month_dropdown = wx.ComboBox(self, pos=gui_position.XbrlImportPage.xbrl_month_dropdown, choices= calendar.month_name[1:])
-        self.xbrl_month_dropdown.SetSelection(now.month-1) # ordianals
+        self.xbrl_month_dropdown.SetSelection(last_month-1) # ordianals
         self.xbrl_month_dropdown.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_year_month))
 
         self.xbrl_from_year_input = wx.TextCtrl(self, pos=gui_position.XbrlImportPage.xbrl_from_year_input)
@@ -677,10 +686,14 @@ class XbrlImportPage(Tab):
             path = None
         xbrl_data_folder_dialogue.Destroy()
         if path:
+            logging.warning(path)
             for file in os.listdir(path):
+                logging.warning(file)
+                file_path = os.path.join(path, file)
+                logging.warning(file_path)
                 if file.endswith(".zip"):
                     logging.warning("Importing from: {}".format(os.path.join(path, file)))
-                    scrape.scrape_xbrl_from_file(path)
+                    scrape.scrape_xbrl_from_file(file_path)
 
     def confirmSecDownload(self, event):
         confirm = wx.MessageDialog(None,
@@ -709,8 +722,8 @@ class XbrlImportPage(Tab):
         else:
             return
         logging.warning("({}, {}, {}, {})".format(year, month, from_year, to_year))
-        scrape.sec_xbrl_download(year=year, month=month, from_year=from_year, to_year=to_year)
-        logging.warning("convert to files here?")
+        add_to_wxStocks_database = self.checkbox_dont_save_sec_files.IsChecked()
+        scrape.sec_xbrl_download(year=year, month=month, from_year=from_year, to_year=to_year, add_to_wxStocks_database = add_to_wxStocks_database)
 
 
     def abortImport(self, event):

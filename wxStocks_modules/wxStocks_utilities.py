@@ -1,12 +1,13 @@
 import wx, inspect, logging, time, csv, datetime
 import config
+from wxStocks_modules.wxStocks_classes import Stock
 def print_attributes(obj):
     for attribute in dir(obj):
         if attribute[:2] != "__":
             if type(obj) is Stock:
-                print("{} {} {}").format(obj.symbol + "." + attribute, "=", getattr(obj, attribute))
+                print("{} {} {}".format(obj.symbol + "." + attribute, "=", getattr(obj, attribute)))
             else:
-                print("{} {} {}").format(attribute, "=", getattr(obj, attribute))
+                print("{} {} {}".format(attribute, "=", getattr(obj, attribute)))
 def start_whitespace():
     print("""
     \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
@@ -26,7 +27,14 @@ def return_stock_by_symbol(ticker_symbol):
         except:
             pass
         logging.warning("Stock with symbol {} does not appear to exist".format(ticker_symbol))
-        return None
+
+def return_stock_by_cik(cik_number):
+    cik = str(cik_number)
+    stock = config.GLOBAL_CIK_DICT.get(cik)
+    try:
+        return config.GLOBAL_CIK_DICT.get(cik)
+    except Exception as e:
+        logging.warning("Stock with CIK {} does not appear to exist".format(cik_number))
 
 def return_all_stocks():
     import re
@@ -669,13 +677,6 @@ def convert_to_log_str(*args):
         str_to_return = str_to_return + str(arg) + "\n"
     return str_to_return
 
-def print_attributes(obj):
-    logging.info("printing attribute for {}".format(obj))
-    print(obj.ticker)
-    for attribute in dir(obj):
-        if not attribute.startswith("_"):
-            print(attribute)
-    print("----------------")
 ############################################################################################
 
 

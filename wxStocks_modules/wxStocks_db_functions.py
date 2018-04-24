@@ -3,7 +3,7 @@ import ZODB, ZODB.FileStorage, BTrees.OOBTree, transaction, persistent
 from BTrees.OOBTree import OOSet
 
 import config
-import inspect, logging, os, threading, hashlib, getpass, glob, time
+import inspect, logging, os, threading, hashlib, getpass, glob, time, ast
 import pickle
 import bcrypt
 try:
@@ -45,7 +45,7 @@ custom_analysis_path = os.path.join('user_data','user_functions','wxStocks_custo
 default_custom_analysis_path = os.path.join('wxStocks_modules','wxStocks_default_functions','wxStocks_default_custom_analysis_spreadsheet_builder.py')
 do_not_copy_path = 'DO_NOT_COPY'
 encryption_strength_path = os.path.join('wxStocks_data','encryption_strength.txt')
-xbrl_date_path = os.path.join('user_data','xbrl_dates_downloaded.txt')
+sec_xbrl_files_downloaded_path = os.path.join('user_data','sec_xbrl_files_downloaded.txt')
 
 
 ####################### Data Loading ###############################################
@@ -86,7 +86,7 @@ def load_all_data():
     load_all_portfolio_objects()
     load_GLOBAL_STOCK_SCREEN_DICT()
     load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
-    load_xbrl_dates_downloaded()
+    load_filenames_of_sec_xbrl_files_downloaded()
 def savepoint_db():
     transaction.savepoint(True)
 def commit_db():
@@ -200,7 +200,6 @@ def create_loading_status_bar():
     print(status_bar_width, status_bar_height)
     main_frame.SetSize(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1] + status_bar_height)
 
-
 def update_loading_status_bar(percent_str):
     main_frame = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID)
     main_frame.SetStatusText(text="Loading database: {}%".format(percent_str))
@@ -224,6 +223,8 @@ def load_GLOBAL_STOCK_DICT_into_active_memory_worker():
     for stock in config.GLOBAL_STOCK_DICT.values():
         count += 1
         data = stock.ticker
+        if hasattr(stock, 'cik'):
+            config.GLOBAL_CIK_DICT[str(stock.cik)] = stock
         percent = int(count/float(length)*100)
         percent_str = str(percent)
         if percent<10:
@@ -235,6 +236,7 @@ def load_GLOBAL_STOCK_DICT_into_active_memory_worker():
         update_loading_status_bar(percent_str)
     finish = time.time()
     logging.info("Stocks now in active memory: {} seconds".format(round(finish-start)))
+    logging.info("GLOBAL_CIK_DICT in active memory")
     remove_loading_status_bar()
 
 def save_GLOBAL_STOCK_DICT(): ##### no need to update
@@ -469,20 +471,28 @@ def delete_portfolio_object(id_number): ###### updated
     return "success"
 
 ### XBRL dates saved
-def load_xbrl_dates_downloaded():
-    xbrl_date_file = open(xbrl_date_path, 'r')
-    date_repr_str = xbrl_date_file.read()
-    xbrl_date_file.close()
-    if date_repr_str:
-        config.XBRL_DATES_DOWNLOADED_SET = ast.literal_eval(date_repr_str)
-def save_xbrl_dates_downloaded():
-    with open(xbrl_date_path, "w") as output:
-        if config.XBRL_DATES_DOWNLOADED_SET:
-            serialized_xbrl_set = repr(config.XBRL_DATES_DOWNLOADED_SET)
+def save_filenames_of_sec_xbrl_files_downloaded():
+    with open(sec_xbrl_files_downloaded_path, "w") as output:
+        if config.SEC_XBRL_FILES_DOWNLOADED_SET:
+            serialized_xbrl_set = repr(config.SEC_XBRL_FILES_DOWNLOADED_SET)
             output.write(serialized_xbrl_set)
-def delete_xbrl_dates_downloaded():
-    config.XBRL_DATES_DOWNLOADED_SET = set()
-    with open(xbrl_date_path, "w") as output:
+def load_filenames_of_sec_xbrl_files_downloaded():
+    try:
+        sec_xbrl_files_downloaded_file = open(sec_xbrl_files_downloaded_path, 'r')
+    except:
+        # create file needed
+        save_filenames_of_sec_xbrl_files_downloaded()
+        # then load new file
+        load_filenames_of_sec_xbrl_files_downloaded()
+        # then don't rerun the rest
+        return
+    date_repr_str = sec_xbrl_files_downloaded_file.read()
+    sec_xbrl_files_downloaded_file.close()
+    if date_repr_str:
+        config.SEC_XBRL_FILES_DOWNLOADED_SET = ast.literal_eval(date_repr_str)
+def delete_filenames_of_sec_xbrl_files_downloaded():
+    config.SEC_XBRL_FILES_DOWNLOADED_SET = set()
+    with open(sec_xbrl_files_downloaded_path, "w") as output:
         output.write("")
 
 ### Password data
@@ -575,10 +585,13 @@ def deleteAllStockDataConfirmed():
     save_GLOBAL_TICKER_LIST()
 
     config.GLOBAL_STOCK_DICT = {}
+    keys_to_del = [key for key in root.Stock]
+    for key in keys_to_del:
+        del root.Stock[key]
     config.GLOBAL_ATTRIBUTE_SET = set([])
     save_GLOBAL_STOCK_DICT()
 
-    delete_xbrl_dates_downloaded()
+    delete_filenames_of_sec_xbrl_files_downloaded()
 
     logging.info("Data deleted.")
 

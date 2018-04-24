@@ -54,6 +54,7 @@ class XbrlImportPage(object):
     row_two = 125
     row_three = 150
     row_four = 175
+    row_five = 200
 
     text = (10,10)
 
@@ -70,6 +71,8 @@ class XbrlImportPage(object):
     radio_from_year_to_year = (5, row_four+2)
     xbrl_from_year_input = (28, row_four)
     xbrl_to_year_input = (135, row_four)
+
+    checkbox_dont_save_sec_files = (5, row_five+2)
 
     progress_bar = (0,400)
     progress_bar_size = [(995,-1), ((default_width- 35),-1), ((default_width- 35),-1)][config.OS_TYPE_INDEX]

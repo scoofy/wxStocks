@@ -59,6 +59,14 @@ except Exception as e:
 	logging.error("This program has not be properly formatted for your OS. Edit the config file if needed.")
 	sys.exit()
 
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:59.0) Gecko/20100101 Firefox/59.0',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Connection': 'keep-alive',
+    }
+
 IRRELEVANT_ATTRIBUTES = ["updated",
 	"epoch",
 	"created_epoch",
@@ -305,6 +313,8 @@ GLOBAL_TABS_DICT = {}
 
 GLOBAL_STOCK_DICT = {}
 
+GLOBAL_CIK_DICT = {}
+
 GLOBAL_TICKER_LIST = []
 
 GLOBAL_ATTRIBUTE_SET = set([])
@@ -342,9 +352,13 @@ SCRAPE_LOOP_STARTED = 0.0
 SCRAPE_LOOP_QUEUE = [] # for "scrape_loop_for_missing_portfolio_stocks()" in scrapers
 
 ### xbrl stuff ####
-XBRL_DATES_DOWNLOADED_SET = set()
-DEFAULT_PERIOD_TAG = "{http://www.xbrl.org/2003/instance}period"
+SEC_XBRL_FILES_DOWNLOADED_SET = set()
+DEFAULT_CONTEXT_TAG = "{http://www.xbrl.org/2003/instance}context"
 
+DEFAULT_ENTITY_TAG = "{http://www.xbrl.org/2003/instance}entity"
+DEFAULT_IDENTIFIER_TAG = "{http://www.xbrl.org/2003/instance}identifier"
+
+DEFAULT_PERIOD_TAG = "{http://www.xbrl.org/2003/instance}period"
 ########
 
 
