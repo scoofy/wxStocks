@@ -91,6 +91,7 @@ def savepoint_db():
     transaction.savepoint(True)
 def commit_db():
     transaction.commit()
+    config.GLOBAL_STOCK_DICT = root.Stock
     logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
 
 
@@ -114,7 +115,7 @@ def delete_GLOBAL_TICKER_LIST(): ###### updated
 ###
 
 ### Global Stock dict functions
-def create_new_Stock_if_it_doesnt_exist(ticker):
+def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
     if not type(ticker) == str:
         ticker = str(ticker)
     symbol = ticker.upper()
@@ -175,9 +176,10 @@ def create_new_Stock_if_it_doesnt_exist(ticker):
 
     stock = config.GLOBAL_STOCK_DICT.get(symbol)
     if not stock:
-        stock = wxStocks_classes.Stock(symbol)
+        stock = wxStocks_classes.Stock(symbol, firm_name=firm_name)
         root.Stock[symbol] = stock
         transaction.commit()
+        config.GLOBAL_STOCK_DICT = root.Stock
     return stock
 def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
     full_attribute_name = attribute_name + data_source_suffix
@@ -187,6 +189,7 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
         setattr(Stock, full_attribute_name, None)
     if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
         config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
+    commit_db()
 def load_GLOBAL_STOCK_DICT(): ###### updated
     config.GLOBAL_STOCK_DICT = root.Stock
     load_GLOBAL_ATTRIBUTE_SET()
@@ -588,8 +591,10 @@ def deleteAllStockDataConfirmed():
     keys_to_del = [key for key in root.Stock]
     for key in keys_to_del:
         del root.Stock[key]
-    config.GLOBAL_ATTRIBUTE_SET = set([])
     save_GLOBAL_STOCK_DICT()
+    config.GLOBAL_ATTRIBUTE_SET = set() # in case something went terribly wrong
+    root.GLOBAL_ATTRIBUTE_SET = set()
+    save_GLOBAL_ATTRIBUTE_SET()
 
     delete_filenames_of_sec_xbrl_files_downloaded()
 

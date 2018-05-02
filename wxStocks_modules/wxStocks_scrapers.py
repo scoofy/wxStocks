@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from urllib.request import urlopen, Request
 import urllib.error
 from bs4 import BeautifulSoup
+import requests
 
 from modules.pyql import pyql
 
@@ -179,7 +180,7 @@ def nasdaq_stock_csv_url_and_headers_generator(exchanges=config.STOCK_EXCHANGE_L
     headers = config.HEADERS
     for exchange in exchanges :
         config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = exchange.upper()
-        yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange, headers
+        yield "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange={}&render=download".format(config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE), headers
     config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
     # yield etfs
     yield "http://www.nasdaq.com/investing/etfs/etf-finder-results.aspx?download=Yes", headers
@@ -189,17 +190,19 @@ def return_webpage(url, headers, delay=15) : # I set the delay here at 15
     if delay:
         logging.info("Sleeping for %d seconds to prevent potential blocking of your ip address. You may change this as a keyword argument of this function." % delay)
     time.sleep(delay)
-    logging.warning("past delay")
-    response = Request(url, headers=headers)
-    logging.warning('past response')
-    utils.print_attributes(response)
+    #logging.warning("past delay")
+    response = Request(url)
+    #logging.warning('\n'+url+'\n')
+    #utils.print_attributes(response)
+    #logging.warning(response)
     page = urlopen(response)
-    logging.warning("page achieved")
+    #logging.warning("\npage achieved\n")
     return page.read()
 
 def nasdaq_csv_stock_data_parsing_generator(csv_file):
     rows_list = csv_file.splitlines()
     for row_num in range(len(rows_list)):
+        logging.info(rows_list[row_num])
         row_data = rows_list[row_num].decode('utf-8').split('",')
         if row_num == 0:
             dict_list = row_data
@@ -241,11 +244,12 @@ def nasdaq_csv_stock_data_parsing_generator(csv_file):
 # suggestion from Soncrates
 def convert_nasdaq_csv_to_stock_objects():
     for url, headers in nasdaq_stock_csv_url_and_headers_generator():
-        logging.warning("here 1")
+        logging.warning("\nhere 1\n")
         if len(config.STOCK_EXCHANGE_LIST) < 5: # it should be
-            nasdaq_csv = return_webpage(url, headers, delay=0)
+            nasdaq_csv = return_webpage(url, headers, delay=1)
         else: # incase this program grows beyond my wildest dreams
             nasdaq_csv = return_webpage(url, headers)
+        # logging.warning('\nhere again\n')
         for stock_dict in nasdaq_csv_stock_data_parsing_generator(nasdaq_csv):
             # stock_dict:
             # {
@@ -305,7 +309,7 @@ def parse_cik_ticker_mapping(rf_content):
     for line in content:
         decoded_line = line.decode("utf-8")
         if decoded_line.startswith("CIK"):
-            reference_list = [ '{}__rf'.format(line) for line in decoded_line.split('|')]
+            reference_list = [ '{}'.format(line) for line in decoded_line.split('|')]
             continue
         dummy_list = decoded_line.split('|')
         parsed_dummy_list = []
@@ -316,22 +320,27 @@ def parse_cik_ticker_mapping(rf_content):
                 formatted_datum = None
             parsed_dummy_list.append(formatted_datum)
         mapping_dict = {x:y for x,y in zip(reference_list, parsed_dummy_list)}
-        ticker_keyed_cik_data_dict[mapping_dict.get("Ticker__rf")] = mapping_dict
+        ticker_keyed_cik_data_dict[mapping_dict.get("Ticker")] = mapping_dict
+    logging.warning("pprint next line")
     pp.pprint(ticker_keyed_cik_data_dict)
     return ticker_keyed_cik_data_dict
 def add_cik_data_to_stocks(ticker_keyed_cik_data_dict):
-    for key, value_dict in ticker_keyed_cik_data_dict.items():
-        if value_dict.get("Exchange"):
-            stock = db.create_new_Stock_if_it_doesnt_exist(key)
-        else:
-            stock = utils.return_stock_by_symbol(key)
-            if not stock:
+    for ticker_key, value_dict in ticker_keyed_cik_data_dict.items():
+        stock = utils.return_stock_by_symbol(ticker_key)
+        if not stock:
+            if value_dict.get("Exchange"):
+                if value_dict.get("Name"):
+                    stock = db.create_new_Stock_if_it_doesnt_exist(ticker_key, firm_name=str(value_dict.get("Name")).strip())
+                else:
+                    stock = db.create_new_Stock_if_it_doesnt_exist(ticker_key)
+            else:
                 continue
         for subkey, subvalue in value_dict.items():
             if subvalue:
-                if subkey == "CIK__rf":
-                    setattr(stock, "cik", int(subvalue))
-                setattr(stock, subkey, subvalue)
+                if subkey == "CIK":
+                    # set a CIK attribute
+                    db.set_Stock_attribute(stock, "cik", int(subvalue), "")
+                db.set_Stock_attribute(stock, subkey, subvalue, "_rf")
 
 def download_and_save_cik_ticker_mappings():
     rf_content = download_cik_ticker_csv_mapping()
@@ -2457,7 +2466,7 @@ def convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict):
             stat_id = stat_dict.get("id")
             stat_value = stat_dict.get("fieldValue")
             if stat_id:
-                setattr(stock, str(stat_id)+"_bb", stat_value)
+                db.set_Stock_attribute(stock, str(stat_id), stat_value, "_bb")
 
     # quote
     quote = bloomberg_dict.get("quote")
@@ -2467,7 +2476,7 @@ def convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict):
                 if type(value) in [list, dict, set]:
                     # lots of unhelpful large amounts of data
                     continue
-                setattr(stock, str(key)+"_bb", value)
+                db.set_Stock_attribute(stock, str(key), value, "_bb")
 
 
 ################################################################################################
@@ -2488,7 +2497,7 @@ def return_xbrl_tree_and_namespace(path_to_zipfile=None):
         if name.endswith(".xml") and "_" not in name:
             # logging.info(name)
             main_file_name = name
-            logging.warning(main_file_name)
+            # logging.warning(main_file_name)
 
     ns = {}
     try:
@@ -2504,13 +2513,13 @@ def return_xbrl_tree_and_namespace(path_to_zipfile=None):
 def return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=None, period=None):
     if period:
         if period == "period":
-            attribute_str = str(accounting_item) + "_" + str(institution) +  "__us"
+            attribute_str = str(accounting_item) + "_" + str(institution)
         else:
-            attribute_str = str(accounting_item) + "_" + str(institution) +  "_most_recent_" + period + "__us"
+            attribute_str = str(accounting_item) + "_" + str(institution) +  "_most_recent_" + period
     elif xbrl_dict:
-        attribute_str = str(accounting_item) + "_" + str(institution) + "__dict__us"
+        attribute_str = str(accounting_item) + "_" + str(institution) + "__dict"
     else:
-        attribute_str = str(accounting_item) + "_" + str(institution) +  "__us"
+        attribute_str = str(accounting_item) + "_" + str(institution)
     attribute_str = attribute_str.replace("-", "_")
     return attribute_str
 
@@ -2520,41 +2529,54 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
     ns = namespace
     reverse_ns = {v: k for k, v in ns.items()}
     # get CIK for stock, else return empty dict
-    logging.warning("lots of prints below this")
     try:
         context_tag = tree.find(config.DEFAULT_CONTEXT_TAG, ns)
         entity_tag = context_tag.find(config.DEFAULT_ENTITY_TAG, ns)
         identifier_tag = entity_tag.find(config.DEFAULT_IDENTIFIER_TAG, ns)
         cik = identifier_tag.text
     except:
-        logging.error('CIK could not be found for: {}\nReturning empty dict...'.format(file_name))
+        logging.error('CIK could not be found for: {}'.format(file_name))
         return None
     stock = utils.return_stock_by_cik(cik)
     if not stock:
-        logging.info('No stock for CIK: {}\nReturning empty dict.'.format(cik))
+        logging.info('No stock for CIK: {}'.format(cik))
         return None
     # Stock with CIK found, time to save stuff
-    try:
-        context_element_list = tree.findall(config.DEFAULT_IDENTIFIER_TAG, ns)
-    except:
-        context_element_list = tree.findall("context", ns)
+    ticker = stock.ticker
+
+    context_element_list = None
+    for identifier_tag in [config.DEFAULT_IDENTIFIER_TAG,
+                           "xbrli:context",
+                           "context",
+                          ]:
+        try:
+            context_element_list = tree.findall(identifier_tag, ns)
+        except:
+            pass
+        if context_element_list:
+            break
+
+    if not context_element_list:
+        logging.error(context_element_list)
+        return
     xbrl_stock_dict = {ticker: {}}
     for element in context_element_list:
-        period_dict = {}
+        period_dict = dict()
         dimension = None
         dimension_value = None
         previous_entry = None
         # get period first:
         period_element = element.find(config.DEFAULT_PERIOD_TAG)
         for item in period_element.iter():
+            # a lot of these datetimes have leading and trailing \n's
             if "startDate" in item.tag:
-                period_dict["startDate"] = item.text
+                period_dict["startDate"] = str(item.text).strip().replace("\n", "")
             elif "endDate" in item.tag:
-                period_dict["endDate"] = item.text
+                period_dict["endDate"] = str(item.text).strip().replace("\n", "")
             elif "instant" in item.tag:
-                period_dict["instant"] = item.text
+                period_dict["instant"] = str(item.text).strip().replace("\n", "")
             elif "forever" in item.tag:
-                period_dict["forever"] = item.text
+                period_dict["forever"] = str(item.text).strip().replace("\n", "")
         if not period_dict:
             logging.error("No period")
         else:
@@ -2596,6 +2618,7 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
         context_id = element.get("id")
         context_ref_list = [x for x in root if x.get("contextRef") == context_id]
         for context_element in context_ref_list:
+            # these text attributes are a mess, so i ignore them
             if "TextBlock" in str(context_element.tag):
                 continue
             elif "&lt;" in str(context_element.text):
@@ -2609,7 +2632,8 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
                 logging.error(split_tag)
             institution = reverse_ns.get(split_tag[0][1:])
             accounting_item = split_tag[1]
-            value = context_element.text
+            # lots of problems with new lines in this
+            value = str(context_element.text).strip().replace("\n","")
             unitRef = context_element.get("unitRef")
             decimals = context_element.get("decimals")
             if not xbrl_stock_dict[ticker].get(institution):
@@ -2630,7 +2654,10 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
 
 def save_stock_dict(xbrl_stock_dict):
     if not xbrl_stock_dict:
+        logging.error("No xbrl_stock_dict")
         return
+    logging.warning("pprint next line")
+    pp.pprint(xbrl_stock_dict)
     ticker = list(xbrl_stock_dict.keys())[0] # Note, i use this notation because it's more clear
     stock = utils.return_stock_by_symbol(ticker)
     if not stock:
@@ -2643,7 +2670,12 @@ def save_stock_dict(xbrl_stock_dict):
         institution_dict = base_dict[institution]
         for accounting_item in list(institution_dict.keys()):
             period_dict = institution_dict[accounting_item]
+            if not type(period_dict) is dict:
+                period_dict = ast.literal_eval(period_dict)
             period_dict_str = return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=True)
+            suffix = '_us'
+            period_dict_str_without_suffix = period_dict_str
+            period_dict_str = period_dict_str + suffix
 
             try:
                 stock_accounting_item_dict = getattr(stock, period_dict_str)
@@ -2653,28 +2685,32 @@ def save_stock_dict(xbrl_stock_dict):
                 # logging.warning('poop')
 
             if stock_accounting_item_dict:
+                if not type(stock_accounting_item_dict) is dict:
+                    stock_accounting_item_dict = ast.literal_eval(stock_accounting_item_dict)
+
+            # Here it's important to switch to stock_accounting_item_dict
+            if stock_accounting_item_dict:
                 stock_accounting_item_dict.update(period_dict)
+                db.set_Stock_attribute(stock, period_dict_str_without_suffix, stock_accounting_item_dict, "_us")
             else:
-                setattr(stock, period_dict_str, period_dict)
+                db.set_Stock_attribute(stock, period_dict_str_without_suffix, period_dict, "_us")
+                stock_accounting_item_dict = period_dict
 
             stock_period_dict = getattr(stock, period_dict_str)
-
+            if not type(stock_period_dict) is dict:
+                logging.warning("trying to convert to dict")
+                stock_period_dict = ast.literal_eval(stock_period_dict)
+                if not type(stock_period_dict) is dict:
+                    logging.warning("failure")
+                    pp.pprint(stock_period_dict)
+                    sys.exit()
             datetime_fourple_list = [] #[serialize, end dt, start dt, range]
 
             for period in list(stock_period_dict.keys()):
                 if period == "most_recent":
                     continue
                 period_datetime_str = stock_period_dict[period].get("datetime")
-                try:
-                    period_datetime_str = period_datetime_str.replace("\n", "")
-                except Exception as e:
-                    print(e)
-                    logging.warning(period_datetime_str)
 
-                logging.warning(accounting_item)
-                logging.warning(period_datetime_str)
-                pp.pprint(stock_period_dict)
-                print(period)
                 period_datetime = utils.iso_date_to_datetime(period_datetime_str)
                 timedelta_start = stock_period_dict[period].get("timedeltastart")
 
@@ -2698,6 +2734,7 @@ def save_stock_dict(xbrl_stock_dict):
                     period_endtime_datetime = None
 
                 period_and_serialized_fourple = [serialize_index_to_save, period_datetime, period_endtime_datetime, timedelta_range]
+                logging.warning(period_and_serialized_fourple)
 
                 datetime_fourple_list.append(period_and_serialized_fourple)
             set_of_ranges = set([fourple[3] for fourple in datetime_fourple_list])
@@ -2715,12 +2752,13 @@ def save_stock_dict(xbrl_stock_dict):
             else:
                 youngest = youngest_fourple_list[0]
 
-            can_be_updated = period_dict.get("most_recent")
+            can_be_updated = stock_period_dict.get("most_recent")
             if can_be_updated:
                 can_be_updated.update({time_range: youngest[0]})
             else:
-                period_dict.update({"most_recent": {"period": youngest[0]}})
-            if len(set_of_ranges) > 1:
+                stock_period_dict.update({"most_recent": {"period": youngest[0]}})
+
+            if len(list(set_of_ranges)) > 1:
                 for time_range in set_of_ranges:
                     time_range_list = [fourple for fourple in datetime_fourple_list if fourple[3] == time_range]
                     try:
@@ -2731,27 +2769,30 @@ def save_stock_dict(xbrl_stock_dict):
                         sys.exit()
                     youngest_datetime_delta = today - youngest_datetime
                     if youngest_datetime_delta.days > 366:
-                        # very old data, over a year old, use most recent period instead
+                        logging.warning("very old data, over a year old, use most recent period instead")
                         continue
                     youngest_fourple_list = [fourple for fourple in time_range_list if fourple[1] == youngest_datetime]
                     youngest = youngest_fourple_list[0]
-                    can_be_updated = period_dict.get("most_recent")
+                    can_be_updated = stock_period_dict.get("most_recent")
                     if can_be_updated:
                         can_be_updated.update({time_range: youngest[0]})
                     else:
-                        period_dict.update({"most_recent": {time_range: youngest[0]}})
+                        stock_period_dict.update({"most_recent": {time_range: youngest[0]}})
 
 
-            most_recent_dict = period_dict.get("most_recent")
+            most_recent_dict = stock_period_dict.get("most_recent")
             for time_range in list(most_recent_dict.keys()):
-                period_index = period_dict["most_recent"][time_range]
-                value = period_dict[period_index]["value"]
+                period_index = stock_period_dict["most_recent"][time_range]
+                logging.warning("pprint")
+                pp.pprint(stock_period_dict)
+                logging.warning(period_index)
+
+                value = stock_period_dict[period_index]["value"]
+                logging.info(value)
                 if len(list(most_recent_dict.keys())) > 1:
-                    setattr(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution, period=time_range), value)
+                    db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution, period=time_range), value, "_us")
                 else:
-                    setattr(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution), value)
-    # utils.print_attributes(stock)
-    db.commit_db()
+                    db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution), value, "_us")
 
 def scrape_xbrl_from_file(path_to_zipfile):
     filename_to_be_recorded = path_to_zipfile
@@ -2761,29 +2802,46 @@ def scrape_xbrl_from_file(path_to_zipfile):
     stock_dict = return_simple_xbrl_dict(tree, ns, file_name)
     if not stock_dict:
         return
-    # logging.warning("return_simple_xbrl_dict")
-    # pp.pprint(stock_dict)
     config.SEC_XBRL_FILES_DOWNLOADED_SET.add(filename_to_be_recorded)
     save_stock_dict(stock_dict)
+    logging.info("Success!")
     db.save_filenames_of_sec_xbrl_files_downloaded()
 
-def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None, add_to_wxStocks_database=None):
+def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None, add_to_wxStocks_database=None, use_wxStocks_cik_list=True):
     # loadSECfilings.py -y <year> -m <month> | -f <from_year> -t <to_year>
-    if not (year and month) or (from_year and to_year):
+    if not ((year and month) or (from_year and to_year)):
         logging.error("improper inputs")
         return "error"
     elif (from_year and to_year) and (from_year > to_year):
         logging.error("improper inputs")
         return "error"
+
+    current_cik_list = None
+    if use_wxStocks_cik_list:
+        current_cik_list = list(set([getattr(stock, "cik") for stock in config.GLOBAL_STOCK_DICT.values() if hasattr(stock, "cik")]))
+        current_cik_list = [int(cik) for cik in current_cik_list if cik]
     if year and month:
-        loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database)
+        loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database, wxStocks_cik_list = current_cik_list)
     elif from_year and to_year:
+        try:
+            int(from_year)
+            int(to_year)
+        except:
+            logging.error("improper inputs")
+            return "error"
+        now = datetime.datetime.now()
+        this_month = int(now.month)
+        this_year = int(now.year)
         # Not using:
         # loadSECfilings.main(['-f', str(from_year), '-t', str(to_year)])
         # because in the file, it actually seperates by months anyway
-        for year in range(from_year, to_year+1):
-            for month in range(1, 13):
-                loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database)
+        for year in range(int(from_year), int(to_year)+1):
+            if year == this_year:
+                last_month = this_month
+            else:
+                last_month = 12
+            for month in reversed(range(1, last_month+1)):
+                loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database, wxStocks_cik_list = current_cik_list)
 
 
 

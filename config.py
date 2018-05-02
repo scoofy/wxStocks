@@ -1,6 +1,7 @@
 import locale, sys, threading, platform
 from urllib.request import urlopen
 from user_data import user_data
+from fake_useragent import UserAgent
 ### Editable globals all come from user_data.py in the user_data folder ###
 
 DISPLAY_SIZE = None # will be detected
@@ -59,8 +60,11 @@ except Exception as e:
 	logging.error("This program has not be properly formatted for your OS. Edit the config file if needed.")
 	sys.exit()
 
+ua = UserAgent()
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:59.0) Gecko/20100101 Firefox/59.0',
+	'User-Agent': ua.random,
+	#'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    #'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:59.0) Gecko/20100101 Firefox/59.0',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
     'Accept-Encoding': 'gzip, deflate, br',
     'Accept-Language': 'en-US,en;q=0.5',

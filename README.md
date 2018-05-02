@@ -10,7 +10,7 @@ Built using wx as its framework (specifically wxPython3.0-osx-cocoa-py2.7), and 
 
 *NOTE: El Capitan has broken wxPython on Mac indefinitely. The bug is here: http://trac.wxwidgets.org/ticket/17203 however, there seems to be a new build that works. You can find the new installer here but it's not signed, still, it worked for me with the latest version of Python 2 installed: https://groups.google.com/forum/#!topic/wxpython-dev/TMnoeAgf2Wg
 
-Requirements: Python 2.X, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org)
+Requirements: Python 3, [wxPython](http://www.wxpython.org), [NumPy](http://www.numpy.org), Requests
 
 Nonessential but recommended: [python cryptography](https://cryptography.io/en/latest/), [xlrd](https://pypi.python.org/pypi/xlrd)
 
@@ -22,9 +22,9 @@ Installation:
 
 Python:
 
-If you are running a mac or linux Python 2.X. To check, open your terminal and just type "python", which should lead to a prompt that looks like ">>>". You can then quit by typing "quit()". If that doesn't work, go here: https://www.python.org/downloads/
+If you are running a mac or linux Python 3. To check, open your terminal and just type "python", which should lead to a prompt that looks like ">>>". You can then quit by typing "quit()". If that doesn't work, go here: https://www.python.org/downloads/
 
-If you are running windows, i've found it's better to install 64-bit python if you're on a 64-bit processor for this program, go here and install python 2.X, ideally the latest release: https://www.python.org/downloads/
+If you are running windows, i've found it's better to install 64-bit python if you're on a 64-bit processor for this program, go here and install python 3, ideally the latest release: https://www.python.org/downloads/
 
 wxPython:
 

@@ -383,10 +383,6 @@ class WelcomePage(Tab):
 
     def deleteAllStockDataConfirm(self):
         db.deleteAllStockDataConfirmed()
-
-        ticker_page = config.GLOBAL_PAGES_DICT.get(config.TICKER_PAGE_UNIQUE_ID).obj
-        ticker_page.downloadTickers()
-
         sys.exit()
 ##
 class GetDataPage(Tab):
@@ -431,8 +427,11 @@ class TickerPage(Tab):
                              "Welcome to the ticker page.",
                              gui_position.TickerPage.text
                              )
-        download_button = wx.Button(self, label="Download Tickers", pos=gui_position.TickerPage.download_button, size=(-1,-1))
+        download_button = wx.Button(self, label="NYSE and Nasdaq", pos=gui_position.TickerPage.download_button, size=(-1,-1))
         download_button.Bind(wx.EVT_BUTTON, self.confirmDownloadTickers, download_button)
+
+        cik_button = wx.Button(self, label="CIK Numbers", pos=gui_position.TickerPage.cik_button, size=(-1,-1))
+        cik_button.Bind(wx.EVT_BUTTON, self.confirmCikDownload, cik_button)
 
         refresh_button = wx.Button(self, label="Refresh", pos=gui_position.TickerPage.refresh_button, size=(-1,-1))
         refresh_button.Bind(wx.EVT_BUTTON, self.refreshTickers, refresh_button)
@@ -450,17 +449,41 @@ class TickerPage(Tab):
             else:
                 exchanges = exchanges + ", " + exchange_name.upper()
 
-        more_text = wx.StaticText(self, -1,
-                             "Currently downloads tickers from %s. To add or remove exchanges, edit the config file." % exchanges,
-                             gui_position.TickerPage.more_text
-                             )
-
         self.showAllTickers()
         logging.info("TickerPage loaded")
 
+    def confirmCikDownload(self, event):
+        confirm = wx.MessageDialog(None,
+                                   "You are about to make a request from RankandFiled.com. If you do this too often they may block your IP address.",
+                                   'Confirm Download',
+                                   style = wx.YES_NO
+                                   )
+        confirm.SetYesNoLabels(("&Download"), ("&Cancel"))
+        yesNoAnswer = confirm.ShowModal()
+        #try:
+        #   confirm.SetYesNoLabels(("&Scrape"), ("&Cancel"))
+        #except AttributeError:
+        #   pass
+        confirm.Destroy()
+        self.file_display.Hide()
+
+        if yesNoAnswer == wx.ID_YES:
+            download_cik = threading.Thread(name="cik download", target=self.downloadCikNumbers)
+            download_cik.start()
+
+    def downloadCikNumbers(self):
+        logging.info("Begin cik number download...")
+        scrape.download_and_save_cik_ticker_mappings()
+        db.save_GLOBAL_STOCK_DICT()
+
+        self.showAllTickers()
+        # Update view all stocks
+        view_all_stocks_page = config.GLOBAL_PAGES_DICT.get(config.ALL_STOCKS_PAGE_UNIQUE_ID).obj
+        view_all_stocks_page.spreadSheetFillAllStocks("event")
+
     def confirmDownloadTickers(self, event):
         confirm = wx.MessageDialog(None,
-                                   "You are about to make a request from Nasdaq.com. If you do this too often they may temporarily block your IP address.",
+                                   "You are about to make a request from Nasdaq.com. If you do this too often they may block your IP address.",
                                    'Confirm Download',
                                    style = wx.YES_NO
                                    )
@@ -493,7 +516,6 @@ class TickerPage(Tab):
 
         logging.info("Begin price data download...")
         scrape.convert_nasdaq_csv_to_stock_objects()
-        scrape.download_and_save_cik_ticker_mappings()
         db.save_GLOBAL_STOCK_DICT()
 
         self.showAllTickers()

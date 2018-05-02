@@ -40,6 +40,7 @@ class TickerPage(object):
     AddSpacer = [88,95,88][config.OS_TYPE_INDEX] #box vertical offset
     text = (10,10)
     download_button = [(5, 30),(5,31),(5, 30)][config.OS_TYPE_INDEX]
+    cik_button = (150, 30)
     refresh_button = [(5, 60),(5,62),(5, 60)][config.OS_TYPE_INDEX]
     more_text = (145,36)
 

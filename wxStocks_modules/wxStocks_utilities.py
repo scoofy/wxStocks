@@ -29,7 +29,11 @@ def return_stock_by_symbol(ticker_symbol):
         logging.warning("Stock with symbol {} does not appear to exist".format(ticker_symbol))
 
 def return_stock_by_cik(cik_number):
-    cik = str(cik_number)
+    try:
+        cik = str(int(cik_number))
+    except:
+        logging.warning("Stock with CIK {} does not appear to exist".format(cik_number))
+        return
     stock = config.GLOBAL_CIK_DICT.get(cik)
     try:
         return config.GLOBAL_CIK_DICT.get(cik)
