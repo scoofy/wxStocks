@@ -87,13 +87,18 @@ def load_all_data():
     load_GLOBAL_STOCK_SCREEN_DICT()
     load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
     load_filenames_of_sec_xbrl_files_downloaded()
+    pack_db()
 def savepoint_db():
     transaction.savepoint(True)
 def commit_db():
     transaction.commit()
     config.GLOBAL_STOCK_DICT = root.Stock
     logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
-
+def pack_db():
+    logging.info("packing the DB, this may take a moment if it's grown significantly")
+    logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+    db.pack()
+    logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
 
 # start up try/except clauses below
 
@@ -173,8 +178,12 @@ def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
                 symbol[index_instance] = "_"
             symbol = "".join(symbol)
 
-
-    stock = config.GLOBAL_STOCK_DICT.get(symbol)
+    try:
+        stock = root.Stock[symbol]
+    except:
+        pass
+    if not stock:
+        stock = config.GLOBAL_STOCK_DICT.get(symbol)
     if not stock:
         stock = wxStocks_classes.Stock(symbol, firm_name=firm_name)
         root.Stock[symbol] = stock

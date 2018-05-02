@@ -117,6 +117,7 @@ def nasdaq_full_ticker_list_downloader() : # from nasdaq.com
 
     headers = config.HEADERS
 
+    # weirdly this webpage displays different than the csv it downloads...
     url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt"
 
 
@@ -244,7 +245,7 @@ def nasdaq_csv_stock_data_parsing_generator(csv_file):
 # suggestion from Soncrates
 def convert_nasdaq_csv_to_stock_objects():
     for url, headers in nasdaq_stock_csv_url_and_headers_generator():
-        logging.warning("\nhere 1\n")
+        # logging.warning("\nhere 1\n")
         if len(config.STOCK_EXCHANGE_LIST) < 5: # it should be
             nasdaq_csv = return_webpage(url, headers, delay=1)
         else: # incase this program grows beyond my wildest dreams
@@ -2569,14 +2570,17 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
         period_element = element.find(config.DEFAULT_PERIOD_TAG)
         for item in period_element.iter():
             # a lot of these datetimes have leading and trailing \n's
+            formatted_item = str(item.text).strip().replace("\n", "")
+            if "T" in formatted_item: # someone put time in the date str
+                formatted_item = formatted_item.split("T")[0]
             if "startDate" in item.tag:
-                period_dict["startDate"] = str(item.text).strip().replace("\n", "")
+                period_dict["startDate"] = formatted_item
             elif "endDate" in item.tag:
-                period_dict["endDate"] = str(item.text).strip().replace("\n", "")
+                period_dict["endDate"] = formatted_item
             elif "instant" in item.tag:
-                period_dict["instant"] = str(item.text).strip().replace("\n", "")
+                period_dict["instant"] = formatted_item
             elif "forever" in item.tag:
-                period_dict["forever"] = str(item.text).strip().replace("\n", "")
+                period_dict["forever"] = formatted_item
         if not period_dict:
             logging.error("No period")
         else:
@@ -2656,8 +2660,6 @@ def save_stock_dict(xbrl_stock_dict):
     if not xbrl_stock_dict:
         logging.error("No xbrl_stock_dict")
         return
-    logging.warning("pprint next line")
-    pp.pprint(xbrl_stock_dict)
     ticker = list(xbrl_stock_dict.keys())[0] # Note, i use this notation because it's more clear
     stock = utils.return_stock_by_symbol(ticker)
     if not stock:
@@ -2679,10 +2681,8 @@ def save_stock_dict(xbrl_stock_dict):
 
             try:
                 stock_accounting_item_dict = getattr(stock, period_dict_str)
-                # logging.warning("woot woot")
             except:
                 stock_accounting_item_dict = None
-                # logging.warning('poop')
 
             if stock_accounting_item_dict:
                 if not type(stock_accounting_item_dict) is dict:
@@ -2734,7 +2734,6 @@ def save_stock_dict(xbrl_stock_dict):
                     period_endtime_datetime = None
 
                 period_and_serialized_fourple = [serialize_index_to_save, period_datetime, period_endtime_datetime, timedelta_range]
-                logging.warning(period_and_serialized_fourple)
 
                 datetime_fourple_list.append(period_and_serialized_fourple)
             set_of_ranges = set([fourple[3] for fourple in datetime_fourple_list])
@@ -2783,10 +2782,6 @@ def save_stock_dict(xbrl_stock_dict):
             most_recent_dict = stock_period_dict.get("most_recent")
             for time_range in list(most_recent_dict.keys()):
                 period_index = stock_period_dict["most_recent"][time_range]
-                logging.warning("pprint")
-                pp.pprint(stock_period_dict)
-                logging.warning(period_index)
-
                 value = stock_period_dict[period_index]["value"]
                 logging.info(value)
                 if len(list(most_recent_dict.keys())) > 1:
@@ -2807,6 +2802,11 @@ def scrape_xbrl_from_file(path_to_zipfile):
     logging.info("Success!")
     db.save_filenames_of_sec_xbrl_files_downloaded()
 
+def sec_xbrl_download_launcher(year=None, month=None, from_year=None, to_year=None, add_to_wxStocks_database=None, use_wxStocks_cik_list=True):
+    xbrl_thread = threading.Thread(target=sec_xbrl_download, kwargs={"year":year, "month":month, "from_year":from_year, "to_year":to_year, "add_to_wxStocks_database":add_to_wxStocks_database, "use_wxStocks_cik_list":use_wxStocks_cik_list})
+    xbrl_thread.start()
+
+
 def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None, add_to_wxStocks_database=None, use_wxStocks_cik_list=True):
     # loadSECfilings.py -y <year> -m <month> | -f <from_year> -t <to_year>
     if not ((year and month) or (from_year and to_year)):
@@ -2818,6 +2818,7 @@ def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None, add_t
 
     current_cik_list = None
     if use_wxStocks_cik_list:
+        config.GLOBAL_STOCK_DICT = db.root.Stock
         current_cik_list = list(set([getattr(stock, "cik") for stock in config.GLOBAL_STOCK_DICT.values() if hasattr(stock, "cik")]))
         current_cik_list = [int(cik) for cik in current_cik_list if cik]
     if year and month:
@@ -2842,7 +2843,10 @@ def sec_xbrl_download(year=None, month=None, from_year=None, to_year=None, add_t
                 last_month = 12
             for month in reversed(range(1, last_month+1)):
                 loadSECfilings.main(['-y', str(year), '-m', str(month)], add_to_wxStocks_database = add_to_wxStocks_database, wxStocks_cik_list = current_cik_list)
-
+                logging.info("pack data after each month...")
+                db.pack_db()
+    db.pack_db()
+    logging.info("All done!")
 
 
 

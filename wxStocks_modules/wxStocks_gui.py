@@ -745,7 +745,7 @@ class XbrlImportPage(Tab):
             return
         logging.warning("({}, {}, {}, {})".format(year, month, from_year, to_year))
         add_to_wxStocks_database = self.checkbox_dont_save_sec_files.IsChecked()
-        scrape.sec_xbrl_download(year=year, month=month, from_year=from_year, to_year=to_year, add_to_wxStocks_database = add_to_wxStocks_database)
+        scrape.sec_xbrl_download_launcher(year=year, month=month, from_year=from_year, to_year=to_year, add_to_wxStocks_database = add_to_wxStocks_database)
 
 
     def abortImport(self, event):
