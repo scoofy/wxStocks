@@ -1,38 +1,44 @@
-import wx, inspect, logging, time, csv
+import wx, inspect, logging, time, csv, datetime
 import config
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
+from wxStocks_modules.wxStocks_classes import Stock
 def print_attributes(obj):
     for attribute in dir(obj):
         if attribute[:2] != "__":
             if type(obj) is Stock:
-                print obj.symbol + "." + attribute, "=", getattr(obj, attribute)
+                print("{} {} {}".format(obj.symbol + "." + attribute, "=", getattr(obj, attribute)))
             else:
-                print attribute, "=", getattr(obj, attribute)
+                print("{} {} {}".format(attribute, "=", getattr(obj, attribute)))
 def start_whitespace():
-    print """
+    print("""
     \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
     \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
     \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
-    """
+    """)
 
 ####################### Return functions #################################################
 def return_stock_by_symbol(ticker_symbol):
     if not type(ticker_symbol) == str:
         ticker_symbol = str(ticker_symbol)
     try:
-        return config.GLOBAL_STOCK_DICT["%s" % ticker_symbol.upper()]
+        return config.GLOBAL_STOCK_DICT["{}".format(ticker_symbol.upper())]
     except Exception as e:
-        print line_number()
         try:
             ticker_symbol = ticker_symbol.upper()
         except:
             pass
-        print line_number()
-        print "Stock with symbol %s does not appear to exist" % ticker_symbol
-        return None
+        logging.warning("Stock with symbol {} does not appear to exist".format(ticker_symbol))
+
+def return_stock_by_cik(cik_number):
+    try:
+        cik = str(int(cik_number))
+    except:
+        logging.warning("Stock with CIK {} does not appear to exist".format(cik_number))
+        return
+    stock = config.GLOBAL_CIK_DICT.get(cik)
+    try:
+        return config.GLOBAL_CIK_DICT.get(cik)
+    except Exception as e:
+        logging.warning("Stock with CIK {} does not appear to exist".format(cik_number))
 
 def return_all_stocks():
     import re
@@ -45,8 +51,7 @@ def return_stock_by_yql_symbol(yql_ticker_symbol):
         if config.GLOBAL_STOCK_DICT[ticker].yql_ticker == yql_ticker_symbol:
             return config.GLOBAL_STOCK_DICT[ticker]
     # if none match
-    print line_number()
-    logging.error("Stock with yql symbol %s does not appear to exist" % yql_ticker_symbol)
+    logging.error("Stock with yql symbol {} does not appear to exist".format(yql_ticker_symbol))
     return None
 
 def return_all_up_to_date_stocks():
@@ -54,11 +59,11 @@ def return_all_up_to_date_stocks():
 
     current_time = float(time.time())
     for ticker in config.GLOBAL_STOCK_DICT:
-        print int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))
+        logging.info("{}".format(int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))))
         stock = config.GLOBAL_STOCK_DICT[ticker]
         time_since_update = current_time - stock.last_yql_basic_scrape_update
         if int(time_since_update) > int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST):
-            print line_number(), "Will not add %s to stock list, data is over %d days old, please rescrape" % (str(stock.symbol), int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60)))
+            logging.info("Will not add {} to stock list, data is over {} days old, please rescrape".format(str(stock.symbol), int(config.TIME_ALLOWED_FOR_BEFORE_YQL_DATA_NO_LONGER_APPEARS_IN_STOCK_LIST/(24*60*60))))
             continue
         else:
             stocks_up_to_date_list.append(stock)
@@ -101,12 +106,11 @@ def return_account_by_id(id_number):
         else:
             return None
     except Exception as e:
-        print line_number()
-        logging.error("Portfolio object with id: %s does not appear to exist" % str(id_number))
+        logging.error("Portfolio object with id: {} does not appear to exist".format(str(id_number)))
         return None
 
 def return_account_by_name(account_obj_name_str):
-    for key, account_obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+    for key, account_obj in config.PORTFOLIO_OBJECTS_DICT.items():
         if account_obj.name == account_obj_name_str:
             relevant_account = account_obj
             return relevant_account
@@ -235,8 +239,8 @@ def return_stocks_website_if_possible(stock):
 
 def return_list_of_account_names_that_contain_stock(stock):
     return_list = []
-    for index, portfolio in config.PORTFOLIO_OBJECTS_DICT.iteritems():
-        print index, portfolio
+    for index, portfolio in config.PORTFOLIO_OBJECTS_DICT.items():
+        print(index, portfolio)
         if stock.ticker in portfolio.stock_shares_dict:
             return_list.append(portfolio.name)
     return return_list
@@ -246,9 +250,6 @@ def stock_value_is_negative(stock_obj, attribute_str):
         getattr(stock_obj, attribute_str)
     except:
         return False
-    #print line_number(), "Is %s.%s:" % (stock_obj.symbol, attribute_str), str(getattr(stock_obj, attribute_str)), "negative?"
-    #print str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
-    #print ""
     return str(getattr(stock_obj, attribute_str)).startswith("(") or str(getattr(stock_obj, attribute_str)).startswith("-")
 ####################### Stock utility functions #################################################
 
@@ -276,13 +277,12 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
     relevant_sheets = []
     for i in range(xlrd_workbook.nsheets):
         sheet = xlrd_workbook.sheet_by_index(i)
-        print sheet.name
+        logging.info(sheet.name)
         if sheet.nrows or sheet.ncols:
-            print "rows x cols:", sheet.nrows, sheet.ncols
+            logging.info("{} {} {}\n".format("rows x cols:", sheet.nrows, sheet.ncols))
             relevant_sheets.append(sheet)
         else:
-            print "is empty"
-        print ""
+            logging.info("is empty\n")
     return relevant_sheets
 
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
@@ -307,11 +307,10 @@ def return_list_of_lists(csv_file):
     reader = csv.reader(csv_file)
     for row in reader:
         full_data.append(list(row))
-    #print line_number(),full_data
     return full_data
 def openCSV_return_list_of_lists():
     csv_file = filedialog.askopenfile()
-    print line_number(),'opening', csv_file
+    logging.info("{} {}".format('opening', csv_file))
     try:
         ticker_list = return_list_of_lists(csv_file)
         return ticker_list
@@ -486,8 +485,7 @@ def is_number(some_string):
     try:
         float(some_string)
         return True
-    except Exception, exception:
-        # print exception
+    except Exception as e:
         return False
 def relevant_float(some_float):
     return (some_float - int(some_float)) != 0
@@ -516,6 +514,15 @@ def return_dictionary_of_object_attributes_and_values(obj):
         #   print attribute, ":", obj_attribute_value_dict[attribute]
 
         return obj_attribute_value_dict
+def return_human_readable_file_size(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.2f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.2f%s%s" % (num, 'Yi', suffix)
+
+def iso_date_to_datetime(date_str):
+    return datetime.date(int(date_str.split("-")[0]), int(date_str.split("-")[1]), int(date_str.split("-")[2]))
 
 ####################### utility functions involving pages #######################################
 def add_ticker_to_research_page(ticker):
@@ -535,15 +542,14 @@ def refresh_all_portfolio_spreadsheets():
     portfolio_main_tab_ref = config.GLOBAL_PAGES_DICT.get(config.PORTFOLIO_PAGE_UNIQUE_ID)
     portfolio_main_tab_index = portfolio_main_tab_ref.index
     possible_number_of_portfolios = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
-    print line_number()
     for i in range(possible_number_of_portfolios):
         portfolio_account_ref_str = str(portfolio_main_tab_index) + "." + str(i + 1)
-        print portfolio_account_ref_str
+        #logging.info(portfolio_account_ref_str)
         portfolio_account_ref = config.GLOBAL_PAGES_DICT.get(portfolio_account_ref_str)
         if portfolio_account_ref:
             if portfolio_account_ref.obj.portfolio_obj:
                 portfolio_grid_update_function = portfolio_account_ref.obj.spreadSheetFill(portfolio_account_ref.obj.portfolio_obj)
-                print line_number(), portfolio_account_ref.name, "has loaded a new spreadsheet"
+                logging.info("{} {}".format(portfolio_account_ref.name, "has loaded a new spreadsheet"))
 
 def refresh_all_stocks_page_spreadsheet():
     # refresh all stock grid if it exists
@@ -551,9 +557,9 @@ def refresh_all_stocks_page_spreadsheet():
     if all_stocks_page_ref:
         if not all_stocks_page_ref.obj.first_spread_sheet_load:
             all_stocks_page_ref.obj.spreadSheetFillAllStocks('event')
-            print line_number(), all_stocks_page_ref.name, "has loaded a new spreadsheet"
+            logging.info("{} {}".format(all_stocks_page_ref.name, "has loaded a new spreadsheet"))
         else:
-            print line_number(), "all_stocks_page_ref.obj has no loaded spreadsheet"
+            logging.info("{}".format("all_stocks_page_ref.obj has no loaded spreadsheet"))
 
 def refresh_one_stock_data_page_spreadsheet():
     # refresh one stock grid if it exists
@@ -561,23 +567,23 @@ def refresh_one_stock_data_page_spreadsheet():
     if one_stocks_data_page_ref:
         if one_stocks_data_page_ref.obj.current_ticker_viewed:
             one_stocks_data_page_ref.obj.createOneStockSpreadSheet('event', current_ticker_viewed = one_stocks_data_page_ref.obj.current_ticker_viewed)
-            print line_number(), one_stocks_data_page_ref.name, "has loaded a new spreadsheet"
+            logging.info("{} {}".format(one_stocks_data_page_ref.name, "has loaded a new spreadsheet"))
         else:
-            print line_number(), "one_stocks_data_page_ref.obj has no loaded spreadsheet"
+            logging.info("{}".format("one_stocks_data_page_ref.obj has no loaded spreadsheet"))
 
 def refresh_sale_prep_page_spreadsheet():
     # refresh sale prep page
     sale_prep_page_ref = config.GLOBAL_PAGES_DICT.get(config.SALE_PREP_PAGE_UNIQUE_ID)
     if sale_prep_page_ref:
         sale_prep_page_ref.obj.spreadSheetFill("event")
-        print line_number(), sale_prep_page_ref.name, "has loaded a new spreadsheet"
+        logging.info("{} {}".format(sale_prep_page_ref.name, "has loaded a new spreadsheet"))
 
 def refresh_trade_page_spreadsheet():
     # refresh Trade Page spreadsheet if it exists
     trade_page_ref = config.GLOBAL_PAGES_DICT.get(config.TRADE_PAGE_UNIQUE_ID)
     if trade_page_ref:
         trade_page_ref.obj.newGridFill()
-        print line_number(), trade_page_ref.name, "has loaded a new spreadsheet"
+        logging.info("{} {}".format(trade_page_ref.name, "has loaded a new spreadsheet"))
 
 def update_all_screen_dropdowns_after_saving_a_new_screen():
     saved_screen_page_ref = config.GLOBAL_PAGES_DICT.get(config.SAVED_SCREEN_PAGE_UNIQUE_ID)
@@ -590,20 +596,18 @@ def update_all_screen_dropdowns_after_saving_a_new_screen():
     custom_analysis_meta_page_ref = config.GLOBAL_PAGES_DICT.get(config.CUSTOM_ANALYSE_META_PAGE_UNIQUE_ID)
     custom_analysis_meta_page_index = custom_analysis_meta_page_ref.index
     possible_number_of_analysis_pages = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
-    print line_number()
     for i in range(possible_number_of_analysis_pages):
         custom_analysis_page_ref_str = str(custom_analysis_meta_page_index) + str(i + 1)
-        print custom_analysis_page_ref_str
+        # logging.info(custom_analysis_page_ref_str)
         custom_analysis_page_ref = config.GLOBAL_PAGES_DICT.get(custom_analysis_page_ref_str)
         if custom_analysis_page_ref:
-            print "success"
+            logging.info("success")
             custom_analysis_page_ref.obj.refreshScreens("event")
 
 ####################### end: utility functions involving pages #######################################
 
 
 def convert_wx_grid_data_to_html_table(wx_grid):
-    #import pprint
     data_list_for_export = []
 
     num_cols = wx_grid.GetNumberCols()
@@ -616,7 +620,6 @@ def convert_wx_grid_data_to_html_table(wx_grid):
     html_body = ""
 
     for row in range(num_rows):
-        #print line_number(), "row", row
         html_body = html_body + "<tr>"
         for col in range(num_cols):
             text = wx_grid.GetCellValue(row, col)
@@ -631,8 +634,7 @@ def convert_wx_grid_data_to_html_table(wx_grid):
                 elif alignment == (512, 1024):
                     alignment = "right"
                 else:
-                    print line_number()
-                    print "text alignment unknown value:", alignment
+                    logging.info("{} {}".format("text alignment unknown value:", alignment))
 
             style = ""
             if background_color or text_color or alignment: #or other style thing
@@ -648,9 +650,6 @@ def convert_wx_grid_data_to_html_table(wx_grid):
             html_body = html_body + "<td{style}>{text}</td>".format(style=style, text=text)
         html_body = html_body + "</tr>"
     html = html_head + html_body + html_butt
-    #print line_number()
-    #import pprint
-    #pprint.pprint(html)
     return html
 
 def save_grid_as(wx_window, wx_grid, title):
@@ -663,8 +662,7 @@ def save_grid_as(wx_window, wx_grid, title):
     num_rows = wx_grid.GetNumberRows()
     num_cells = num_rows*num_cols
     if num_cells > 10000:
-        print line_number()
-        print "Parsing extremely large spreadsheet for export, this may take a few minutes too..."
+        logging.info("Parsing extremely large spreadsheet for export, this may take a few minutes too...")
 
     html = convert_wx_grid_data_to_html_table(wx_grid)
 
@@ -675,8 +673,15 @@ def save_grid_as(wx_window, wx_grid, title):
     output_file.close()
 ############################################################################################
 
+############################# logging assistance ###########################################
+def convert_to_log_str(*args):
+    relevant_args = locals().values()
+    str_to_return = ""
+    for arg in relevant_args:
+        str_to_return = str_to_return + str(arg) + "\n"
+    return str_to_return
 
-
+############################################################################################
 
 
 

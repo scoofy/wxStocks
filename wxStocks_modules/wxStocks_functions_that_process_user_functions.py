@@ -1,17 +1,9 @@
 import wx
-import wxStocks_utilities as utils
-import wxStocks_db_functions as db
+from wxStocks_modules import wxStocks_utilities as utils
+from wxStocks_modules import wxStocks_db_functions as db
 import numpy, inspect, os
 from collections import namedtuple
-from wxStocks_classes import Account
-
-
-
-def line_number():
-	"""Returns the current line number in our program."""
-	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
-############################################################################################
+from wxStocks_modules.wxStocks_classes import Account
 
 Tuple_Reference = namedtuple("Four_Tuple_Reference", ["value", "stock"])
 
@@ -31,19 +23,18 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 		four_tuple = rank_function(Stock = stock)
 		# 4-tuple is (relevant_value, Stock, decending, rank_error_as_median)
 
-		print line_number(), four_tuple
+		logging.info(four_tuple)
 
 		my_tuple = Tuple_Reference(four_tuple[0], four_tuple[1])
 
-		print line_number(), my_tuple.stock.symbol, my_tuple.value
-		print ""
+		logging.info((my_tuple.stock.symbol, my_tuple.value))
 
 		rank_list.append(my_tuple)
 		copy_list_for_median_adjustment.append(my_tuple)
 
 		if first_loop:
 			reverse_var = four_tuple[2]
-			#print line_number(), "reverse_var =", reverse_var
+			#logging.info(("reverse_var =", reverse_var))
 			rank_error_as_median = four_tuple[3]
 			first_loop = False
 
@@ -53,14 +44,14 @@ def return_ranked_list_from_rank_function(stock_list, rank_function):
 		for relevant_tuple in copy_list_for_median_adjustment:
 			if relevant_tuple.value not in [None, "None", "none", "N/A"]:
 				real_values.append(relevant_tuple.value)
-				#print line_number(), relevant_tuple.stock.symbol, relevant_tuple.value
+				#logging.info((relevant_tuple.stock.symbol, relevant_tuple.value))
 			else:
 				pass
-				#print line_number(), relevant_tuple
-				#print line_number(), "not adding", relevant_tuple.stock.symbol, ":" , relevant_tuple.value
+				#logging.info((relevant_tuple))
+				#logging.info(("not adding", relevant_tuple.stock.symbol, ":" , relevant_tuple.value))
 		median = numpy.median(numpy.array(real_values))
 
-		print line_number(), "Median =", median
+		logging.info(("Median =", median))
 
 		for relevant_tuple in copy_list_for_median_adjustment:
 			if relevant_tuple.value in [None, "None", "none", "N/A"]:
@@ -107,7 +98,7 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 	try:
 		from modules import xlrd
 	except:
-		print line_number(), "Error: cannot import xls file because xlrd module failed to load"
+		logging.error("Error: cannot import xls file because xlrd module failed to load")
 		return
 
 	dirname = ''
@@ -130,7 +121,7 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]
 	success = None
 	if len(attribute_suffix) != 3 or attribute_suffix[0] != "_":
-		print line_number(), "Error: your attribute suffix is improperly formatted"
+		logging.error("Error: your attribute suffix is improperly formatted")
 		success = "fail"
 		return success
 	dict_list = dict_list_and_attribute_suffix_tuple[0]
@@ -140,8 +131,8 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 		try:
 			this_dict['stock']
 		except Exception as e:
-			print line_number(), e
-			print line_number(), "Error: your dictionary does not have the ticker as your_dictionary['stock']"
+			logging.error(e)
+			logging.error("Error: your dictionary does not have the ticker as your_dictionary['stock']")
 			if success in ["success", "some"]:
 				success = "some"
 			else:
@@ -149,13 +140,13 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 			continue
 		stock = utils.return_stock_by_symbol(this_dict['stock'])
 		if not stock:
-			print line_number(), "Error: your_dictionary['stock'] does not return a recognized ticker symbol."
+			logging.error("Error: your_dictionary['stock'] does not return a recognized ticker symbol.")
 			if success in ["success", "some"]:
 				success = "some"
 			else:
 				success = "fail"
 			continue
-		for key, value in this_dict.iteritems():
+		for key, value in this_dict.items():
 			if key == "stock":
 				continue
 			else:
@@ -185,7 +176,7 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 	attribute_suffix = dict_list_and_attribute_suffix_tuple[1]
 	success = None
 	if len(attribute_suffix) != 3 or attribute_suffix[0] != "_":
-		print line_number(), "Error: your attribute suffix is improperly formatted"
+		logging.error("Error: your attribute suffix is improperly formatted")
 		success = "fail"
 		return success
 	dict_list = dict_list_and_attribute_suffix_tuple[0]
@@ -195,8 +186,8 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 		try:
 			this_dict['stock']
 		except Exception as e:
-			print line_number(), e
-			print line_number(), "Error: your dictionary does not have the ticker as your_dictionary['stock']"
+			logging.error(e)
+			logging.error("Error: your dictionary does not have the ticker as your_dictionary['stock']")
 			if success in ["success", "some"]:
 				success = "some"
 			else:
@@ -209,7 +200,7 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 			else:
 				success = "fail"
 			continue
-		for key, value in this_dict.iteritems():
+		for key, value in this_dict.items():
 			if key == "stock":
 				continue
 			else:
@@ -238,7 +229,7 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 	dialog.Destroy()
 
 	if not account_dict:
-		print line_number(), "Error: No account dictionary returned from user function."
+		logging.error("Error: No account dictionary returned from user function.")
 		return
 
 	cash = account_dict.get('cash')
@@ -250,10 +241,10 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 
 	for ticker in cost_basis_dict:
 		if ticker.upper() not in ticker_list:
-			print line_number(), "Error: ticker %s is in cost_basis_dict, but not in stock_share_tuple_list"
+			logging.error("Error: ticker %s is in cost_basis_dict, but not in stock_share_tuple_list".format(ticker))
 
 	if not stock_share_tuple_list:
-		print line_number(), "Error: No stock -- share tuple dictionary. No account creation."
+		logging.error("Error: No stock -- share tuple dictionary. No account creation.")
 		return
 
 	pre_existing_account = utils.return_account_by_id(portfolio_id)
@@ -266,7 +257,7 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 
 	db.save_portfolio_object(account_obj)
 
-	print line_number, type(account_obj)
+	logging.info(type(account_obj))
 
 	return account_obj
 

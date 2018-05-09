@@ -1,16 +1,14 @@
 import time, datetime, inspect, config, sys
-import wxStocks_db_functions as db
-import wxStocks_utilities as utils
+from wxStocks_modules import wxStocks_db_functions as db
+from wxStocks_modules import wxStocks_utilities as utils
 import wx
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+import persistent
 
 # Suffix key: "_yf" = yahoo finance YHOO, "_ms" = morningstar MORN, "_aa" = AAII stock investor pro, "_nq" = Nasdaq.com data NDAQ
 
-class Stock(object):
+class Stock(persistent.Persistent):
     def __init__(self, symbol, firm_name = ""):
-        self.held_list = []
+        self.held_list = persistent.list.PersistentList()
         # held list should take certain values into account
         # account where stock is held
         # number of shares held in that account
@@ -32,7 +30,6 @@ class Stock(object):
         symbol = symbol.upper()
         if symbol.isalpha():
             self.symbol = symbol
-            self.ticker = symbol
 
             self.nasdaq_symbol = symbol
             self.aaii_symbol = symbol
@@ -45,7 +42,6 @@ class Stock(object):
                 if ".P" in symbol:
                     # preferred
                     self.symbol = symbol
-                    self.ticker = symbol
 
                     self.nasdaq_symbol = symbol.replace(".P", "^")
                     self.yahoo_symbol = symbol.replace(".P", "-P")
@@ -67,7 +63,6 @@ class Stock(object):
             if "^" in symbol:
                 # Nasdaq preferred
                 self.symbol = symbol.replace("^", ".P")
-                self.ticker = symbol.replace("^", ".P")
 
                 self.nasdaq_symbol = symbol
                 self.yahoo_symbol = symbol.replace("^", "-P")
@@ -95,7 +90,6 @@ class Stock(object):
 
                 # Nasdaq class share
                 self.symbol = symbol.replace("/", ".")
-                self.ticker = symbol.replace("/", ".")
 
                 self.nasdaq_symbol = symbol
                 self.aaii_symbol = symbol.replace("/", ".")
@@ -107,7 +101,6 @@ class Stock(object):
                 if "-P" in symbol:
                     # Yahoo preferred
                     self.symbol = symbol.replace("-P", ".P")
-                    self.ticker = symbol.replace("-P", ".P")
 
 
                     self.yahoo_symbol = symbol
@@ -119,7 +112,6 @@ class Stock(object):
                 else:
                     # Yahoo Class
                     self.symbol = symbol.replace("-", ".")
-                    self.ticker = symbol.replace("-", ".")
 
 
                     self.yahoo_symbol = symbol
@@ -131,7 +123,6 @@ class Stock(object):
             if " PR" in symbol:
                 # AAII preferred
                 self.symbol = symbol.replace(" PR", ".P")
-                self.ticker = symbol.replace(" PR", ".P")
 
 
                 self.aaii_symbol = symbol
@@ -143,9 +134,9 @@ class Stock(object):
 
         # Finally:
         # if morningstar preferred notation "XXXPRX", i don't know how to fix that since "PRE" is a valid ticker
+
         elif "_" in symbol:
             self.symbol = symbol
-            self.ticker = symbol
 
             self.nasdaq_symbol = None
             self.aaii_symbol = symbol
@@ -154,20 +145,15 @@ class Stock(object):
             self.yql_ticker = None
 
         else: #something is very broken, and must be fixed immediately
-            print line_number()
-            print "illegal ticker symbol:", symbol, firm_name
-            print "the program will now close without saving, you need to add this to the wxStocks_classes exceptions list immediately."
+            logging.error("illegal ticker symbol: {}, {}\nThe program will now close without saving, you need to add this to the wxStocks_classes exceptions list immediately.".format(symbol, firm_name))
             sys.exit()
 
-
+        self.ticker = self.symbol
         self.firm_name = firm_name
 
         self.epoch = float(time.time())
         self.created_epoch = float(time.time())
         self.updated = datetime.datetime.now()
-
-        self.ticker_relevant = True
-        # this will be false if stock falls off major exchanges
 
         # updates
 
@@ -188,12 +174,6 @@ class Stock(object):
 
         self.last_aaii_update_aa = 0.0
 
-        # save new object to db
-        #config.GLOBAL_STOCK_DICT[symbol.upper()] = self
-        #print type(self)
-        #print 'Saving: Stock("%s")' % symbol.upper()
-        #db.save_GLOBAL_STOCK_DICT()
-
     def testing_reset_fields(self):
         self.last_yql_basic_scrape_update = 0.0
 
@@ -208,8 +188,8 @@ class Stock(object):
 
         self.last_key_ratios_update_ms = 0.0
 
-class Account(object): #portfolio
-    def __init__(self, id_number, name = None, cash = 0, initial_ticker_shares_tuple_list = [], initial_ticker_cost_basis_dict = {}):
+class Account(persistent.Persistent): #portfolio
+    def __init__(self, id_number, name = None, cash = 0, initial_ticker_shares_tuple_list = persistent.list.PersistentList(), initial_ticker_cost_basis_dict = {}):
         self.id_number = id_number
         self.name = name
         self.available_cash = cash # there is a ticker "CASH" that already exists, ugh
@@ -218,29 +198,29 @@ class Account(object): #portfolio
             for a_tuple in initial_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
                 if a_tuple[0] not in self.stock_shares_dict.keys():
                     # ticker not already in stock share dict
-                    self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                    self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
                 else:
-                    print line_number(), "Error:", a_tuple[0], "is redundant, probably inproperly formatted data"
+                    logging.error("Error: {} is redundant, probably inproperly formatted data".format(a_tuple[0]))
         self.cost_basis_dict = initial_ticker_cost_basis_dict
 
-    def reset_account(name = None, cash = 0, new_stock_shares_tuple_list = [], new_ticker_cost_basis_dict = {}):
+    def reset_account(name = None, cash = 0, new_stock_shares_tuple_list = persistent.list.PersistentList(), new_ticker_cost_basis_dict = {}):
         self.name = name
         self.availble_cash = cash
         self.stock_shares_dict = {}
         for a_tuple in new_ticker_shares_tuple_list: # ["NAME", int(NumberOfShares)]
             if a_tuple[0].upper() not in self.stock_shares_dict.keys():
-                self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
             else:
-                print line_number(), "Error: duplicate stocks in new_stock_shares_tuple_list"
+                logging.error("Error: duplicate stocks in new_stock_shares_tuple_list")
         self.cost_basis_dict = new_ticker_cost_basis_dict
 
     def update_account(self, updated_cash, updated_stock_shares_tuple_list, updated_ticker_cost_basis_dict = {}):
         self.availble_cash = updated_cash
         for a_tuple in updated_stock_shares_tuple_list: # ["NAME", int(NumberOfShares)]
             if a_tuple[0].upper() not in self.stock_shares_dict.keys():
-                self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
             else: # Redundent, but i'm leaving it in here in case i need to edit this later.
-                self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+                self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
 
         if updated_ticker_cost_basis_dict:
             self.update_cost_basises(updated_ticker_cost_basis_dict)
@@ -255,9 +235,13 @@ class Account(object): #portfolio
 
     def add_stock(stock_shares_tuple):
         if stock_shares_tuple[0].upper() not in self.stock_shares_dict.keys():
-            self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+            self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
         else: # Redundent, but i'm leaving it in here in case i need to edit this later.
-            self.stock_shares_dict["%s" % a_tuple[0].upper()] = a_tuple[1]
+            self.stock_shares_dict["{}".format(a_tuple[0].upper())] = a_tuple[1]
+
+class PersistantUserData(persistent.Persistent): # user data that must persist
+    def __init__(self):
+        self.xbrl_date_set_repr_str = persistent.list.PersistentList()
 
 class SpreadsheetCell(object):
     def __init__(self,
@@ -344,7 +328,7 @@ class StockBuyDialog(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.closeWindow)  #Bind the EVT_CLOSE event to closeWindow()
 
         choices = []
-        for key, obj in config.PORTFOLIO_OBJECTS_DICT.iteritems():
+        for key, obj in config.PORTFOLIO_OBJECTS_DICT.items():
             choices.append(obj.name)
         choice_index = None
         if preset_account_choice:

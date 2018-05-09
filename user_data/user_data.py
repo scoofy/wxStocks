@@ -7,7 +7,7 @@ STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex", "BATS", "NYSEArca", "NYSEm
 
 DEFAULT_COMMISSION = 10.00
 
-DEFAULT_ENCRYPTION_HARDNESS_LEVEL = 8 # 1-24: i'm under the impression that 8 is the most secure hardness my processer can compute quickly
+DEFAULT_ENCRYPTION_HARDNESS_LEVEL = 12 # 1-24: i'm under the impression that 8 is the most secure hardness my processer can compute quickly
 
 SCRAPE_CHUNK_LENGTH = 50
 # Had errors with yql (yahoo query language) at greater numbers than 50
@@ -42,7 +42,7 @@ DEFAULT_STOCK_EXCHANGE_ATTRIBUTE = "Exchange_na"
 DEFAULT_STOCK_WEBSITE_ATTRIBUTE = "Web_address_aa"
 #--
 SECONDARY_LAST_TRADE_PRICE_ATTRIBUTE_NAME = "LastTradePriceOnly_yf"
-SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = None
+SECONDARY_AVERAGE_DAILY_VOLUME_ATTRIBUTE_NAME = "averageVolume30Day_bb"
 SECONDARY_LAST_UPDATE = "last_yql_basic_scrape_update"
 SECONDARY_STOCK_EXCHANGE_ATTRIBUTE = "StockExchange_yf"
 SECONDARY_STOCK_WEBSITE_ATTRIBUTE = None

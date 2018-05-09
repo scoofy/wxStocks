@@ -2,16 +2,12 @@ import config, inspect
 #[osx, debian linux, windows]
 #[osx because the o is a 0, linux because the l is a 1, and windows because it deserves to be last]
 
-def line_number():
-    """Returns the current line number in our program."""
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
 #MainFrame
 MainFrame_size = [(1020,800),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZE[1]*(3./4) ),( config.DISPLAY_SIZE[0]*(3./4), config.DISPLAY_SIZE[1]*(3./4) )][config.OS_TYPE_INDEX]
 MainFrame_SetSizeHints = MainFrame_size
 
 def main_frame_size():
-    size = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSizeTuple()
+    size = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID).GetClientSize()
     return size
 
 #shortcuts
@@ -25,7 +21,7 @@ class WelcomePage(object):
     welcome_page_text = (10,10)
     instructions = [(10,20),(10,30),(10,30)][config.OS_TYPE_INDEX]
     if config.ENCRYPTION_POSSIBLE and (config.OS_TYPE_INDEX != 0): # if encryption and not on mac
-        print line_number(), "FINISH THIS TEMPORARY RESTRUCTURING TO WORK CROSSPLATFORM"
+        logging.info("FINISH THIS TEMPORARY RESTRUCTURING TO WORK CROSSPLATFORM")
     reset_password_button = [(5, 700),(default_width - 400, 0),(default_width - 400, 0)][config.OS_TYPE_INDEX]
     text_field_offset = 180
     text_field_vertical_offset = -3
@@ -44,6 +40,7 @@ class TickerPage(object):
     AddSpacer = [88,95,88][config.OS_TYPE_INDEX] #box vertical offset
     text = (10,10)
     download_button = [(5, 30),(5,31),(5, 30)][config.OS_TYPE_INDEX]
+    cik_button = (150, 30)
     refresh_button = [(5, 60),(5,62),(5, 60)][config.OS_TYPE_INDEX]
     more_text = (145,36)
 
@@ -53,8 +50,42 @@ class TickerPage(object):
     display_tickers_size_vertical_adjustment = 90 + (vertical_offset_per_tab*2)
     display_tickers_size_horizontal_adjustment = horizontal_offset_per_tab*2
 
+class XbrlImportPage(object):
+    row_one = 100
+    row_two = 125
+    row_three = 150
+    row_four = 175
+    row_five = 200
+
+    text = (10,10)
+
+    from_file_button = (5, row_one)
+    from_folder_button = (122, row_one)
+
+    sec_download_button = (5, row_two)
+    abort_import_button = (5, row_two)
+
+    radio_year_month = (5, row_three+2)
+    xbrl_year_input = (28, row_three)
+    xbrl_month_dropdown = (135, row_three)
+
+    radio_from_year_to_year = (5, row_four+2)
+    xbrl_from_year_input = (28, row_four)
+    xbrl_to_year_input = (135, row_four)
+
+    checkbox_dont_save_sec_files = (5, row_five+2)
+
+    progress_bar = (0,400)
+    progress_bar_size = [(995,-1), ((default_width- 35),-1), ((default_width- 35),-1)][config.OS_TYPE_INDEX]
+    total_relevant_tickers = (10,30)
+    tickers_to_import = (10,50)
+    import_time_text = (10,70)
+
+
+
 class YqlScrapePage(object):
     text = (10,10)
+    time_button = (100,100)
     scrape_button = (5,100)
     abort_scrape_button = (5,100)
     progress_bar = (0,200)
@@ -86,7 +117,7 @@ class PortfolioAccountTab(object):
     drop_down = [(11,25),(5,35),(6,27)][config.OS_TYPE_INDEX]
     delete_button = [(800,0),(default_width-162,2),(655,0)][config.OS_TYPE_INDEX]
     rename_button = [(568,22),(492,35),(479,26)][config.OS_TYPE_INDEX]
-    change_number_of_portfolios_button = [(568,0),(492,2),(479,0)][config.OS_TYPE_INDEX]
+    add_a_portfolio_button = [(568,0),(492,2),(479,0)][config.OS_TYPE_INDEX]
     ticker_input = [(250,3),(160,4),(160,1)][config.OS_TYPE_INDEX]
     share_input = [(250,25),(160,36),(160,27)][config.OS_TYPE_INDEX]
     cost_basis_input = [(350,3),(255,4),(273,1)][config.OS_TYPE_INDEX]

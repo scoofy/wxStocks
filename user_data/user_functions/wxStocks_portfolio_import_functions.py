@@ -67,7 +67,7 @@ def schwab_csv(csv_file):
 					#print line_number(), stock_shares_tuple
 					new_account_stock_list.append(stock_shares_tuple)
 					#print line_number(),"stock"
-		except Exception, exception:
+		except Exception as exception:
 			#print line_number(),exception
 			#print line_number(),row
 			pass

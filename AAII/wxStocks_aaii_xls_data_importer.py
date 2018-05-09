@@ -1,8 +1,4 @@
-import sys, pprint, os, inspect, string, time
-
-def line_number():
-	"""Returns the current line number in our program."""
-	return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
+import sys, pprint, os, inspect, string, time, logging
 
 try:
 	import xlrd
@@ -10,7 +6,7 @@ except:
 	try:
 		import modules.xlrd as xlrd # AAII is all excel files
 	except:
-		print line_number(), "Error: xlrd is not installed"
+		logging.info("Error: xlrd is not installed")
 		sys.exit()
 
 from wxStocks_modules import wxStocks_utilities as utils
@@ -30,17 +26,17 @@ def return_relevant_spreadsheet_list_from_workbook(xlrd_workbook):
 	relevant_sheets = []
 	for i in range(xlrd_workbook.nsheets):
 		sheet = xlrd_workbook.sheet_by_index(i)
-		#print line_number(), sheet.name
+		#logging.info(sheet.name)
 		if sheet.nrows or sheet.ncols:
-			print line_number(), "rows x cols:", sheet.nrows, sheet.ncols
+			logging.info(("rows x cols:", sheet.nrows, sheet.ncols))
 			relevant_sheets.append(sheet)
 		else:
-			print line_number(), "is empty"
+			logging.info("is empty")
 	return relevant_sheets
 def return_xls_cell_value(xlrd_spreadsheet, row, column):
 	return xlrd_spreadsheet.cell_value(rowx=row, colx=column)
 
-def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 604800): # one week
+def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 999604800): # one week 604800
 	""""import aaii .xls files"""
 	#current_directory = os.path.dirname(os.path.realpath(__file__))
 	#parent_directory = os.path.split(current_directory)[0]
@@ -55,40 +51,42 @@ def import_aaii_files_from_data_folder(path, time_until_data_needs_update = 6048
 						and "_Key.XLS" not in filename
 						and ( filename.endswith("xls") or filename.endswith("XLS") )
 						]
-	print line_number(), aaii_filenames
+	logging.info(aaii_filenames)
 
 	expired_data = []
 	for filename in aaii_filenames:
 		current_time = time.time()
 		file_stats = os.stat(data_directory + "/" + filename)
 		file_last_modified_epoch = file_stats.st_mtime # last modified
-		#print filename, "last modified:", file_stats.st_mtime
+		#logging.info((filename, "last modified:", file_stats.st_mtime))
 		if (current_time - time_until_data_needs_update) > file_last_modified_epoch:
 			expired_data.append(filename)
 	if expired_data:
-		print line_number(), "Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."
+		logging.info(("Error: Files\n\t", "\n\t".join(expired_data), "\nare expired data. You must update."))
 		return
 
 	for index, filename in enumerate(aaii_filenames):
-		#print line_number(), "\n\nprocessing file %d of %d\n" % (aaii_filenames.index(filename)+1, len(aaii_filenames) )
+		#logging.info(("\n\nprocessing file %d of %d\n" % (aaii_filenames.index(filename)+1, len(aaii_filenames) )))
 		key_dict = process_aaii_xls_key_file(data_directory + "/" + filename[:-4] + "_Key.XLS")
 		process_aaii_xls_data_file(data_directory + "/" + filename, key_dict, index, len(aaii_filenames))
+		db.savepoint_db()
+	db.commit_db()
 	db.save_GLOBAL_STOCK_DICT()
-	print line_number(), "AAII import complete."
+	logging.info("AAII import complete.")
 
 def process_aaii_xls_key_file(filename):
 	'grabs the long attribute names to map onto stock objects'
 	spreadsheet = xlrd.open_workbook(filename, on_demand=0).sheet_by_index(0)
 	#xlrd_workbook = xlrd.open_workbook(filename)
 	#relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
-	#print relevant_spreadsheet_list
+	#logging.info(relevant_spreadsheet_list)
 
 	# only 1 sheet
 	#if not len(relevant_spreadsheet_list) == 1:
-	#	print line_number(), ""
-	#	print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
-	#	print line_number(), "spreadsheet list > 1 sheet"
-	#	print line_number(), ""
+	#	logging.info("")
+	#	logging.info("Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py")
+	#	logging.info("spreadsheet list > 1 sheet")
+	#	logging.info("")
 	#	return None
 	#spreadsheet = relevant_spreadsheet_list[0]
 
@@ -101,13 +99,12 @@ def process_aaii_xls_key_file(filename):
 	key_dict = {}
 	for row_list in spreadsheet_list_of_row_data[1:]:
 		key_dict[row_list[0]] = remove_inappropriate_characters_from_attribute_name(row_list[1])
-	#print line_number()
 	#pprint.pprint(key_dict)
 
 	return key_dict
 
 def process_aaii_xls_data_file(filename, key_dict, the_files_index_in_file_list, number_of_files_being_processed):
-	print line_number(), filename, "Start!"
+	logging.info((filename, "Start!"))
 	spreadsheet = xlrd.open_workbook(filename, on_demand=0).sheet_by_index(0)
 	#xlrd_workbook = xlrd.open_workbook(filename)
 	#relevant_spreadsheet_list  = return_relevant_spreadsheet_list_from_workbook(xlrd_workbook)
@@ -115,10 +112,8 @@ def process_aaii_xls_data_file(filename, key_dict, the_files_index_in_file_list,
 
 	# only 1 sheet
 	#if not len(relevant_spreadsheet_list) == 1:
-	#	print line_number(), ""
-	#	print line_number(), "Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py"
-	#	print line_number(), "spreadsheet list > 1 sheet"
-	#	print line_number(), ""
+	#	logging.info("Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py")
+	#	logging.info("spreadsheet list > 1 sheet")
 	#	sys.exit()
 	#spreadsheet = relevant_spreadsheet_list[0]
 
@@ -134,11 +129,11 @@ def process_aaii_xls_data_file(filename, key_dict, the_files_index_in_file_list,
 		spreadsheet_list_of_row_data.append(row_list)
 
 	ticker_location = spreadsheet_list_of_row_data[0].index(u'ticker')
-	#print line_number(), spreadsheet_list_of_row_data[0]
+	#logging.info(spreadsheet_list_of_row_data[0])
 
 	current_time = time.time()
 
-	print "spreadsheet_list_of_row_data", len(spreadsheet_list_of_row_data[1:])
+	logging.info(("spreadsheet_list_of_row_data", len(spreadsheet_list_of_row_data[1:])))
 	row_data_len = len(spreadsheet_list_of_row_data)
 	spreadsheet_list_of_row_data_attributes = tuple(spreadsheet_list_of_row_data[0])
 	spreadsheet_list_of_row_data_list = tuple(spreadsheet_list_of_row_data[1:])
@@ -154,23 +149,23 @@ def process_aaii_xls_data_file(filename, key_dict, the_files_index_in_file_list,
 		whole_percent = int(percent)
 		if whole_percent > last_percent:
 			spent_time = int(time.time() - start_time)
-			last_percent = whole_percent 
-			print line_number(), spreadsheet_list_of_row_data_list.index(row_list), "of", row_data_len, "processing.", str(percent) + "%,", " of this file, which took", spent_time, "seconds.", str(percent_of_entire_process) + "%", "of total."
+			last_percent = whole_percent
+			logging.info((spreadsheet_list_of_row_data_list.index(row_list), "of", row_data_len, "processing.", str(percent) + "%,", " of this file, which took", spent_time, "seconds.", str(percent_of_entire_process) + "%", "of total."))
 		ticker = str(row_list[ticker_location])
-		#print line_number(), ticker
+		#logging.info(ticker)
 		current_stock = db.create_new_Stock_if_it_doesnt_exist(ticker)
 		for attribute in spreadsheet_list_of_row_data_attributes:
-			#print line_number(), "stock attribute", spreadsheet_list_of_row_data[0].index(attribute), "of", len(spreadsheet_list_of_row_data[0])
+			#logging.info(("stock attribute", spreadsheet_list_of_row_data[0].index(attribute), "of", len(spreadsheet_list_of_row_data[0])))
 			# get the shortened attribute name here
 			attribute_index = spreadsheet_list_of_row_data_attributes.index(attribute)
-			#print line_number(), attribute
-			#print line_number(), attribute_index
+			#logging.info(attribute)
+			#logging.info(attribute_index)
 			if attribute_index == ticker_location:
 				continue
 			long_attribute_name = key_dict.get(attribute.upper())
-			#print line_number(), long_attribute_name
+			#logging.info(long_attribute_name)
 			#long_attribute_name = remove_inappropriate_characters_from_attribute_name(long_attribute_name) # added to keydict creation
-			#print line_number(), long_attribute_name
+			#logging.info(long_attribute_name)
 			datum = row_list[attribute_index]
 			db.set_Stock_attribute(current_stock, long_attribute_name, datum, "_aa")
 		# set last update time
@@ -185,14 +180,12 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 	attribute_string = str(attribute_string)
 	if "Inve$tWare" in attribute_string: # weird inve$tware names throwing errors below due to "$".
 		attribute_string = attribute_string.replace("Inve$tWare", "InvestWare")
-	acceptable_characters = list(string.letters + string.digits + "_")
-	unicode_acceptable_characters = [unicode(char.decode("utf-8", "ignore")) for char in acceptable_characters]
-	acceptable_characters = acceptable_characters + unicode_acceptable_characters
+	acceptable_characters = list(string.ascii_letters + string.digits + "_")
 	new_attribute_name = ""
 	unacceptible_characters = [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "/", u"/", "&", u"&", "%", u"%", "#", u"#", ":", u":", "*", u"*"]
 	string_fails = [char for char in unacceptible_characters if char in attribute_string]
 	if string_fails:
-		#print line_number(), string_fails
+		#logging.info(string_fails)
 		for char in attribute_string:
 			if char not in acceptable_characters:
 				if char in [" ", "-", ".", ",", "(", ")", u" ", u"-", u".", u",", u"(", u")", "#", u"#", ":", u":", "*", u"*"]:
@@ -206,7 +199,7 @@ def remove_inappropriate_characters_from_attribute_name(attribute_string):
 				elif char in ["'"]:
 					new_char = ""
 				else:
-					print line_number(), "Error:", char, ":", attribute_string
+					logging.errors(("Error:", char, ":", attribute_string))
 					sys.exit()
 			else:
 				new_char = str(char)

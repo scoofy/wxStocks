@@ -1,6 +1,6 @@
 import logging, inspect, numpy, sys
 from wxStocks_modules import wxStocks_utilities as utils
-import aaii_utilities as aaii_utils
+from functions_for_custom_analysis_go_in_here import aaii_utilities as aaii_utils
 #from AAII_functions import aaii_utilities as aaii
 #
 # InstBuyFltP100 - Institutional Buys asd % of Float
@@ -65,26 +65,26 @@ def aaii_volume(Stock):
 def neff_3yr_H_x2yield(Stock): # john's formula
 	try:
 		eps = float(Stock.EPS_Growth_3yr_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-		print "Stock.EPS_Cont_Growth_3yr_aa"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("{} is missing required data".format(Stock.symbol))
+		logging.info("Stock.EPS_Cont_Growth_3yr_aa")
 		return None
 
 	try:
 		dividend_yield = float(Stock.Yield_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-		print "Stock.Yield_aa"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("{} is missing required data".format(Stock.symbol))
+		logging.info("Stock.Yield_aa")
 		dividend_yield = 0.
 
 	try:
 		pe = float(Stock.PE_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-		print "Stock.PE_aa"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("{} is missing required data".format(Stock.symbol))
+		logging.info("Stock.PE_aa")
 		return None
 
 	if pe:
@@ -100,33 +100,33 @@ def neff_ratio(Stock, period): # period is either "F" (future) or "H" (historica
 	if period == "F":
 		try:
 			eps = float(Stock.EPS_Growth_Est_aa)
-		except Exception, exception:
-			#print line_number_with_stock(Stock), exception
-			print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-			print "Stock.EPS_Growth_Est_aa"
+		except Exception as exception:
+			#logging.info(exception
+			logging.info("{} is missing required data".format(Stock.symbol))
+			logging.info("Stock.EPS_Growth_Est_aa")
 			return None
 	elif period == "H":
 		try:
 			eps = float(Stock.EPS_Cont_Growth_5yr_aa)
-		except Exception, exception:
-			#print line_number_with_stock(Stock), exception
-			print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-			print "Stock.EPS_Cont_Growth_5yr_aa"
+		except Exception as exception:
+			#logging.info(exception
+			logging.info("{} is missing required data".format(Stock.symbol))
+			logging.info("Stock.EPS_Cont_Growth_5yr_aa")
 			return None
 	try:
 		dividend_yield = float(Stock.Yield_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-		print "Stock.Yield_aa"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("{} is missing required data".format(Stock.symbol))
+		logging.info("Stock.Yield_aa")
 		dividend_yield = 0.
 
 	try:
 		pe = float(Stock.PE_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "{} is missing required data".format(Stock.symbol)
-		print "Stock.PE_aa"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("{} is missing required data".format(Stock.symbol))
+		logging.info("Stock.PE_aa")
 		return None
 
 	if pe:
@@ -169,12 +169,12 @@ def neff_TTM_historical(Stock, diluted=False, dividend_multiplier = 3.):
 		else:
 			eps_continuing_growth = float(Stock.EPS_Dil_Cont_Growth_12m_aa)#/100.
 		pe = float(Stock.PE_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "{} is missing required data: .PE_aa, .EPS_Cont_Growth_12m_aa, or .EPS_Dil_Cont_Growth_12m_aa".format(Stock.symbol)
-		print ".PE_aa:", Stock.PE_aa
-		print ".EPS_Cont_Growth_12m_aa:", Stock.EPS_Cont_Growth_12m_aa
-		print ".EPS_Dil_Cont_Growth_12m_aa:", Stock.EPS_Dil_Cont_Growth_12m_aa
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("{} is missing required data: .PE_aa, .EPS_Cont_Growth_12m_aa, or .EPS_Dil_Cont_Growth_12m_aa".format(Stock.symbol))
+		logging.info(".PE_aa:", Stock.PE_aa)
+		logging.info(".EPS_Cont_Growth_12m_aa: {}".format(Stock.EPS_Cont_Growth_12m_aa))
+		logging.info(".EPS_Dil_Cont_Growth_12m_aa: {}".formant(Stock.EPS_Dil_Cont_Growth_12m_aa))
 		return None
 	if pe:
 		neff_TTM_historical = ((dividend_multiplier * dividend_yield) + eps_continuing_growth)/pe
@@ -204,8 +204,8 @@ def marginPercentRank(Stock):
 	'''
 	try:
 		return float(Stock.percent_Rank_Operating_margin_12m_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
+	except Exception as exception:
+		#logging.info(exception
 		return None
 def roePercentRank(Stock):
 	'''
@@ -217,8 +217,8 @@ def roePercentRank(Stock):
 	'''
 	try:
 		return float(Stock.percent_Rank_Return_on_equity_12m_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
+	except Exception as exception:
+		#logging.info(exception
 		return None
 
 def roePercentDev(Stock):
@@ -252,10 +252,11 @@ def roePercentDev(Stock):
 		ROEsig2mu = (((ROE_y1-ROE3YrAvg)**2 + (ROE_y2-ROE3YrAvg)**2 + (ROE_y3-ROE3YrAvg)**2)**0.5)/((3**0.5)*(ROE3YrAvg))
 
 		return ROEsig2mu
-	except Exception, exception:
-		#print line_number_with_stock(Stock), "roePercentDev has failed due to the following exception:"
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "roePercentDev will return None for {}".format(Stock.ticker)
+	except Exception as exception:
+		#logging.info("roePercentDev has failed due to the following exception:"
+		#logging.info(exception
+		logging.info(line_number_with_stock(Stock))
+		logging.info("roePercentDev will return None for {}".format(Stock.ticker))
 		return None
 
 def price_to_book_growth(Stock):
@@ -281,11 +282,11 @@ def price_to_book_growth(Stock):
 
 		price_growth_to_book_growth = (price_year_1/price_year_3)/(bvps_year_1/bvps_year_3)
 		return price_growth_to_book_growth
-	except Exception, exception:
-		#print line_number_with_stock(Stock), "price_to_book_growth has failed due to the following exception:"
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "price_to_book_growth will return None for {}".format(Stock.ticker)
-		print line_number_with_stock(Stock), "price_to_book_growth function is incomplete, view notes for more details"
+	except Exception as exception:
+		#logging.info("price_to_book_growth has failed due to the following exception:"
+		#logging.info(exception
+		logging.info("price_to_book_growth will return None for {}".format(Stock.ticker))
+		logging.info("price_to_book_growth function is incomplete, view notes for more details")
 		return None
 def price_to_range(Stock):
 	'''
@@ -300,7 +301,7 @@ def price_to_range(Stock):
 	I like to have it greater than 0.2.
 	'''
 	# this uses the close in the equation, but should use live price
-	#print line_number_with_stock(Stock)
+	#logging.info(line_number_with_stock(Stock)
 	#logging.warning("this uses the last closing price in the equation, but should use live price")
 	current_price = float(Stock.Price_aa)
 	the_52_week_low  = float(Stock.Price__low_52_week_aa)
@@ -309,7 +310,7 @@ def price_to_range(Stock):
 	try:
 		price_to_range_var = ((current_price - the_52_week_low)/(the_52_week_high - the_52_week_low))
 		return price_to_range_var
-	except Exception, exception:
+	except Exception as exception:
 		pass
 
 
@@ -323,11 +324,13 @@ def percentage_held_by_insiders(Stock): #done!
 		else:
 			return None
 		return percentage_held_by_insiders
-	except Exception, exception:
+	except Exception as exception:
 		try:
-			print line_number_with_stock(Stock), exception, "Stock.Insider_Ownership_percent_aa:", Stock.Insider_Ownership_percent_aa
+			logging.info(exception)
+			logging.info("Stock.Insider_Ownership_percent_aa: {}".format(Stock.Insider_Ownership_percent_aa))
 		except:
-			print line_number_with_stock(Stock), exception, "Stock.Insider_Ownership_percent_aa doesn't exist for", Stock.ticker
+			logging.info(exception)
+			logging.info("Stock.Insider_Ownership_percent_aa doesn't exist for {}".format(Stock.ticker))
 		return None
 
 def net_institution_buy_percent(Stock):
@@ -346,12 +349,12 @@ def net_institution_buy_percent(Stock):
 	try:
 		share_float = float(Stock.Float_aa) # data in millions
 	except:
-		print line_number_with_stock(Stock), "Stocks {} has not Stock.Shares_Average_Q1_aa".format(Stock.ticker)
+		logging.info("Stocks {} has not Stock.Shares_Average_Q1_aa".format(Stock.ticker))
 		return None
 	try:
 		net_insiders_buy = (bought-sold)/share_float
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
+	except Exception as exception:
+		#logging.info(exception
 		return None
 
 	return net_insiders_buy
@@ -372,22 +375,22 @@ def net_institution_buy_percent_with_avg_not_float(Stock):
 	try:
 		avg_shares = float(Stock.Shares_Average_Q1_aa) * 1000000. # data in millions
 	except:
-		print line_number_with_stock(Stock), "Stocks %s has not Stock.Shares_Average_Q1_aa"
+		logging.info("Stocks %s has not Stock.Shares_Average_Q1_aa")
 		return None
 	try:
 		net_insiders_buy = (bought-sold)/avg_shares
 		net_insiders_buy = net_insiders_buy * 100.
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
+	except Exception as exception:
+		#logging.info(exception
 		return None
 
 	if Stock.ticker == "SLCA":
-		print line_number_with_stock(Stock)
-		print "\n" * 10
-		print "bought:\t", bought
-		print "sold:\t", sold
-		print "shares:\t", avg_shares
-		print "net buy:\t", net_insiders_buy
+		logging.info(line_number_with_stock(Stock))
+		logging.info("\n" * 10)
+		logging.info("bought:\t{}".format(bought))
+		logging.info("sold:\t{}".format(sold))
+		logging.info("shares:\t{}".format(avg_shares))
+		logging.info("net buy:\t{}".format(net_insiders_buy))
 
 	return net_insiders_buy
 
@@ -395,27 +398,27 @@ def percentage_held_by_institutions(Stock): #done!
 	try:
 		percentage_held_by_institutions = float(Stock.Institutional_Ownership_percent_aa)
 		return percentage_held_by_institutions
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception, ":",
-		print line_number_with_stock(Stock), Stock.ticker, Stock.Institutional_Ownership_percent_aa
+	except Exception as exception:
+		#logging.info(exception, ":",
+		logging.info("{} {}".format(Stock.ticker, Stock.Institutional_Ownership_percent_aa))
 		return None
 
 def current_ratio(Stock): #done! (trivial)
 	try:
 		current_ratio = float(Stock.Current_ratio_Q1_aa)
 		return current_ratio
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "Stock.Current_ratio_Q1_aa = ", Stock.Current_ratio_Q1_aa
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("Stock.Current_ratio_Q1_aa = {}".format(Stock.Current_ratio_Q1_aa))
 		return None
 def longTermDebtToEquity(Stock):
 	try:
 		long_term_debt_to_equity = float(Stock.LT_Debt_to_equity_Q1_aa)
 		return long_term_debt_to_equity
-	except Exception, exception:
-		#print line_number_with_stock(Stock), "longTermDebtToEquity has failed due to the following exception:"
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "longTermDebtToEquity will return None for {}".format(Stock.ticker)
+	except Exception as exception:
+		#logging.info("longTermDebtToEquity has failed due to the following exception:"
+		#logging.info(exception
+		logging.info("longTermDebtToEquity will return None for {}".format(Stock.ticker))
 		return None
 
 def invtory2sales(Stock):
@@ -488,8 +491,8 @@ def neffEvEBIT(Stock, dividend_multiplier = 2.): #done!
 		enterprise_value = float(Stock.Enterprise_Value_Q1_aa)
 		neff_ev_ebit = ((dividend_multiplier * dividend_yield) + ebit_growth)/(enterprise_value/ebit)
 		return neff_ev_ebit
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
+	except Exception as exception:
+		#logging.info(exception
 		return None
 def neffCf3Year(Stock, dividend_multiplier = None):
 	'''
@@ -503,11 +506,11 @@ def neffCf3Year(Stock, dividend_multiplier = None):
 	# numerator
 	try:
 		cash_flow_growth = float(Stock.Free_Cash_Flow_Growth_3yr_aa)
-	except Exception, exception:
-		print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "Warning: %s is missing required data" % (Stock.symbol)
-		print "Stock.Free_Cash_Flow_Growth_3yr_aa"
-		print "It will  be set to 0.00"
+	except Exception as exception:
+		logging.info(exception)
+		logging.info("Warning: %s is missing required data" % (Stock.symbol))
+		logging.info("Stock.Free_Cash_Flow_Growth_3yr_aa")
+		logging.info("It will  be set to 0.00")
 		cash_flow_growth = 0.
 
 	try:
@@ -518,11 +521,11 @@ def neffCf3Year(Stock, dividend_multiplier = None):
 	# Denominator
 	try:
 		price_to_fcfps = float(Stock.Price_to_FCFPS_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "Warning: {} is missing required data".format(Stock.symbol)
-		print "Stock.Price_to_FCFPS_aa"
-		print "It cannot be set to 0, will return none as undefined"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("Warning: {} is missing required data".format(Stock.symbol))
+		logging.info("Stock.Price_to_FCFPS_aa")
+		logging.info("It cannot be set to 0, will return none as undefined")
 		return None
 
 	neff = ((dividend_yield * dividend_multiplier) + cash_flow_growth)/price_to_fcfps
@@ -540,11 +543,11 @@ def neffCf5Year(Stock, dividend_multiplier = 2.):
 	# numerator
 	try:
 		cash_flow_growth = float(Stock.Free_Cash_Flow_Growth_5yr_aa)
-	except Exception, exception:
-		print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "Warning: {} is missing required data".format(Stock.symbol)
-		print "Stock.Free_Cash_Flow_Growth_5yr_aa"
-		print "It will  be set to 0.00"
+	except Exception as exception:
+		logging.info(exception)
+		logging.info("Warning: {} is missing required data".format(Stock.symbol))
+		logging.info("Stock.Free_Cash_Flow_Growth_5yr_aa")
+		logging.info("It will  be set to 0.00")
 		cash_flow_growth = 0.
 
 	try:
@@ -555,26 +558,17 @@ def neffCf5Year(Stock, dividend_multiplier = 2.):
 	# Denominator
 	try:
 		price_to_fcfps = float(Stock.Price_to_FCFPS_aa)
-	except Exception, exception:
-		#print line_number_with_stock(Stock), exception
-		print line_number_with_stock(Stock), "Warning: {} is missing required data".format(Stock.symbol)
-		print "Stock.Price_to_FCFPS_aa"
-		print "It cannot be set to 0, will return none as undefined"
+	except Exception as exception:
+		#logging.info(exception
+		logging.info("Warning: {} is missing required data".format(Stock.symbol))
+		logging.info("Stock.Price_to_FCFPS_aa")
+		logging.info("It cannot be set to 0, will return none as undefined")
 		return None
 
 	neff = ((dividend_yield * dividend_multiplier) + cash_flow_growth)/price_to_fcfps
 	return neff
 
 	# honestly not sure if this is correct.
-
-
-####################### Utility functions #################################################
-def line_number_with_stock(Stock):
-	"""Returns the current line number in our program."""
-	return "{} File: {}: Line {}:".format(Stock.ticker, inspect.getframeinfo(inspect.currentframe()).filename.split("wxStocks")[-1], inspect.currentframe().f_back.f_lineno)
-
-############################################################################################
-
 
 
 

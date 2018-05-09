@@ -1,4 +1,6 @@
 DO_NOT_COPY/**
 wxStocks_data/**
+sec/**
 *.pyc
 *.pk
+sec_xbrl_files_downloaded.txt
