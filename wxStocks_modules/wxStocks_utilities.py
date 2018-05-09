@@ -598,7 +598,7 @@ def update_all_screen_dropdowns_after_saving_a_new_screen():
     possible_number_of_analysis_pages = len(config.GLOBAL_PAGES_DICT) - len(config.GLOBAL_UNIQUE_ID_LIST)
     for i in range(possible_number_of_analysis_pages):
         custom_analysis_page_ref_str = str(custom_analysis_meta_page_index) + str(i + 1)
-        logging.info(custom_analysis_page_ref_str)
+        # logging.info(custom_analysis_page_ref_str)
         custom_analysis_page_ref = config.GLOBAL_PAGES_DICT.get(custom_analysis_page_ref_str)
         if custom_analysis_page_ref:
             logging.info("success")

@@ -181,7 +181,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
     try:
         stock = root.Stock[symbol]
     except:
-        pass
+        stock = None
     if not stock:
         stock = config.GLOBAL_STOCK_DICT.get(symbol)
     if not stock:
@@ -276,7 +276,7 @@ def save_GLOBAL_STOCK_STREEN_DICT(): ###### updated
     commit_db()
 def load_named_screen(screen_name): ###### updated
     logging.info("Loading Screen: {}".format(screen_name))
-    screen_list = root.GLOBAL_STOCK_SCREEN_DICT["{}".format(screen_name)]
+    screen_ticker_list = root.GLOBAL_STOCK_SCREEN_DICT["{}".format(screen_name)]
     stock_list = []
     for ticker in screen_ticker_list:
         stock = utils.return_stock_by_symbol(ticker)

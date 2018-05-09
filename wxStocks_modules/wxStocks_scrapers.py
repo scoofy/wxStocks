@@ -2365,10 +2365,9 @@ def morningstar_add_zeros_to_usd_millions(data_list):
 
 def bloomberg_us_stock_quote_scrape(ticker):
     url = "https://www.bloomberg.com/quote/{ticker}:US".format(ticker=ticker)
-    #page = urlopen(url)
-    import pprint as pp
-    page = open(os.path.join("bb_test2.html"), "r").read()
-    logging.warning("")
+    response = requests.get(url, headers=config.HEADERS)
+    page = response.text
+    #logging.warning(page)
     soup = BeautifulSoup(page, "html.parser")
     data_units = soup.find_all("script")
     output_list = []
@@ -2395,8 +2394,12 @@ def bloomberg_us_stock_quote_scrape(ticker):
                     #logging.warning(value)
                     continue
     data = replace_bloomberg_values_list(output_list)
+    logging.warning("")
+    pp.pprint(data)
     if len(data) == 1:
         data = data[0]
+    else:
+        logging.warning('len = {}'.format(len(data)))
     bloomberg_dict = data
     convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict)
     # pp.pprint(data)

@@ -363,6 +363,8 @@ DEFAULT_ENTITY_TAG = "{http://www.xbrl.org/2003/instance}entity"
 DEFAULT_IDENTIFIER_TAG = "{http://www.xbrl.org/2003/instance}identifier"
 
 DEFAULT_PERIOD_TAG = "{http://www.xbrl.org/2003/instance}period"
+
+XBRL_DICT_ATTRIBUTE_SUFFIX = "__dict_us"
 ########
 
 

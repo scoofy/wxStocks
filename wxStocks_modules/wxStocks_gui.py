@@ -1472,10 +1472,32 @@ class PortfolioAccountTab(Tab):
         cost_basis_or_cash = self.cost_basis_input.GetValue()
         shares = str(self.share_input.GetValue()).replace(",", "")
 
-        if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
-            # basically if the entered data cannot be parsed
-            logging.warning("invalid entry")
+        # if (not (ticker or cost_basis_or_cash)) or ((cost_basis_or_cash and shares) and not ticker) or (ticker and not (cost_basis_or_cash or shares)):
+
+
+        if not (ticker or cost_basis_or_cash):
+            # need a ticker or cost_basis to update
+            logging.warning("invalid entry: not (ticker or cost_basis_or_cash)")
+            logging.warning("ticker: {}".format(ticker))
+            logging.warning("cost_basis_or_cash: {}".format(cost_basis_or_cash))
             return
+        elif (cost_basis_or_cash and shares) and not ticker:
+            # if no ticker, can't update shares
+            logging.warning("invalid entry: (cost_basis_or_cash and shares) and not ticker")
+            logging.warning("cost_basis_or_cash: {}".format(cost_basis_or_cash))
+            logging.warning("shares: {}".format(shares))
+            logging.warning("ticker: {}".format(ticker))
+            return
+        elif ticker and not (cost_basis_or_cash or shares):
+            # if ticker, but not cost basis or shares, it's just sitting there being a ticker
+            logging.warning("invalid entry: ticker or not (cost_basis_or_cash or shares)")
+            logging.warning("ticker: {}".format(ticker))
+            logging.warning("cost_basis_or_cash: {}".format(cost_basis_or_cash))
+            logging.warning("shares: {}".format(shares))
+            return
+        else:
+            # correct entry
+            pass
         if cost_basis_or_cash and not (ticker or shares):
             # User is updating cash in account
             cash = cost_basis_or_cash
@@ -1820,15 +1842,28 @@ class AllStocksPage(Tab):
 
         self.spreadsheet.Show()
 
-    def resetGlobalAttributeSet(self, event):
+    def resetGlobalAttributeSet(self, event, percent_occurrence_in_stocks_required_to_be_added=.05):
+        'adds SHARED attribute to GLOBAL_ATTRIBUTE_SET'
+        # okay, i've reformulated this function
         temp_global_stock_list = utils.return_all_stocks()
-        temp_global_attribute_set = set()
+        number_of_stocks = len(temp_global_stock_list)
+        occurance_threshold = number_of_stocks * percent_occurrence_in_stocks_required_to_be_added
+        temp_global_attribute_dict = dict()
         for stock in temp_global_stock_list:
             for attribute in dir(stock):
-                if attribute not in temp_global_attribute_set:
-                    if not attribute.startswith("_"):
-                        if attribute not in config.CLASS_ATTRIBUTES:
-                            temp_global_attribute_set.add(attribute)
+                if not attribute.startswith("_"):
+                    if attribute not in config.CLASS_ATTRIBUTES:
+                        if not attribute.endswith(config.XBRL_DICT_ATTRIBUTE_SUFFIX):
+                            if attribute not in temp_global_attribute_dict.keys():
+                                temp_global_attribute_dict[attribute] = 1
+                            else:
+                                temp_global_attribute_dict[attribute] += 1
+
+        temp_global_attribute_set = set()
+        for attribute, occurances in temp_global_attribute_dict.items():
+            if occurances >= occurance_threshold:
+                temp_global_attribute_set.add(attribute)
+
         config.GLOBAL_ATTRIBUTE_SET = temp_global_attribute_set
         db.save_GLOBAL_ATTRIBUTE_SET()
 class StockDataPage(Tab):
@@ -2125,13 +2160,13 @@ class ScreenPage(Tab):
 
     def saveScreen(self, event):
         current_screen_name_displayed =  self.drop_down.GetValue()
-        current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
+        current_screen_dict = db.root.GLOBAL_STOCK_SCREEN_DICT
         screen_name_tuple_list = config.SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST
         existing_screen_names = [i[0] for i in screen_name_tuple_list]
 
         if not current_screen_dict:
             db.load_GLOBAL_STOCK_SCREEN_DICT()
-            current_screen_dict = config.GLOBAL_STOCK_SCREEN_DICT
+            current_screen_dict = db.root.GLOBAL_STOCK_SCREEN_DICT
             # current_screen_dict must at least be {}
 
         save_popup = wx.TextEntryDialog(None,
@@ -2272,7 +2307,7 @@ class SavedScreenPage(Tab):
                                      )
 
     def loadScreen(self, event):
-        selected_screen_name = self.drop_down.GetValue()
+        selected_screen_name = self.drop_down.GetStringSelection()
         try:
             config.CURRENT_SAVED_SCREEN_LIST = db.load_named_screen(selected_screen_name)
         except Exception as exception:
@@ -4498,7 +4533,25 @@ class TradePage(Tab):
         return (ticker, number_of_shares, portfolio_obj, float_cost_basis)
 
     def updateStocksWithErrors(self, event):
+        # start by getting errors from grid
+        total_grid_rows = self.grid.GetNumberRows()
+        default_row_gap_before_stocks = 6
+        ticker_column = 0
+        volume_column = 2
+        for row in range(default_row_gap_before_stocks, total_grid_rows):
+            ticker_cell_text = self.grid.GetCellValue(row, ticker_column)
+            if not ticker_cell_text:
+                continue
+            logging.warning(ticker_cell_text)
+            volume_cell_text = self.grid.GetCellValue(row, volume_column)
+            logging.warning(volume_cell_text)
+            if volume_cell_text == "Update Volume":
+                stock = utils.return_stock_by_symbol(ticker_cell_text)
+                if not stock.ticker in self.stocks_to_update:
+                    self.stocks_to_update.append(stock.ticker)
+
         utils.remove_list_duplicates(self.stocks_to_update)
+        logging.warning(self.stocks_to_update)
         if not self.stocks_to_update:
             self.update_stocks_button.Hide()
             return
@@ -4520,61 +4573,7 @@ class TradePage(Tab):
             time.sleep(5)
             update = scrape.bloomberg_us_stock_quote_scrape(stock.ticker)
 
-        chunk_list = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[0]
-        percent_of_full_scrape_done = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[1]
-        self.number_of_tickers_to_scrape = chunk_list_and_percent_of_full_scrape_done_and_number_of_tickers_to_scrape[2]
-
-        timer = threading.Timer(0, self.executeUpdatePartOne, [chunk_list, 0])
-        timer.start()
-    def executeUpdatePartOne(self, ticker_chunk_list, position_of_this_chunk):
-        data = scrape.executeYqlScrapePartOne(ticker_chunk_list, position_of_this_chunk)
-
-        sleep_time = config.SCRAPE_SLEEP_TIME
-        timer = threading.Timer(sleep_time, self.executeUpdatePartTwo, [ticker_chunk_list, position_of_this_chunk, data])
-        timer.start()
-    def executeUpdatePartTwo(self, ticker_chunk_list, position_of_this_chunk, successful_pyql_data):
-        scrape.executeYqlScrapePartTwo(ticker_chunk_list, position_of_this_chunk, successful_pyql_data)
-
-        sleep_time = config.SCRAPE_SLEEP_TIME
-        logging.warning("Sleeping for %d seconds before the next task" % sleep_time)
-
-
-
-        number_of_tickers_in_chunk_list = 0
-        for chunk in ticker_chunk_list:
-            for ticker in chunk:
-                number_of_tickers_in_chunk_list += 1
-        number_of_tickers_previously_updated = self.number_of_tickers_to_scrape - number_of_tickers_in_chunk_list
-        number_of_tickers_done_in_this_scrape = 0
-        for i in range(len(ticker_chunk_list)):
-            if i > position_of_this_chunk:
-                continue
-            for ticker in ticker_chunk_list[i]:
-                number_of_tickers_done_in_this_scrape += 1
-        total_number_of_tickers_done = number_of_tickers_previously_updated + number_of_tickers_done_in_this_scrape
-        percent_of_full_scrape_done = round( 100 * float(total_number_of_tickers_done) / float(self.number_of_tickers_to_scrape))
-
-        position_of_this_chunk += 1
-        percent_done = round( 100 * float(position_of_this_chunk) / float(len(ticker_chunk_list)) )
-        logging.info("{}% done this scrape execution.".format(percent_done))
-        logging.info("{}% done of all tickers.".format(percent_of_full_scrape_done))
-
-        if position_of_this_chunk >= len(ticker_chunk_list):
-            for chunk in ticker_chunk_list:
-                for ticker in chunk:
-                    self.stocks_to_update.remove(ticker)
-            self.updateGrid("event", cursor_positon = (0, 0))
-            self.stock_update_pending_text.Hide()
-            logging.info("finished!")
-            self.newGridFill()
-        else:
-            for chunk in ticker_chunk_list:
-                for ticker in chunk:
-                    self.stocks_to_update.remove(ticker)
-            self.updateGrid("event", cursor_positon = (0, 0))
-            logging.info("ready to loop again")
-            timer = threading.Timer(sleep_time, self.executeScrapePartOne, [ticker_chunk_list, position_of_this_chunk])
-            timer.start()
+        utils.update_all_dynamic_grids()
 
     def clearGrid(self, event):
         self.relevant_portfolios_list = []
