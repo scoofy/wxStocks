@@ -1,6 +1,6 @@
 print("Startup may take a few moments...")
 import logging
-logging.basicConfig(format='  ---- %(filename)s|%(lineno)d ----\n%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='  ---- %(filename)s|%(lineno)d ----\n%(message)s', level=logging.INFO)
 
 import wxStocks_modules.wxStocks_utilities as utils
 utils.start_whitespace()

@@ -82,23 +82,34 @@ def load_all_data():
     if commit:
         commit_db()
     # now load db data if they exist
+    config.LAST_PACKED_DB_SIZE = os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs'))
     load_GLOBAL_STOCK_DICT()
     load_all_portfolio_objects()
     load_GLOBAL_STOCK_SCREEN_DICT()
     load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
-    load_filenames_of_sec_xbrl_files_downloaded()
+    load_filenames_imported_files()
     pack_db()
 def savepoint_db():
     transaction.savepoint(True)
 def commit_db():
     transaction.commit()
     config.GLOBAL_STOCK_DICT = root.Stock
-    logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+    # logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+    # pack if DB has grown too much
+    db_size = os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs'))
+    last_packed_db_size = config.LAST_PACKED_DB_SIZE
+    if db_size > (last_packed_db_size * config.PACK_DB_AT_N_X_PREVIOUS_SIZE):
+        pack_db()
 def pack_db():
-    logging.info("packing the DB, this may take a moment if it's grown significantly")
-    logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+    logging.info("packing the DB of file size: {},\nthis may take a moment if it's grown significantly".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
     db.pack()
     logging.info("DB file size: {}".format(utils.return_human_readable_file_size(os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs')))))
+    config.LAST_PACKED_DB_SIZE = os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs'))
+def pack_if_necessary():
+    db_size = os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs'))
+    last_packed_db_size = config.LAST_PACKED_DB_SIZE
+    if db_size > (last_packed_db_size * config.PACK_DB_AT_N_X_PREVIOUS_SIZE):
+        pack_db()
 
 # start up try/except clauses below
 
@@ -190,7 +201,7 @@ def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
         transaction.commit()
         config.GLOBAL_STOCK_DICT = root.Stock
     return stock
-def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
+def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix, connection=None):
     full_attribute_name = attribute_name + data_source_suffix
     if value is not None:
         setattr(Stock, full_attribute_name, str(value))
@@ -198,7 +209,8 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix):
         setattr(Stock, full_attribute_name, None)
     if not attribute_name in config.GLOBAL_ATTRIBUTE_SET:
         config.GLOBAL_ATTRIBUTE_SET.add(full_attribute_name)
-    commit_db()
+    if not connection:
+        commit_db()
 def load_GLOBAL_STOCK_DICT(): ###### updated
     config.GLOBAL_STOCK_DICT = root.Stock
     load_GLOBAL_ATTRIBUTE_SET()
@@ -209,7 +221,6 @@ def create_loading_status_bar():
     main_frame.SetStatusText(text="Loading database:")
     from wxStocks_modules import wxStocks_gui_position_index as gui_position
     status_bar_width, status_bar_height = main_frame.status_bar.Size
-    print(status_bar_width, status_bar_height)
     main_frame.SetSize(gui_position.MainFrame_SetSizeHints[0],gui_position.MainFrame_SetSizeHints[1] + status_bar_height)
 
 def update_loading_status_bar(percent_str):
@@ -482,28 +493,28 @@ def delete_portfolio_object(id_number): ###### updated
     commit_db()
     return "success"
 
-### XBRL dates saved
-def save_filenames_of_sec_xbrl_files_downloaded():
+### Import files saved
+def save_filenames_imported_files():
     with open(sec_xbrl_files_downloaded_path, "w") as output:
-        if config.SEC_XBRL_FILES_DOWNLOADED_SET:
-            serialized_xbrl_set = repr(config.SEC_XBRL_FILES_DOWNLOADED_SET)
+        if config.SET_OF_FILENAMES_OF_IMPORTED_FILES:
+            serialized_xbrl_set = repr(config.SET_OF_FILENAMES_OF_IMPORTED_FILES)
             output.write(serialized_xbrl_set)
-def load_filenames_of_sec_xbrl_files_downloaded():
+def load_filenames_imported_files():
     try:
         sec_xbrl_files_downloaded_file = open(sec_xbrl_files_downloaded_path, 'r')
     except:
         # create file needed
-        save_filenames_of_sec_xbrl_files_downloaded()
+        save_filenames_imported_files()
         # then load new file
-        load_filenames_of_sec_xbrl_files_downloaded()
+        load_filenames_imported_files()
         # then don't rerun the rest
         return
     date_repr_str = sec_xbrl_files_downloaded_file.read()
     sec_xbrl_files_downloaded_file.close()
     if date_repr_str:
-        config.SEC_XBRL_FILES_DOWNLOADED_SET = ast.literal_eval(date_repr_str)
-def delete_filenames_of_sec_xbrl_files_downloaded():
-    config.SEC_XBRL_FILES_DOWNLOADED_SET = set()
+        config.SET_OF_FILENAMES_OF_IMPORTED_FILES = ast.literal_eval(date_repr_str)
+def delete_filenames_imported_files():
+    config.SET_OF_FILENAMES_OF_IMPORTED_FILES = set()
     with open(sec_xbrl_files_downloaded_path, "w") as output:
         output.write("")
 
@@ -605,7 +616,7 @@ def deleteAllStockDataConfirmed():
     root.GLOBAL_ATTRIBUTE_SET = set()
     save_GLOBAL_ATTRIBUTE_SET()
 
-    delete_filenames_of_sec_xbrl_files_downloaded()
+    delete_filenames_imported_files()
 
     logging.info("Data deleted.")
 

@@ -3,6 +3,8 @@ import locale
 locale.setlocale(locale.LC_ALL, "") # this can be changed to show currency formats differently.
 currency_symbol = "$"
 
+PACK_DB_AT_N_X_PREVIOUS_SIZE = 10
+
 STOCK_EXCHANGE_LIST = ["nyse", "nasdaq"] #add "amex", "BATS", "NYSEArca", "NYSEmkt", if desired, non-american exchanges will not function at this point.
 
 DEFAULT_COMMISSION = 10.00

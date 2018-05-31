@@ -355,8 +355,10 @@ CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE = None
 SCRAPE_LOOP_STARTED = 0.0
 SCRAPE_LOOP_QUEUE = [] # for "scrape_loop_for_missing_portfolio_stocks()" in scrapers
 
+PACK_DB_AT_N_X_PREVIOUS_SIZE = user_data.PACK_DB_AT_N_X_PREVIOUS_SIZE
+
+SET_OF_FILENAMES_OF_IMPORTED_FILES = set()
 ### xbrl stuff ####
-SEC_XBRL_FILES_DOWNLOADED_SET = set()
 DEFAULT_CONTEXT_TAG = "{http://www.xbrl.org/2003/instance}context"
 
 DEFAULT_ENTITY_TAG = "{http://www.xbrl.org/2003/instance}entity"

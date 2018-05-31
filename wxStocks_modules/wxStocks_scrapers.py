@@ -244,51 +244,51 @@ def nasdaq_csv_stock_data_parsing_generator(csv_file):
             yield dict_to_return
 # suggestion from Soncrates
 def convert_nasdaq_csv_to_stock_objects():
-    for url, headers in nasdaq_stock_csv_url_and_headers_generator():
-        # logging.warning("\nhere 1\n")
-        if len(config.STOCK_EXCHANGE_LIST) < 5: # it should be
-            nasdaq_csv = return_webpage(url, headers, delay=1)
-        else: # incase this program grows beyond my wildest dreams
-            nasdaq_csv = return_webpage(url, headers)
-        # logging.warning('\nhere again\n')
-        for stock_dict in nasdaq_csv_stock_data_parsing_generator(nasdaq_csv):
-            # stock_dict:
-            # {
-            # 'Sector': 'str',
-            # 'LastSale': 'float',
-            # 'Summary_Quote': 'ignore',
-            # 'Name': 'str',
-            # 'industry': 'str',
-            # 'Symbol': 'str',
-            # 'MarketCap': 'str',
-            # 'IPOyear': 'n/a or int'
-            # }
-            # add ".Exchange" below
-            if ("$" in stock_dict.get("Symbol")): # this is an "option chain" and we will ignore
-                continue
-            if ("/CL" in stock_dict.get("Symbol")): # this is a called option or warrant and we will ignore
-                continue
-            if ("/W" in stock_dict.get("Symbol")): # this is a warrant and we will ignore
-                continue
-            if " " in stock_dict.get("Symbol"):
-                stock_dict["Symbol"] = stock_dict.get("Symbol").replace(" ", "")
-            stock = None
-            stock = db.create_new_Stock_if_it_doesnt_exist(stock_dict.get("Symbol"))
-            stock.firm_name = stock_dict.get("Name")
-            for attribute in stock_dict:
-                if attribute not in ["Symbol", "Summary_Quote", "LastSale"]:
-                    datum = stock_dict.get(attribute)
-                    if datum:
-                        db.set_Stock_attribute(stock, attribute, datum, "_na")
-                elif attribute == "LastSale":
-                    try:
-                        datum = float(stock_dict.get(attribute))
-                        db.set_Stock_attribute(stock, attribute, datum, "_na")
-                    except:
-                        db.set_Stock_attribute(stock, attribute, None, "_na")
-            stock.Exchange_na = config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE
-            stock.last_nasdaq_scrape_update = time.time()
-    db.commit_db()
+    with db.db.transaction() as connection:
+        for url, headers in nasdaq_stock_csv_url_and_headers_generator():
+            # logging.warning("\nhere 1\n")
+            if len(config.STOCK_EXCHANGE_LIST) < 5: # it should be
+                nasdaq_csv = return_webpage(url, headers, delay=1)
+            else: # incase this program grows beyond my wildest dreams
+                nasdaq_csv = return_webpage(url, headers)
+            # logging.warning('\nhere again\n')
+            for stock_dict in nasdaq_csv_stock_data_parsing_generator(nasdaq_csv):
+                # stock_dict:
+                # {
+                # 'Sector': 'str',
+                # 'LastSale': 'float',
+                # 'Summary_Quote': 'ignore',
+                # 'Name': 'str',
+                # 'industry': 'str',
+                # 'Symbol': 'str',
+                # 'MarketCap': 'str',
+                # 'IPOyear': 'n/a or int'
+                # }
+                # add ".Exchange" below
+                if ("$" in stock_dict.get("Symbol")): # this is an "option chain" and we will ignore
+                    continue
+                if ("/CL" in stock_dict.get("Symbol")): # this is a called option or warrant and we will ignore
+                    continue
+                if ("/W" in stock_dict.get("Symbol")): # this is a warrant and we will ignore
+                    continue
+                if " " in stock_dict.get("Symbol"):
+                    stock_dict["Symbol"] = stock_dict.get("Symbol").replace(" ", "")
+                stock = None
+                stock = db.create_new_Stock_if_it_doesnt_exist(stock_dict.get("Symbol"))
+                stock.firm_name = stock_dict.get("Name")
+                for attribute in stock_dict:
+                    if attribute not in ["Symbol", "Summary_Quote", "LastSale"]:
+                        datum = stock_dict.get(attribute)
+                        if datum:
+                            db.set_Stock_attribute(stock, attribute, datum, "_na", connection=True)
+                    elif attribute == "LastSale":
+                        try:
+                            datum = float(stock_dict.get(attribute))
+                            db.set_Stock_attribute(stock, attribute, datum, "_na", connection=True)
+                        except:
+                            db.set_Stock_attribute(stock, attribute, None, "_na", connection=True)
+                stock.Exchange_na = config.CURRENT_EXCHANGE_FOR_NASDAQ_SCRAPE
+                stock.last_nasdaq_scrape_update = time.time()
 
 #################### Rank and Filed Scrapers "_rd" ##############################################
 def download_cik_ticker_csv_mapping():
@@ -326,22 +326,24 @@ def parse_cik_ticker_mapping(rf_content):
     pp.pprint(ticker_keyed_cik_data_dict)
     return ticker_keyed_cik_data_dict
 def add_cik_data_to_stocks(ticker_keyed_cik_data_dict):
-    for ticker_key, value_dict in ticker_keyed_cik_data_dict.items():
-        stock = utils.return_stock_by_symbol(ticker_key)
-        if not stock:
-            if value_dict.get("Exchange"):
-                if value_dict.get("Name"):
-                    stock = db.create_new_Stock_if_it_doesnt_exist(ticker_key, firm_name=str(value_dict.get("Name")).strip())
+    with db.db.transaction() as connection:
+        for ticker_key, value_dict in ticker_keyed_cik_data_dict.items():
+            stock = utils.return_stock_by_symbol(ticker_key)
+            if not stock:
+                if value_dict.get("Exchange"):
+                    if value_dict.get("Name"):
+                        stock = db.create_new_Stock_if_it_doesnt_exist(ticker_key, firm_name=str(value_dict.get("Name")).strip())
+                    else:
+                        stock = db.create_new_Stock_if_it_doesnt_exist(ticker_key)
                 else:
-                    stock = db.create_new_Stock_if_it_doesnt_exist(ticker_key)
-            else:
-                continue
-        for subkey, subvalue in value_dict.items():
-            if subvalue:
-                if subkey == "CIK":
-                    # set a CIK attribute
-                    db.set_Stock_attribute(stock, "cik", int(subvalue), "")
-                db.set_Stock_attribute(stock, subkey, subvalue, "_rf")
+                    continue
+            for subkey, subvalue in value_dict.items():
+                if subvalue:
+                    if subkey == "CIK":
+                        # set a CIK attribute
+                        db.set_Stock_attribute(stock, "cik", int(subvalue), "", connection=True)
+                    db.set_Stock_attribute(stock, subkey, subvalue, "_rf", connection=True)
+    db.pack_if_necessary()
 
 def download_and_save_cik_ticker_mappings():
     rf_content = download_cik_ticker_csv_mapping()
@@ -2659,138 +2661,141 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
                 period_dict.update({"decimals": decimals})
     return(xbrl_stock_dict)
 
-def save_stock_dict(xbrl_stock_dict):
-    if not xbrl_stock_dict:
-        logging.error("No xbrl_stock_dict")
-        return
-    ticker = list(xbrl_stock_dict.keys())[0] # Note, i use this notation because it's more clear
-    stock = utils.return_stock_by_symbol(ticker)
-    if not stock:
-        logging.info("No stock listed for {}".format(ticker))
-        return
-    base_dict = xbrl_stock_dict[ticker]
-    today = datetime.date.today()
+def save_stock_dict(xbrl_stock_dict, file_name):
+    with db.db.transaction() as connection:
+        logging.info("Saving data from: {}".format(file_name))
+        if not xbrl_stock_dict:
+            logging.error("No xbrl_stock_dict")
+            return
+        ticker = list(xbrl_stock_dict.keys())[0] # Note, i use this notation because it's more clear
+        stock = utils.return_stock_by_symbol(ticker)
+        if not stock:
+            logging.info("No stock listed for {}".format(ticker))
+            return
+        base_dict = xbrl_stock_dict[ticker]
+        today = datetime.date.today()
 
-    for institution in list(base_dict.keys()):
-        institution_dict = base_dict[institution]
-        for accounting_item in list(institution_dict.keys()):
-            period_dict = institution_dict[accounting_item]
-            if not type(period_dict) is dict:
-                period_dict = ast.literal_eval(period_dict)
-            period_dict_str = return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=True)
-            suffix = '_us'
-            period_dict_str_without_suffix = period_dict_str
-            period_dict_str = period_dict_str + suffix
+        for institution in list(base_dict.keys()):
+            institution_dict = base_dict[institution]
+            for accounting_item in list(institution_dict.keys()):
+                period_dict = institution_dict[accounting_item]
+                if not type(period_dict) is dict:
+                    period_dict = ast.literal_eval(period_dict)
+                period_dict_str = return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=True)
+                suffix = '_us'
+                period_dict_str_without_suffix = period_dict_str
+                period_dict_str = period_dict_str + suffix
 
-            try:
-                stock_accounting_item_dict = getattr(stock, period_dict_str)
-            except:
-                stock_accounting_item_dict = None
-
-            if stock_accounting_item_dict:
-                if not type(stock_accounting_item_dict) is dict:
-                    stock_accounting_item_dict = ast.literal_eval(stock_accounting_item_dict)
-
-            # Here it's important to switch to stock_accounting_item_dict
-            if stock_accounting_item_dict:
-                stock_accounting_item_dict.update(period_dict)
-                db.set_Stock_attribute(stock, period_dict_str_without_suffix, stock_accounting_item_dict, "_us")
-            else:
-                db.set_Stock_attribute(stock, period_dict_str_without_suffix, period_dict, "_us")
-                stock_accounting_item_dict = period_dict
-
-            stock_period_dict = getattr(stock, period_dict_str)
-            if not type(stock_period_dict) is dict:
-                logging.warning("trying to convert to dict")
-                stock_period_dict = ast.literal_eval(stock_period_dict)
-                if not type(stock_period_dict) is dict:
-                    logging.warning("failure")
-                    pp.pprint(stock_period_dict)
-                    sys.exit()
-            datetime_fourple_list = [] #[serialize, end dt, start dt, range]
-
-            for period in list(stock_period_dict.keys()):
-                if period == "most_recent":
-                    continue
-                period_datetime_str = stock_period_dict[period].get("datetime")
-
-                period_datetime = utils.iso_date_to_datetime(period_datetime_str)
-                timedelta_start = stock_period_dict[period].get("timedeltastart")
-
-                serialize_index_to_save = period_datetime_str
-                if timedelta_start:
-                    serialize_index_to_save = str(period_datetime_str) + ":" + str(timedelta_start)
-
-                    period_endtime_datetime = utils.iso_date_to_datetime(timedelta_start)
-                    datetime_delta = period_datetime - period_endtime_datetime
-                    if datetime_delta >= datetime.timedelta(days=359) and datetime_delta < datetime.timedelta(days=370):
-                        timedelta_range = "year"
-                    elif datetime_delta > datetime.timedelta(days=85) and datetime_delta < datetime.timedelta(days=95):
-                        timedelta_range = "quarter"
-                    elif datetime_delta >= datetime.timedelta(days=27) and datetime_delta <= datetime.timedelta(days=32):
-                        timedelta_range = "month"
-                    else:
-                        timedelta_range = "other"
-                        # logging.warning('"other" length: {} days for {}'.format(datetime_delta.days, accounting_item))
-                else:
-                    timedelta_range = None
-                    period_endtime_datetime = None
-
-                period_and_serialized_fourple = [serialize_index_to_save, period_datetime, period_endtime_datetime, timedelta_range]
-
-                datetime_fourple_list.append(period_and_serialized_fourple)
-            set_of_ranges = set([fourple[3] for fourple in datetime_fourple_list])
-            youngest_datetime = max(fourple[1] for fourple in datetime_fourple_list if fourple[1])
-            youngest_fourple_list = [fourple for fourple in datetime_fourple_list if fourple[1] == youngest_datetime]
-            if len(youngest_fourple_list) > 1:
-                relevant_list = [fourple for fourple in datetime_fourple_list if fourple[2]]
                 try:
-                    youngest_start_datetime = max(fourple[2] for fourple in relevant_list if fourple[2])
-                    youngest_start_dt_fourple = [fourple for fourple in relevant_list if fourple[2] == youngest_start_datetime]
-                    youngest = youngest_start_dt_fourple[0]
+                    stock_accounting_item_dict = getattr(stock, period_dict_str)
                 except:
-                    logging.warning("Accounting item has multiple simultanious, instantanious entries, choosing the first")
-                    youngest = youngest_fourple_list[0]
-            else:
-                youngest = youngest_fourple_list[0]
+                    stock_accounting_item_dict = None
 
-            can_be_updated = stock_period_dict.get("most_recent")
-            if can_be_updated:
-                can_be_updated.update({time_range: youngest[0]})
-            else:
-                stock_period_dict.update({"most_recent": {"period": youngest[0]}})
+                if stock_accounting_item_dict:
+                    if not type(stock_accounting_item_dict) is dict:
+                        stock_accounting_item_dict = ast.literal_eval(stock_accounting_item_dict)
 
-            if len(list(set_of_ranges)) > 1:
-                for time_range in set_of_ranges:
-                    time_range_list = [fourple for fourple in datetime_fourple_list if fourple[3] == time_range]
-                    try:
-                        youngest_datetime = max(fourple[1] for fourple in time_range_list)
-                    except:
-                        logging.warning(datetime_fourple_list)
-                        logging.warning(accounting_item)
-                        sys.exit()
-                    youngest_datetime_delta = today - youngest_datetime
-                    if youngest_datetime_delta.days > 366:
-                        logging.warning("very old data, over a year old, use most recent period instead")
-                        continue
-                    youngest_fourple_list = [fourple for fourple in time_range_list if fourple[1] == youngest_datetime]
-                    youngest = youngest_fourple_list[0]
-                    can_be_updated = stock_period_dict.get("most_recent")
-                    if can_be_updated:
-                        can_be_updated.update({time_range: youngest[0]})
-                    else:
-                        stock_period_dict.update({"most_recent": {time_range: youngest[0]}})
-
-
-            most_recent_dict = stock_period_dict.get("most_recent")
-            for time_range in list(most_recent_dict.keys()):
-                period_index = stock_period_dict["most_recent"][time_range]
-                value = stock_period_dict[period_index]["value"]
-                logging.info(value)
-                if len(list(most_recent_dict.keys())) > 1:
-                    db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution, period=time_range), value, "_us")
+                # Here it's important to switch to stock_accounting_item_dict
+                if stock_accounting_item_dict:
+                    stock_accounting_item_dict.update(period_dict)
+                    db.set_Stock_attribute(stock, period_dict_str_without_suffix, stock_accounting_item_dict, "_us")
                 else:
-                    db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution), value, "_us")
+                    db.set_Stock_attribute(stock, period_dict_str_without_suffix, period_dict, "_us")
+                    stock_accounting_item_dict = period_dict
+
+                stock_period_dict = getattr(stock, period_dict_str)
+                if not type(stock_period_dict) is dict:
+                    #logging.warning("trying to convert to dict")
+                    stock_period_dict = ast.literal_eval(stock_period_dict)
+                    if not type(stock_period_dict) is dict:
+                        logging.warning("failure")
+                        pp.pprint(stock_period_dict)
+                        sys.exit()
+                datetime_fourple_list = [] #[serialize, end dt, start dt, range]
+
+                for period in list(stock_period_dict.keys()):
+                    if period == "most_recent":
+                        continue
+                    period_datetime_str = stock_period_dict[period].get("datetime")
+
+                    period_datetime = utils.iso_date_to_datetime(period_datetime_str)
+                    timedelta_start = stock_period_dict[period].get("timedeltastart")
+
+                    serialize_index_to_save = period_datetime_str
+                    if timedelta_start:
+                        serialize_index_to_save = str(period_datetime_str) + ":" + str(timedelta_start)
+
+                        period_endtime_datetime = utils.iso_date_to_datetime(timedelta_start)
+                        datetime_delta = period_datetime - period_endtime_datetime
+                        if datetime_delta >= datetime.timedelta(days=359) and datetime_delta < datetime.timedelta(days=370):
+                            timedelta_range = "year"
+                        elif datetime_delta > datetime.timedelta(days=85) and datetime_delta < datetime.timedelta(days=95):
+                            timedelta_range = "quarter"
+                        elif datetime_delta >= datetime.timedelta(days=27) and datetime_delta <= datetime.timedelta(days=32):
+                            timedelta_range = "month"
+                        else:
+                            timedelta_range = "other"
+                            # logging.warning('"other" length: {} days for {}'.format(datetime_delta.days, accounting_item))
+                    else:
+                        timedelta_range = None
+                        period_endtime_datetime = None
+
+                    period_and_serialized_fourple = [serialize_index_to_save, period_datetime, period_endtime_datetime, timedelta_range]
+
+                    datetime_fourple_list.append(period_and_serialized_fourple)
+                set_of_ranges = set([fourple[3] for fourple in datetime_fourple_list])
+                youngest_datetime = max(fourple[1] for fourple in datetime_fourple_list if fourple[1])
+                youngest_fourple_list = [fourple for fourple in datetime_fourple_list if fourple[1] == youngest_datetime]
+                if len(youngest_fourple_list) > 1:
+                    relevant_list = [fourple for fourple in datetime_fourple_list if fourple[2]]
+                    try:
+                        youngest_start_datetime = max(fourple[2] for fourple in relevant_list if fourple[2])
+                        youngest_start_dt_fourple = [fourple for fourple in relevant_list if fourple[2] == youngest_start_datetime]
+                        youngest = youngest_start_dt_fourple[0]
+                    except:
+                        logging.warning("Accounting item has multiple simultanious, instantanious entries, choosing the first")
+                        youngest = youngest_fourple_list[0]
+                else:
+                    youngest = youngest_fourple_list[0]
+
+                can_be_updated = stock_period_dict.get("most_recent")
+                if can_be_updated:
+                    can_be_updated.update({time_range: youngest[0]})
+                else:
+                    stock_period_dict.update({"most_recent": {"period": youngest[0]}})
+
+                if len(list(set_of_ranges)) > 1:
+                    for time_range in set_of_ranges:
+                        time_range_list = [fourple for fourple in datetime_fourple_list if fourple[3] == time_range]
+                        try:
+                            youngest_datetime = max(fourple[1] for fourple in time_range_list)
+                        except:
+                            logging.warning(datetime_fourple_list)
+                            logging.warning(accounting_item)
+                            sys.exit()
+                        youngest_datetime_delta = today - youngest_datetime
+                        if youngest_datetime_delta.days > 366:
+                            logging.warning("very old data, over a year old, use most recent period instead")
+                            continue
+                        youngest_fourple_list = [fourple for fourple in time_range_list if fourple[1] == youngest_datetime]
+                        youngest = youngest_fourple_list[0]
+                        can_be_updated = stock_period_dict.get("most_recent")
+                        if can_be_updated:
+                            can_be_updated.update({time_range: youngest[0]})
+                        else:
+                            stock_period_dict.update({"most_recent": {time_range: youngest[0]}})
+
+
+                most_recent_dict = stock_period_dict.get("most_recent")
+                for time_range in list(most_recent_dict.keys()):
+                    period_index = stock_period_dict["most_recent"][time_range]
+                    value = stock_period_dict[period_index]["value"]
+                    #logging.info(value)
+                    if len(list(most_recent_dict.keys())) > 1:
+                        db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution, period=time_range), value, "_us")
+                    else:
+                        db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution), value, "_us")
+    db.pack_if_necessary()
 
 def scrape_xbrl_from_file(path_to_zipfile):
     filename_to_be_recorded = path_to_zipfile
@@ -2800,10 +2805,10 @@ def scrape_xbrl_from_file(path_to_zipfile):
     stock_dict = return_simple_xbrl_dict(tree, ns, file_name)
     if not stock_dict:
         return
-    config.SEC_XBRL_FILES_DOWNLOADED_SET.add(filename_to_be_recorded)
-    save_stock_dict(stock_dict)
+    config.SET_OF_FILENAMES_OF_IMPORTED_FILES.add(filename_to_be_recorded)
+    save_stock_dict(stock_dict, file_name)
     logging.info("Success!")
-    db.save_filenames_of_sec_xbrl_files_downloaded()
+    db.save_filenames_imported_files()
 
 def sec_xbrl_download_launcher(year=None, month=None, from_year=None, to_year=None, add_to_wxStocks_database=None, use_wxStocks_cik_list=True):
     xbrl_thread = threading.Thread(target=sec_xbrl_download, kwargs={"year":year, "month":month, "from_year":from_year, "to_year":to_year, "add_to_wxStocks_database":add_to_wxStocks_database, "use_wxStocks_cik_list":use_wxStocks_cik_list})

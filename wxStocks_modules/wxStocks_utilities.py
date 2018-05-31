@@ -74,7 +74,7 @@ def return_stocks_with_data_errors():
     error_list = []
     for stock in stock_list:
         try:
-            if stock.ErrorIndicationreturnedforsymbolchangedinvalid_yf:
+            if hasattr(stock, "ErrorIndicationreturnedforsymbolchangedinvalid_yf"):
                 if stock.ErrorIndicationreturnedforsymbolchangedinvalid_yf != "None":
                     error_list.append(stock)
                 else:

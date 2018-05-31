@@ -42,7 +42,7 @@ def downloadfile( sourceurl, targetfname):
 		# then pass targetfname against that list
 		# then return print( "Local copy already exists" -> return True
 		# also these print statements are gross
-	elif targetfname in config.SEC_XBRL_FILES_DOWNLOADED_SET:
+	elif targetfname in config.SET_OF_FILENAMES_OF_IMPORTED_FILES:
 		logging.info( "Local copy already import to database" )
 		return True
 		#####
@@ -157,7 +157,7 @@ def SECdownload(year, month, wxStocks_database=None, wxStocks_cik_list=None):
 				if os.path.isfile( zipfname ):
 					print( "Local copy already exists" )
 					##### Edit to original file #####
-				elif zipfname in config.SEC_XBRL_FILES_DOWNLOADED_SET:
+				elif zipfname in config.SET_OF_FILENAMES_OF_IMPORTED_FILES:
 					logging.info( "Local copy already import to database" )
 					#####
 				else:
