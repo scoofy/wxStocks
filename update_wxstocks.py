@@ -1,4 +1,4 @@
-import sys, os, wx, stat, hashlib, shutil, platform
+import sys, os, wx, stat, hashlib, shutil, platform, logging
 
 OS_TYPE = platform.system() # Detect OS, for file directory purposes
 OS_TYPE_INDEX = None
@@ -6,8 +6,8 @@ try:
     supported_os_types = ["Darwin", "Linux", "Windows"]
     OS_TYPE_INDEX = supported_os_types.index(OS_TYPE)
 except Exception as e:
-    print e
-    print "This program has not be properly formatted for your OS. Edit the config file if needed."
+    logging.warning(e)
+    logging.warning("This program has not be properly formatted for your OS. Edit the config file if needed.")
     sys.exit()
 
 if OS_TYPE_INDEX == 2: #Windows
@@ -31,9 +31,9 @@ dialog.Destroy()
 # check to see if selected folder is a wxStocks folder
 if not (os.path.isfile(newly_downloaded_path + slash + "wxStocks.py") and os.path.isfile(newly_downloaded_path + slash + "update_wxstocks.py")):
     # if wxStocks.py or update_wxstocks.py don't exist
-    print "It appears you have not selected a wxStocks folder."
-    print "Please try again, selecting an unzipped version of wxStocks."
-    print "In the case of a change to the updating process, please check the wxStocks readme file in your new folder."
+    logging.warning("It appears you have not selected a wxStocks folder.")
+    logging.warning("Please try again, selecting an unzipped version of wxStocks.")
+    logging.warning("In the case of a change to the updating process, please check the wxStocks readme file in your new folder.")
     sys.exit()
 
 # get new directory split name
@@ -55,7 +55,7 @@ for root, dirs, files in os.walk(newly_downloaded_path):
         if any(folder_name in root for folder_name in user_directories):
             continue
         if filename.endswith(".py"):
-            #print root
+            #logging.warning(root)
             newly_downloaded_file_path = os.path.join(root, filename)
 
             split_root_path =  root.split(slash + new_split_folder_name + slash)
@@ -64,12 +64,12 @@ for root, dirs, files in os.walk(newly_downloaded_path):
             except:
                 full_extention = None
 
-            #print split_root_path
+            #logging.warning(split_root_path)
             if full_extention:
                 existing_file_path = slash.join([current_dir, full_extention]) + slash + filename
             else:
                 existing_file_path = slash.join([current_dir, filename])
-            #print existing_file_path
+            #logging.warning(existing_file_path)
 
             try:
                 checksum_new = hashlib.md5(open(str(newly_downloaded_file_path)).read()).hexdigest()
@@ -82,7 +82,7 @@ for root, dirs, files in os.walk(newly_downloaded_path):
 
             if checksum_new:
                 if checksum_new != checksum_old:
-                    print "UPDATING:", existing_file_path
+                    logging.warning("UPDATING:", existing_file_path)
                     shutil.copy(newly_downloaded_file_path, existing_file_path)
                     # remove existing .pyc file
                     pyc_path = os.path.splitext(existing_file_path)[0] + ".pyc"
@@ -90,7 +90,7 @@ for root, dirs, files in os.walk(newly_downloaded_path):
                         os.remove(pyc_path)
                     except:
                         pass
-                    print '"' + filename + '"', "was successfully updated"
+                    logging.warning('"' + filename + '"', "was successfully updated")
 
 # delete nonexistant file from current directory
 for root, dirs, files in os.walk(current_dir):
@@ -98,7 +98,7 @@ for root, dirs, files in os.walk(current_dir):
         if root.split(slash)[-1] in ["DO_NOT_COPY", "user_data", "wxStocks_data"]:
             continue
         if filename.endswith(".py"):
-            #print root
+            #logging.warning(root)
             existing_file_path = os.path.join(root, filename)
 
             split_root_path =  root.split(slash + old_split_folder_name + slash)
@@ -107,17 +107,17 @@ for root, dirs, files in os.walk(current_dir):
             except:
                 full_extention = None
 
-            #print split_root_path
+            #logging.warning(split_root_path)
             if full_extention:
                 potential_new_file_path = slash.join([newly_downloaded_path, full_extention]) + slash + filename
             else:
                 potential_new_file_path = slash.join([newly_downloaded_path, filename])
             if not os.path.isfile(potential_new_file_path): # file no longer exists
-                print "Deleting:", existing_file_path
-                print "It apparently no longer exists"
+                logging.warning("Deleting:", existing_file_path)
+                logging.warning("It apparently no longer exists")
                 try:
                     os.remove(existing_file_path)
-                    print '"' + filename + '"', "was successfully removed"
+                    logging.warning('"' + filename + '"', "was successfully removed")
                 except:
                     pass
                 # remove existing .pyc file
@@ -128,7 +128,7 @@ for root, dirs, files in os.walk(current_dir):
                     pass
                 # delete directory if it is empty
                 if not os.listdir(root):
-                    print "Removing empty directory:", root
+                    logging.warning("Removing empty directory:", root)
                     os.rmdir(root)
 
-print "Update complete"
+logging.warning("Update complete")
