@@ -743,7 +743,7 @@ class XbrlImportPage(Tab):
             to_year = self.xbrl_to_year_input.GetValue()
         else:
             return
-        logging.warning("({}, {}, {}, {})".format(year, month, from_year, to_year))
+        # logging.warning("({}, {}, {}, {})".format(year, month, from_year, to_year))
         add_to_wxStocks_database = self.checkbox_dont_save_sec_files.IsChecked()
         scrape.sec_xbrl_download_launcher(year=year, month=month, from_year=from_year, to_year=to_year, add_to_wxStocks_database = add_to_wxStocks_database)
 
@@ -3825,8 +3825,10 @@ class SalePrepPage(Tab):
 
                     # set last price
                     try:
-                        stocks_last_price = float(utils.return_last_price_if_possible(stock))
-                        stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
+                        stocks_last_price = utils.return_last_price_if_possible(stock)
+                        if stocks_last_price is not None:
+                            stocks_last_price = float(stocks_last_price)
+                            stocks_last_price_cell = SpreadsheetCell(row = row_count, col = self.price_cell.col, text = config.locale.currency(stocks_last_price, grouping = True), value = stocks_last_price, align_right = True)
                     except Exception as exception:
                         logging.error(exception)
 

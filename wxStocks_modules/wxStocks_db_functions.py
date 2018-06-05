@@ -80,6 +80,7 @@ def load_all_data():
                 sys.exit()
 
     if commit:
+        config.LAST_PACKED_DB_SIZE = os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs'))
         commit_db()
     # now load db data if they exist
     config.LAST_PACKED_DB_SIZE = os.path.getsize(os.path.join('DO_NOT_COPY','mydata.fs'))
