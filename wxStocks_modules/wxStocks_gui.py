@@ -1256,7 +1256,7 @@ class PortfolioAccountTab(Tab):
         self.remove_data_button = wx.Button(self, label="Remove Data", pos=gui_position.PortfolioAccountTab.remove_data_button, size = (-1,-1))
         self.remove_data_button.Bind(wx.EVT_BUTTON, self.confirmRemoveData, self.remove_data_button)
 
-        logging.info("PortfolioAccountTab loaded")
+        logging.info("PortfolioAccountTab {} loaded".format(self.name))
 
     def confirmRemoveData(self, event):
         ticker = self.ticker_input.GetValue()
@@ -2802,7 +2802,7 @@ class CustomAnalysisMetaPage(Tab):
         sizer2.Add(meta_analyse_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
 
-        logging.info(self.panel_name + " loaded")
+        logging.info("{} loaded".format(self.title))
 
 
 class CustomAnalysisPage(Tab):
@@ -2920,7 +2920,7 @@ class CustomAnalysisPage(Tab):
         self.ticker_display = None
         self.screen_grid = None
 
-        logging.info(self.panel_name + " loaded")
+        logging.info("{} loaded".format(self.panel_name))
 
 
     def addOneStock(self, event):
