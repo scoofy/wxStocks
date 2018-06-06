@@ -1,4 +1,4 @@
-import inspect, sys
+import inspect, sys, logging
 from collections import namedtuple
 
 Function_Reference = namedtuple("Function_Reference", ["name", "function", "doc"])
@@ -161,6 +161,8 @@ def return_portfolio_import_functions():
 def return_custom_analysis_function_triple():
 	"""returns custom_analysis function 3-tuple of the form (name, function, doc)."""
 	function_triple_list = return_function_triple(type_of_functions = "analysis")
+	#logging.warning("\n"*5)
+	#logging.warning(function_triple_list)
 	function_triple_list = [function_triple for function_triple in function_triple_list if function_triple.name != "namedtuple"]
 	return function_triple_list
 def return_custom_analysis_function_full_names():

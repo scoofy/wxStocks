@@ -139,6 +139,11 @@ def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
     if symbol.isalpha():
         pass
     else:
+        if "\\x" in symbol:
+            try:
+                symbol = symbol.decode("utf-8")
+            except:
+                pass
         if "." in symbol:
             pass
         if "^" in symbol:
@@ -328,7 +333,8 @@ def load_user_created_tests():
         test_file = open(test_path, 'r')
         text = test_file.read()
         test_file.close()
-    except:
+    except Exception as e:
+        logging.warning(e)
         text = load_default_tests()
     return text
 def save_user_created_tests(text):
@@ -345,7 +351,8 @@ def load_user_ranking_functions():
         function_file = open(rank_path, 'r')
         text = function_file.read()
         function_file.close()
-    except:
+    except Exception as e:
+        logging.warning(e)
         text = load_default_ranking_functions()
     return text
 def save_user_ranking_functions(text):
@@ -362,7 +369,8 @@ def load_user_csv_import_functions():
         function_file = open(csv_import_path, 'r')
         text = function_file.read()
         function_file.close()
-    except:
+    except Exception as e:
+        logging.warning(e)
         text = load_default_csv_import_functions()
     return text
 def save_user_csv_import_functions(text):
@@ -379,7 +387,8 @@ def load_user_xls_import_functions():
         function_file = open(xls_import_path, 'r')
         text = function_file.read()
         function_file.close()
-    except:
+    except Exception as e:
+        logging.warning(e)
         text = load_default_xls_import_functions()
     return text
 def save_user_xls_import_functions(text):
@@ -396,7 +405,8 @@ def load_user_portfolio_import_functions():
         function_file = open(portfolio_import_path, 'r')
         text = function_file.read()
         function_file.close()
-    except:
+    except Exception as e:
+        logging.warning(e)
         text = load_default_csv_import_functions()
     return text
 def save_user_portfolio_import_functions(text):
@@ -413,7 +423,9 @@ def load_user_custom_analysis_functions():
         function_file = open(custom_analysis_path, 'r')
         text = function_file.read()
         function_file.close()
-    except:
+    except Exception as e:
+        logging.warning(e)
+        logging.warning("load_user_custom_analysis_functions failed")
         text = load_default_custom_analysis_functions()
     return text
 def save_user_custom_analysis_functions(text):

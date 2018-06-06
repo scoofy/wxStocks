@@ -1,13 +1,5 @@
-import os, glob, config
+import os, glob, config, logging
 from wxStocks_modules.wxStocks_classes import SpreadsheetCell as Cell
-
-def line_number():
-    import inspect
-    """Returns the current line number in our program."""
-    #print 'remove this temporary line number function'
-    return "File: %s\nLine %d:" % (inspect.getframeinfo(inspect.currentframe()).filename.split("/")[-1], inspect.currentframe().f_back.f_lineno)
-
-
 '''
 Here, you must use the class "Cell" to refer to a cell you want processed.
 This allows the program to process your data in to function wxPython code.
@@ -194,7 +186,6 @@ def jas_stock_analysis(stock_list):
         top_row_cell = Cell(row = 0, col=0, text=text)
         function_globals.all_cells_list.append(top_row_cell)
     def gen_attribute_list(row = 1):
-        #print line_number(), column_text_list
         cell_list_to_return = []
         for attribute_obj in attribute_list:
             attribute_cell = Cell(row = row, col = attribute_obj.col, text = attribute_obj.name, col_title = attribute_obj.name)
@@ -237,7 +228,8 @@ def jas_stock_analysis(stock_list):
                     # no reason to look at data, all is None
                     continue
                 else:
-                    print line_number(), unadjusted_attribute_data_list_valid_values_only
+                    pass
+                    # logging.info(unadjusted_attribute_data_list_valid_values_only)
 
                 # unadjusted avg will be rounded to 3 instead of 2 for identification purposes
                 unadjusted_avg = round(numpy.mean(unadjusted_attribute_data_list_valid_values_only), 3)
@@ -250,10 +242,9 @@ def jas_stock_analysis(stock_list):
                 unadjusted_std = numpy.std(unadjusted_attribute_data_list_valid_values_only, ddof=number_to_minus_degrees_of_freedom)
 
                 if not (isinstance(unadjusted_avg, float) and isinstance(unadjusted_avg_len, float) and isinstance(unadjusted_std, float) ):
-                    print line_number()
-                    print "unadjusted_avg:", unadjusted_avg
-                    print "unadjusted_avg_len:", unadjusted_avg_len
-                    print "unadjusted_std:", unadjusted_std
+                    logging.info(("unadjusted_avg:", unadjusted_avg))
+                    logging.info(("unadjusted_avg_len:", unadjusted_avg_len))
+                    logging.info(("unadjusted_std:", unadjusted_std))
 
 
                 # set nonconforming data to avg of conforming data
@@ -274,14 +265,15 @@ def jas_stock_analysis(stock_list):
                     if type(data) is float:
                         if attribute_obj.minimum or attribute_obj.maximum:
                             # normalize data
-                            if data < attribute_obj.minimum:
-                                adjusted_data = attribute_obj.minimum
-                                data_cell.text_color = "#B8B8B8"
-                            elif data > attribute_obj.maximum:
-                                adjusted_data = attribute_obj.maximum
-                                data_cell.text_color = "#B8B8B8"
-                            else: # irrelevant
-                                adjusted_data = data
+                            adjusted_data = data
+                            if attribute_obj.minimum:
+                                if data < attribute_obj.minimum:
+                                    adjusted_data = attribute_obj.minimum
+                                    data_cell.text_color = "#B8B8B8"
+                            if attribute_obj.maximum:
+                                if data > attribute_obj.maximum:
+                                    adjusted_data = attribute_obj.maximum
+                                    data_cell.text_color = "#B8B8B8"
                             adjusted_attribute_data_list.append(adjusted_data)
                         elif data and attribute_obj.name == "Cur Ratio": # strange variation in rms code
                             if data > 10.:
@@ -317,22 +309,20 @@ def jas_stock_analysis(stock_list):
                 adjusted_data_std = numpy.std(adjusted_attribute_data_list, ddof=number_to_minus_degrees_of_freedom) # 1 degrees of freedom for std
 
                 if not (isinstance(adjusted_data_avg, float) and isinstance(adjusted_data_avg_len, float) and isinstance(adjusted_data_std, float) ):
-                    print line_number()
-                    print "adjusted_avg:", adjusted_data_avg
-                    print "adjusted_avg_len:", adjusted_data_avg_len
-                    print "adjusted_std:", adjusted_data_std
+                    logging.info(("adjusted_avg:", adjusted_data_avg))
+                    logging.info(("adjusted_avg_len:", adjusted_data_avg_len))
+                    logging.info(("adjusted_std:", adjusted_data_std))
 
                 # set attribute average standard deviation for colors later
                 attribute_obj.avg = float(round(adjusted_data_avg, 2))
                 attribute_obj.std = float(round(adjusted_data_std, 2))
-                #print line_number()
-                #print "\n"*2
-                #print sorted(adjusted_attribute_data_list)
-                #print line_number(), attribute_obj.name, "unadjusted avg", unadjusted_avg, "length=", unadjusted_avg_len
-                #print line_number(), attribute_obj.name, "unadjusted std", unadjusted_std
-                #print line_number(), attribute_obj.name, "adjusted avg", adjusted_data_avg, "length=", adjusted_data_avg_len
-                #print line_number(), attribute_obj.name, "adjusted std", adjusted_data_std
-                #print "\n"*2
+                #logging.info(("\n"*2))
+                #logging.info((sorted(adjusted_attribute_data_list)))
+                #logging.info((attribute_obj.name, "unadjusted avg", unadjusted_avg, "length=", unadjusted_avg_len))
+                #logging.info((attribute_obj.name, "unadjusted std", unadjusted_std))
+                #logging.info((attribute_obj.name, "adjusted avg", adjusted_data_avg, "length=", adjusted_data_avg_len))
+                #logging.info((attribute_obj.name, "adjusted std", adjusted_data_std))
+                #logging.info(("\n"*2))
 
                 function_globals.attrbute_name_avg_and_std_triple_list.append([attribute_obj.name, unadjusted_avg, unadjusted_std])
 
@@ -345,21 +335,29 @@ def jas_stock_analysis(stock_list):
                             if attribute_obj.avg:
                                 b = attribute_obj.avg
                             else:
-                                print line_number(), "No avg for", attribute_obj.name, "set avg to 0"
+                                logging.info(("No avg for", attribute_obj.name, "set avg to 0"))
                                 b = 0.
 
                         if not (type(b) is float):
-                            print line_number(), "Error: b should always be float"
-                            print type(b)
-                            print attribute_obj.name
-                            print attribute_obj.avg
+                            logging.error("Error: b should always be float")
+                            logging.info(type(b))
+                            logging.info(attribute_obj.name)
+                            logging.info(attribute_obj.avg)
 
                         if attribute_obj.minimum or attribute_obj.maximum:
                             # normalize data
-                            if b < attribute_obj.minimum:
-                                b = attribute_obj.minimum
-                            elif b > attribute_obj.maximum:
-                                b = attribute_obj.maximum
+                            if attribute_obj.minimum and attribute_obj.maximum:
+                                if b < attribute_obj.minimum:
+                                    b = attribute_obj.minimum
+                                elif b > attribute_obj.maximum:
+                                    b = attribute_obj.maximum
+                            else:
+                                if attribute_obj.minimum:
+                                    if b < attribute_obj.minimum:
+                                        b = attribute_obj.minimum
+                                else:
+                                    if b > attribute_obj.maximum:
+                                        b = attribute_obj.maximum
                         elif b and attribute_obj.name == "Cur Ratio": # strange variation in rms code
                             if b > 10.:
                                 b = 1.7
@@ -403,10 +401,10 @@ def jas_stock_analysis(stock_list):
                                 elif attribute_obj.size_factor == "small":
                                     score -= modified_score_value
                                 else:
-                                    print line_number(), "Error: something went wrong here"
+                                    logging.info("Error: something went wrong here")
                                 z_score_data_cell.text = score
-                    except Exception, e:
-                        print line_number(), e
+                    except Exception as e:
+                        logging.info(e)
                         pass
             stock_row.Score.text = score
 
@@ -429,9 +427,8 @@ def jas_stock_analysis(stock_list):
         score_std = numpy.std(score_list, ddof=number_to_minus_degrees_of_freedom)
 
         if not (isinstance(score_avg, float) and isinstance(score_std, float) ):
-            print line_number()
-            print "score_avg:", score_avg
-            print "score_std:", score_std
+            logging.info(("score_avg:", score_avg))
+            logging.info(("score_std:", score_std))
 
         function_globals.score_avg = score_avg
         function_globals.score_std = score_std
@@ -615,7 +612,7 @@ def jas_stock_analysis(stock_list):
                         try:
                             new_data_cell.text = config.locale.currency(float(data), grouping = True)
                         except Exception as e:
-                            print line_number(), e
+                            logging.info(e)
                             new_data_cell.text = "$" + str(data)
                     elif attribute_obj.display == "rnk":
                         try:
@@ -669,13 +666,13 @@ def jas_stock_analysis(stock_list):
                         try:
                             triple[1] = config.locale.currency(float(triple[1]), grouping = True)
                         except Exception as e:
-                            print line_number(), e
+                            logging.info(e)
                             triple[1] = "$" + str(triple[1])
 
                         try:
                             triple[2] = config.locale.currency(float(triple[2]), grouping = True)
                         except Exception as e:
-                            print line_number(), e
+                            logging.info(e)
                             triple[2] = "$" + str(triple[2])
 
                     elif attribute_obj.display == "rnk":
@@ -727,35 +724,32 @@ def jas_stock_analysis(stock_list):
     def return_volume(stock):
         return stock#.volume
     def return_relevant_portfolios_in_string(stock):
-        #print line_number(), "\n"*10, "--------START---------"
-        #print "ticker:", stock.ticker
-        #print config.PORTFOLIO_OBJECTS_DICT
-        #print "portfolio list:", portfolios
-        #print "portfolio 1", portfolios[0]
-        #print line_number(),"---------END---------" , "\n"*10
+        #logging.info(("\n"*10, "--------START---------"))
+        #logging.info(("ticker:", stock.ticker))
+        #logging.info((config.PORTFOLIO_OBJECTS_DICT))
+        #logging.info(("portfolio list:", portfolios))
+        #logging.info(("portfolio 1", portfolios[0]))
+        #logging.info(("---------END---------" , "\n"*10))
         portfolios_that_contain_stock = []
         for portfolio in portfolios:
-            print line_number()
-            print "str(stock.ticker) in [str(x) for x in portfolio.stock_shares_dict.keys()]"
-            print portfolio.name
-            print str(stock.ticker) in [str(x) for x in portfolio.stock_shares_dict.keys()]
+            logging.info(("str(stock.ticker) in [str(x) for x in portfolio.stock_shares_dict.keys()]"))
+            logging.info((portfolio.name))
+            logging.info((str(stock.ticker) in [str(x) for x in portfolio.stock_shares_dict.keys()]))
             if str(stock.ticker) in [str(x) for x in portfolio.stock_shares_dict.keys()]:
                 portfolios_that_contain_stock.append(portfolio.name)
         portfolios_that_contain_stock.sort()
-        print line_number(), portfolios_that_contain_stock
+        logging.info(portfolios_that_contain_stock)
         if portfolios_that_contain_stock:
             string_to_return = ", ".join(portfolios_that_contain_stock)
             #string_to_return = "BOOOOOOOOM!"
         else:
             string_to_return = ""
-        print line_number(), "\n" * 10, "--------START 2---------"
+        logging.info(("\n" * 10, "--------START 2---------"))
         if string_to_return:
-            print line_number()
-            print "success, string to return is:", string_to_return
+            logging.info(("success, string to return is:", string_to_return))
         else:
-            print line_number()
-            print "STOCK %s IS NOT IN ANY PORTFOLIOS" % str(stock.ticker)
-        print line_number(), "---------END 2---------", "\n" * 10
+            logging.info(("STOCK %s IS NOT IN ANY PORTFOLIOS" % str(stock.ticker)))
+        logging.info(("---------END 2---------", "\n" * 10))
         return string_to_return
 
 
@@ -798,9 +792,8 @@ def jas_stock_analysis(stock_list):
     sort_row_list_and_convert_into_cells()
     create_avg_and_std_cells_for_attributes()
 
-    print "Done sorting spreadsheet"
+    logging.info("Done sorting spreadsheet")
     return function_globals.all_cells_list
-
 
 
 

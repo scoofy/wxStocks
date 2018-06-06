@@ -2781,6 +2781,7 @@ class CustomAnalysisMetaPage(Tab):
 
         self.user_created_function_page_triples = meta.return_custom_analysis_function_triple()
         self.user_created_function_page_triples.sort(key = lambda x: x.doc)
+        logging.warning(self.user_created_function_page_triples)
 
         for triple in self.user_created_function_page_triples:
             self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
@@ -2800,6 +2801,9 @@ class CustomAnalysisMetaPage(Tab):
         sizer2 = wx.BoxSizer()
         sizer2.Add(meta_analyse_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
+
+        logging.info(self.panel_name + " loaded")
+
 
 class CustomAnalysisPage(Tab):
     def __init__(self, parent, function_triple, page_index):
