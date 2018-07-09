@@ -172,9 +172,9 @@ def neff_TTM_historical(Stock, diluted=False, dividend_multiplier = 3.):
 	except Exception as exception:
 		#logging.info(exception
 		logging.info("{} is missing required data: .PE_aa, .EPS_Cont_Growth_12m_aa, or .EPS_Dil_Cont_Growth_12m_aa".format(Stock.symbol))
-		logging.info(".PE_aa:", Stock.PE_aa)
+		logging.info(".PE_aa: {}".format(Stock.PE_aa))
 		logging.info(".EPS_Cont_Growth_12m_aa: {}".format(Stock.EPS_Cont_Growth_12m_aa))
-		logging.info(".EPS_Dil_Cont_Growth_12m_aa: {}".formant(Stock.EPS_Dil_Cont_Growth_12m_aa))
+		logging.info(".EPS_Dil_Cont_Growth_12m_aa: {}".format(Stock.EPS_Dil_Cont_Growth_12m_aa))
 		return None
 	if pe:
 		neff_TTM_historical = ((dividend_multiplier * dividend_yield) + eps_continuing_growth)/pe

@@ -274,7 +274,8 @@ def convert_nasdaq_csv_to_stock_objects():
                 if " " in stock_dict.get("Symbol"):
                     stock_dict["Symbol"] = stock_dict.get("Symbol").replace(" ", "")
                 stock = None
-                stock = db.create_new_Stock_if_it_doesnt_exist(stock_dict.get("Symbol"))
+                stock = db.create_new_Stock_if_it_doesnt_exist(stock_dict.get("Symbol"), current_large_transaction=True)
+                logging.info(print(len(db.root.Stock)))
                 stock.firm_name = stock_dict.get("Name")
                 for attribute in stock_dict:
                     if attribute not in ["Symbol", "Summary_Quote", "LastSale"]:
@@ -2487,7 +2488,7 @@ def convert_bloomberg_dict_to_stock_object_data(ticker, bloomberg_dict):
 
 ################################################################################################
 
-###################### EDGAR Scrapers "_us" ####################################################
+###EDGAR Scrapers: 10-k:"_tk","10-Q":"_tq","8-K":"_ek","20-F":"_tf","13-D":"_td","144":"_of" ###
 
 def return_xbrl_tree_and_namespace(path_to_zipfile=None):
     ticker = None
@@ -2516,7 +2517,14 @@ def return_xbrl_tree_and_namespace(path_to_zipfile=None):
     tree = ET.parse(archive.open(main_file_name))
     return [tree, ns, main_file_name]
 
-def return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=None, period=None):
+def return_formatted_xbrl_attribute_ref(ticker, accounting_item, institution, xbrl_dict=None, period=None):
+    if institution not in ["us-gaap", "dei"]:
+        if institution.lower() == ticker.lower():
+            institution = "corp"
+        else:
+            logging.info(institution)
+    if institution == "us-gaap":
+        institution = "gaap"
     if period:
         if period == "period":
             attribute_str = str(accounting_item) + "_" + str(institution)
@@ -2528,6 +2536,59 @@ def return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=
         attribute_str = str(accounting_item) + "_" + str(institution)
     attribute_str = attribute_str.replace("-", "_")
     return attribute_str
+
+def return_document_type_suffix(base_dict):
+    document_type = None
+    try:
+        document_type_dict = base_dict.get("dei").get("DocumentType")
+        document_type_dict_keys = list(document_type_dict.keys())
+        document_type = document_type_dict.get(document_type_dict_keys[0]).get("value")
+        logging.info(document_type)
+    except Exception as e:
+        logging.error(e)
+
+    if document_type in config.IGNORED_XBRL_DOCUMENT_TYPE_LIST:
+        return
+
+    amended_report = False
+    transitional_report = False
+    if document_type:
+        if "/A" in document_type:
+            amended_report = True
+            document_type = document_type.replace("/A", "")
+        if document_type[-1:] == "T":
+            transitional_report = True
+            document_type = document_type[:-1]
+
+    suffix = None
+    if document_type in config.DESIRED_XBRL_DOCUMENT_TYPE_LIST:
+        if document_type == "10-K":
+            suffix = "_tk"
+        elif document_type == "10-Q":
+            suffix = "_tq"
+        elif document_type == "8-K":
+            suffix = "_ek"
+        elif document_type == "20-F":
+            suffix = "_tf"
+        elif document_type == "13-D":
+            suffix = "_td"
+        elif document_type == "144":
+            suffix = "_of"
+        else:
+            raise Exception("No document_type '{}' in xbrl file".format(document_type))
+    else:
+        if document_type:
+            logging.error(document_type)
+            if document_type not in config.IGNORED_XBRL_DOCUMENT_TYPE_LIST:
+                config.UNLISTED_XBRL_DOCUMENT_TYPE_LIST.append(document_type)
+            logging.warning(config.UNLISTED_XBRL_DOCUMENT_TYPE_LIST)
+            return
+    if transitional_report:
+        suffix = "__t" + suffix
+    if amended_report:
+        suffix = "__a" + suffix
+    return suffix
+
 
 def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
     tree = xbrl_tree
@@ -2563,7 +2624,22 @@ def return_simple_xbrl_dict(xbrl_tree, namespace, file_name):
             break
 
     if not context_element_list:
+        logging.info("Improperly formatted XBRL file. Will try to parse with common made errors...")
+        potential_identifier_tag_list = []
+        root = tree.getroot()
+        logging.warning(root.tag)
+        logging.warning(root.attrib)
+        for child in root:
+            if 'context' in child.tag:
+                if child.tag not in potential_identifier_tag_list:
+                    potential_identifier_tag_list.append(child.tag)
+        for identifier_tag in potential_identifier_tag_list:
+            context_element_list = tree.findall(identifier_tag)
+    if not context_element_list:
         logging.error(context_element_list)
+        logging.error(ns)
+        logging.error("{} XBRL file could not be parsed...".format(ticker))
+        sys.exit()
         return
     xbrl_stock_dict = {ticker: {}}
     for element in context_element_list:
@@ -2674,15 +2750,18 @@ def save_stock_dict(xbrl_stock_dict, file_name):
             return
         base_dict = xbrl_stock_dict[ticker]
         today = datetime.date.today()
-
+        # logging.info("")
+        # pp.pprint(base_dict)
+        suffix = return_document_type_suffix(base_dict)
+        if not suffix:
+            return
         for institution in list(base_dict.keys()):
             institution_dict = base_dict[institution]
             for accounting_item in list(institution_dict.keys()):
                 period_dict = institution_dict[accounting_item]
                 if not type(period_dict) is dict:
                     period_dict = ast.literal_eval(period_dict)
-                period_dict_str = return_formatted_xbrl_attribute_ref(accounting_item, institution, xbrl_dict=True)
-                suffix = '_us'
+                period_dict_str = return_formatted_xbrl_attribute_ref(ticker, accounting_item, institution, xbrl_dict=True)
                 period_dict_str_without_suffix = period_dict_str
                 period_dict_str = period_dict_str + suffix
 
@@ -2698,9 +2777,9 @@ def save_stock_dict(xbrl_stock_dict, file_name):
                 # Here it's important to switch to stock_accounting_item_dict
                 if stock_accounting_item_dict:
                     stock_accounting_item_dict.update(period_dict)
-                    db.set_Stock_attribute(stock, period_dict_str_without_suffix, stock_accounting_item_dict, "_us")
+                    db.set_Stock_attribute(stock, period_dict_str_without_suffix, stock_accounting_item_dict, suffix)
                 else:
-                    db.set_Stock_attribute(stock, period_dict_str_without_suffix, period_dict, "_us")
+                    db.set_Stock_attribute(stock, period_dict_str_without_suffix, period_dict, suffix)
                     stock_accounting_item_dict = period_dict
 
                 stock_period_dict = getattr(stock, period_dict_str)
@@ -2792,9 +2871,9 @@ def save_stock_dict(xbrl_stock_dict, file_name):
                     value = stock_period_dict[period_index]["value"]
                     #logging.info(value)
                     if len(list(most_recent_dict.keys())) > 1:
-                        db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution, period=time_range), value, "_us")
+                        db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(ticker, accounting_item, institution, period=time_range), value, suffix)
                     else:
-                        db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(accounting_item, institution), value, "_us")
+                        db.set_Stock_attribute(stock, return_formatted_xbrl_attribute_ref(ticker, accounting_item, institution), value, suffix)
     db.pack_if_necessary()
 
 def scrape_xbrl_from_file(path_to_zipfile):

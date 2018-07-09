@@ -615,23 +615,17 @@ class XbrlImportPage(Tab):
 
         now = datetime.datetime.now()
         this_month = int(now.month)
-        this_months_year = int(now.year)
-        if this_month == 1:
-            last_month = 12
-            last_months_year = this_months_year - 1
-        else:
-            last_month = this_month - 1
-            last_months_year = this_months_year
+        this_year = int(now.year)
 
         self.xbrl_year_input = wx.TextCtrl(self, -1,
-                                   str(last_months_year),
+                                   str(this_year),
                                    gui_position.XbrlImportPage.xbrl_year_input,
                                    )
         self.xbrl_year_input.SetHint("year")
         self.xbrl_year_input.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_year_month))
 
         self.xbrl_month_dropdown = wx.ComboBox(self, pos=gui_position.XbrlImportPage.xbrl_month_dropdown, choices= calendar.month_name[1:])
-        self.xbrl_month_dropdown.SetSelection(last_month-1) # ordianals
+        self.xbrl_month_dropdown.SetSelection(this_month-1) # ordianals
         self.xbrl_month_dropdown.Bind(wx.EVT_SET_FOCUS, lambda event: self.set_radio_button(event, self.radio_year_month))
 
         self.xbrl_from_year_input = wx.TextCtrl(self, pos=gui_position.XbrlImportPage.xbrl_from_year_input)
@@ -1774,6 +1768,9 @@ class ViewDataPage(Tab):
         self.stock_data_page = StockDataPage(view_data_notebook)
         view_data_notebook.AddPage(self.stock_data_page, self.stock_data_page.title)
 
+        self.data_field_page = DataFieldPage(view_data_notebook)
+        view_data_notebook.AddPage(self.data_field_page, self.data_field_page.title)
+
         sizer2 = wx.BoxSizer()
         sizer2.Add(view_data_notebook, 1, wx.EXPAND)
         self.SetSizer(sizer2)
@@ -1842,30 +1839,10 @@ class AllStocksPage(Tab):
 
         self.spreadsheet.Show()
 
-    def resetGlobalAttributeSet(self, event, percent_occurrence_in_stocks_required_to_be_added=.05):
+    def resetGlobalAttributeSet(self, event):
         'adds SHARED attribute to GLOBAL_ATTRIBUTE_SET'
-        # okay, i've reformulated this function
-        temp_global_stock_list = utils.return_all_stocks()
-        number_of_stocks = len(temp_global_stock_list)
-        occurance_threshold = number_of_stocks * percent_occurrence_in_stocks_required_to_be_added
-        temp_global_attribute_dict = dict()
-        for stock in temp_global_stock_list:
-            for attribute in dir(stock):
-                if not attribute.startswith("_"):
-                    if attribute not in config.CLASS_ATTRIBUTES:
-                        if not attribute.endswith(config.XBRL_DICT_ATTRIBUTE_SUFFIX):
-                            if attribute not in temp_global_attribute_dict.keys():
-                                temp_global_attribute_dict[attribute] = 1
-                            else:
-                                temp_global_attribute_dict[attribute] += 1
+        db.reset_GLOBAL_ATTRIBUTE_SET()
 
-        temp_global_attribute_set = set()
-        for attribute, occurances in temp_global_attribute_dict.items():
-            if occurances >= occurance_threshold:
-                temp_global_attribute_set.add(attribute)
-
-        config.GLOBAL_ATTRIBUTE_SET = temp_global_attribute_set
-        db.save_GLOBAL_ATTRIBUTE_SET()
 class StockDataPage(Tab):
     def __init__(self, parent):
         self.title = "View One Stock"
@@ -2028,7 +2005,49 @@ class StockDataPage(Tab):
         logging.info("about to scrape")
         scrape_analyst_estimates( [str(ticker).upper()] )
         self.createOneStockSpreadSheet(event = "")
-###
+class DataFieldPage(Tab):
+    def __init__(self, parent):
+        self.title = "View Data Types"
+        self.uid = config.DATA_FIELD_PAGE_UNIQUE_ID
+        self.parent = parent
+        wx.Panel.__init__(self, parent)
+
+        text = wx.StaticText(self, -1,
+                             "Data types:",
+                             gui_position.DataFieldPage.text
+                             )
+
+        button = wx.Button(self,
+                              label="look up",
+                              pos=gui_position.DataFieldPage.button,
+                              size=(-1,-1)
+                              )
+        button.Bind(wx.EVT_BUTTON, self.createDataSpreadSheet, button)
+
+        logging.info("DataFieldPage loaded")
+
+    def resetGlobalAttributeSet(self, event):
+        'adds SHARED attribute to GLOBAL_ATTRIBUTE_SET'
+        db.reset_GLOBAL_ATTRIBUTE_SET()
+
+    def createDataSpreadSheet(self, event):
+        #You need this code to resize
+        size = gui_position.full_spreadsheet_size_position_tuple[0]
+        try:
+            width, height = wx.Window.GetClientSize(config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID))
+            #logging.info("{}, {}".format(width, height))
+            size = (width-20, height-128) # find the difference between the Frame and the grid size
+        except Exception as e:
+            logging.error(e)
+
+
+        self.sizer = None
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.AddSpacer(60)
+        new_grid = create_spread_sheet_for_data_fields(self)
+        self.screen_grid = new_grid
+        self.sizer.Add(new_grid, 1, wx.EXPAND)
+        ##
 
 ####
 
@@ -2781,7 +2800,7 @@ class CustomAnalysisMetaPage(Tab):
 
         self.user_created_function_page_triples = meta.return_custom_analysis_function_triple()
         self.user_created_function_page_triples.sort(key = lambda x: x.doc)
-        logging.warning(self.user_created_function_page_triples)
+        # logging.warning(self.user_created_function_page_triples)
 
         for triple in self.user_created_function_page_triples:
             self.this_page = CustomAnalysisPage(meta_analyse_notebook, triple, self.user_created_function_page_triples.index(triple) + 1)
@@ -5854,7 +5873,6 @@ def create_account_spread_sheet(
 
     return screen_grid
 
-
 def create_spread_sheet_for_one_stock(
     wxWindow,
     ticker,
@@ -5938,6 +5956,70 @@ def create_spread_sheet_for_one_stock(
     screen_grid.AutoSizeColumns()
 
     return screen_grid
+
+def create_spread_sheet_for_data_fields(
+    wxWindow,
+    size = gui_position.DataFieldPage.create_spread_sheet_for_one_stock_size_position_tuple[0],
+    position = gui_position.DataFieldPage.create_spread_sheet_for_one_stock_size_position_tuple[1],
+    enable_editing = False,
+    ):
+
+    attribute_list = []
+    num_columns = 1 # for this we only need two columns
+    num_rows = 0
+    # Here we make rows for each attribute to be included
+    num_attributes = 0
+
+    db.load_GLOBAL_ATTRIBUTE_SET()
+    attribute_list = list(config.GLOBAL_ATTRIBUTE_SET)
+    if not 'symbol' in attribute_list:
+        attribute_list.append('symbol')
+    if not 'firm_name' in attribute_list:
+        attribute_list.append('firm_name')
+    attribute_list = [x for x in attribute_list if not "__dict_" in x]
+
+    num_attributes = len(attribute_list)
+    if num_rows < num_attributes:
+        num_rows = num_attributes
+
+    grid = wx.grid.Grid(wxWindow, -1, size=size, pos=position)
+
+
+    logging.info("{},{}".format(num_rows, num_columns))
+    grid.CreateGrid(num_rows, num_columns)
+    grid.EnableEditing(enable_editing)
+
+    if not attribute_list:
+        logging.warning('attribute list empty')
+        return
+
+    attribute_list.sort(key = lambda x: (x[-2:], x))
+    # adjust list order for important terms
+    for attribute in reversed(attribute_list):
+        if not attribute[-3] == "_":
+            attribute_list.insert(0, attribute_list.pop(attribute_list.index(attribute)))
+    attribute_list.insert(0, attribute_list.pop(attribute_list.index('symbol')))
+    attribute_list.insert(1, attribute_list.pop(attribute_list.index('firm_name')))
+
+    # fill in grid
+    row_count = 0
+    for attribute in attribute_list:
+        # set attributes to be labels if it's the first run through
+        if row_count == 0:
+            grid.SetColLabelValue(0, "attribute")
+
+        try:
+            # Add attribute name
+            grid.SetCellValue(row_count, 0, str(attribute))
+
+        except Exception as e:
+            logging.error(e)
+
+        row_count += 1
+
+    grid.AutoSizeColumns()
+
+    return grid
 # ###########################################################################################
 # ###################### Screening functions ###############################################
 def screen_pe_less_than_10():

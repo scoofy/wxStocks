@@ -15,6 +15,7 @@ from wxStocks_modules import wxStocks_classes
 from wxStocks_modules import wxStocks_utilities as utils
 
 import traceback, sys
+import pprint as pp
 
 ###### DB ######
 try:
@@ -89,7 +90,7 @@ def load_all_data():
     load_GLOBAL_STOCK_SCREEN_DICT()
     load_SCREEN_NAME_AND_TIME_CREATED_TUPLE_LIST()
     load_filenames_imported_files()
-    pack_db()
+    pack_if_necessary()
 def savepoint_db():
     transaction.savepoint(True)
 def commit_db():
@@ -132,7 +133,7 @@ def delete_GLOBAL_TICKER_LIST(): ###### updated
 ###
 
 ### Global Stock dict functions
-def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
+def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = "", current_large_transaction=False):
     if not type(ticker) == str:
         ticker = str(ticker)
     symbol = ticker.upper()
@@ -195,17 +196,19 @@ def create_new_Stock_if_it_doesnt_exist(ticker, firm_name = ""):
                 symbol[index_instance] = "_"
             symbol = "".join(symbol)
 
-    try:
-        stock = root.Stock[symbol]
-    except:
-        stock = None
+
+    stock = utils.return_stock_by_symbol(symbol)
     if not stock:
+        logging.info("first attempt to find stock failed")
         stock = config.GLOBAL_STOCK_DICT.get(symbol)
     if not stock:
+        logging.info("second attempt to find stock failed, creating instead")
         stock = wxStocks_classes.Stock(symbol, firm_name=firm_name)
         root.Stock[symbol] = stock
-        transaction.commit()
+        if not current_large_transaction:
+            transaction.commit()
         config.GLOBAL_STOCK_DICT = root.Stock
+        logging.info('stock: "{}" created'.format(symbol))
     return stock
 def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix, connection=None):
     full_attribute_name = attribute_name + data_source_suffix
@@ -219,7 +222,6 @@ def set_Stock_attribute(Stock, attribute_name, value, data_source_suffix, connec
         commit_db()
 def load_GLOBAL_STOCK_DICT(): ###### updated
     config.GLOBAL_STOCK_DICT = root.Stock
-    load_GLOBAL_ATTRIBUTE_SET()
 def create_loading_status_bar():
     # set status bar on main frame
     main_frame = config.GLOBAL_PAGES_DICT.get(config.MAIN_FRAME_UNIQUE_ID)
@@ -267,6 +269,8 @@ def load_GLOBAL_STOCK_DICT_into_active_memory_worker():
     logging.info("Stocks now in active memory: {} seconds".format(round(finish-start)))
     logging.info("GLOBAL_CIK_DICT in active memory")
     remove_loading_status_bar()
+    load_GLOBAL_ATTRIBUTE_SET()
+
 
 def save_GLOBAL_STOCK_DICT(): ##### no need to update
     logging.info("Saving GLOBAL_STOCK_DICT")
@@ -279,10 +283,43 @@ def load_GLOBAL_ATTRIBUTE_SET(): ###### up
     except:
         logging.error("GLOBAL_ATTRIBUTE_SET load error")
         sys.exit()
+    if not len(config.GLOBAL_ATTRIBUTE_SET):
+        logging.error("GLOBAL_ATTRIBUTE_SET load error")
+        stock_list = utils.return_all_stocks()
+        for stock in stock_list:
+            stock_attribute_list = list(utils.return_dictionary_of_object_attributes_and_values(stock).keys())
+            stock_attribute_set = set(stock_attribute_list)
+            config.GLOBAL_ATTRIBUTE_SET.update(stock_attribute_set)
+        logging.error("GLOBAL_ATTRIBUTE_SET load finished")
+
+
+
 def save_GLOBAL_ATTRIBUTE_SET(): ###### updated
     logging.info("Saving GLOBAL_ATTRIBUTE_SET")
     commit_db()
     logging.info("GLOBAL_ATTRIBUTE_SET saved.")
+def reset_GLOBAL_ATTRIBUTE_SET(percent_occurrence_in_stocks_required_to_be_added=.05):
+    temp_global_stock_list = utils.return_all_stocks()
+    number_of_stocks = len(temp_global_stock_list)
+    occurance_threshold = number_of_stocks * percent_occurrence_in_stocks_required_to_be_added
+    temp_global_attribute_dict = dict()
+    for stock in temp_global_stock_list:
+        for attribute in dir(stock):
+            if not attribute.startswith("_"):
+                if attribute not in config.CLASS_ATTRIBUTES:
+                    if not attribute.endswith(config.XBRL_DICT_ATTRIBUTE_SUFFIX):
+                        if attribute not in temp_global_attribute_dict.keys():
+                            temp_global_attribute_dict[attribute] = 1
+                        else:
+                            temp_global_attribute_dict[attribute] += 1
+
+    temp_global_attribute_set = set()
+    for attribute, occurances in temp_global_attribute_dict.items():
+        if occurances >= occurance_threshold:
+            temp_global_attribute_set.add(attribute)
+
+    config.GLOBAL_ATTRIBUTE_SET = temp_global_attribute_set
+    save_GLOBAL_ATTRIBUTE_SET()
 
 ### Stock screen loading information
 def load_GLOBAL_STOCK_SCREEN_DICT(): ###### updated

@@ -20,8 +20,10 @@ def return_stock_by_symbol(ticker_symbol):
     if not type(ticker_symbol) == str:
         ticker_symbol = str(ticker_symbol)
     try:
-        return config.GLOBAL_STOCK_DICT["{}".format(ticker_symbol.upper())]
+        from wxStocks_modules.wxStocks_db_functions import root
+        return root.Stock["{}".format(ticker_symbol.upper())]
     except Exception as e:
+        logging.error(e)
         try:
             ticker_symbol = ticker_symbol.upper()
         except:

@@ -28,6 +28,8 @@ class Stock(persistent.Persistent):
         # Google        ?           "-X"        ?
 
         symbol = symbol.upper()
+        if not symbol:
+            raise Exception("invalid ticker symbol")
         if symbol.isalpha():
             self.symbol = symbol
 
@@ -149,7 +151,7 @@ class Stock(persistent.Persistent):
             sys.exit()
 
         self.ticker = self.symbol
-        self.firm_name = firm_name
+        self.firm_name = str(firm_name)
 
         self.epoch = float(time.time())
         self.created_epoch = float(time.time())

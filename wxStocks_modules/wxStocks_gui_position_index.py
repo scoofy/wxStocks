@@ -148,6 +148,14 @@ class StockDataPage(object):
 
     create_spread_sheet_for_one_stock_size_position_tuple = [((980, 637),(0,60)),((980, 637),(0,70)),((980, 637),(0,60))][config.OS_TYPE_INDEX]
 
+class DataFieldPage(object):
+    text = [(10,10),(10,7),(10,5)][config.OS_TYPE_INDEX]
+    button = [(210,5),(206,2),(202,0)][config.OS_TYPE_INDEX]
+    update_data_button = [(430,5),(434,2),(406,0)][config.OS_TYPE_INDEX]
+
+    create_spread_sheet_for_one_stock_size_position_tuple = [((980, 637),(0,60)),((980, 637),(0,70)),((980, 637),(0,60))][config.OS_TYPE_INDEX]
+
+
 #AnalysisPage
 #############
 class ScreenPage(object):
