@@ -1,6 +1,6 @@
 # Add portfolio import functions below:
 # You can also edit this file (user/user_functions/wxStocks_csv_import_functions.py) in your own text editor.
-import csv
+import csv, logging
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
@@ -19,9 +19,10 @@ import csv
 #		return (dict_list, attribute_suffix)
 
 ################################################################################################################
-def schwab_csv(csv_file):
-	"""Schwab CSV"""
-	# file is schwab format:
+def default_csv(csv_file):
+	"""Default CSV"""
+	# file is default format:
+	# with open(csv_file) as csv_file:
 	reader = csv.reader(csv_file)
 	row_list = []
 	for row in reader:
@@ -43,16 +44,48 @@ def schwab_csv(csv_file):
 	#print line_number(), self.portfolio_data
 	new_account_stock_list = []
 	cash = "This should be changed"
+	cost_basis_dict = {}
 	count = 0
+
+	ticker_col = None
+	ticker_vars = ["ticker", "symbol"]
+	quantity_col = None
+	quantity_vars = ["quantity"]
+	cost_basis_col = None
+	cost_basis_vars = ["costbasis", "cost basis", "cost_basis"]
+	market_value_col = None
+	market_value_vars = ["marketvalue", "market value", "market_value"]
+	cash_row = None
+	cash_vars = ["Cash", "cost basis", "cost_basis"]
 	for row in portfolio_data:
-		#print line_number(),count
-		if count <= 1:
-			count += 1
-			continue
-		try:
-			if row[0] and row[11]:
-				if str(row[11]) == "Cash & Money Market":
-					cash = row[5]
+		for col in row:
+			# quick parser for keywords
+			if ticker_col is None:
+				for var in ticker_vars:
+					if var in col.lower():
+						ticker_col = row.index(col)
+			if quantity_col is None:
+				for var in quantity_vars:
+					if var in col.lower():
+						quantity_col = row.index(col)
+			if cost_basis_col is None:
+				for var in cost_basis_vars:
+					if var in col.lower():
+						cost_basis_col = row.index(col)
+			if market_value_col is None:
+				for var in market_value_vars:
+					if var in col.lower():
+						market_value_col = row.index(col)
+			if cash_row is None:
+				for var in cash_vars:
+					if var in col:
+						cash_row = portfolio_data.index(row)
+	# Go!
+	if ticker_col is not None and quantity_col is not None:
+		for row in portfolio_data:
+			if cash_row is not None:
+				if row == cash_row:
+					cash = row[market_value_col]
 					formatted_cash = ""
 					for char in cash:
 						if char == "$" or char == " ":
@@ -60,25 +93,30 @@ def schwab_csv(csv_file):
 						else:
 							formatted_cash += char
 					cash = float(formatted_cash)
-					#print line_number(),'cash =', cash
-				elif str(row[11]) == "Equity":
-					# format: ticker(0), name(1), quantity(2), price(3), change(4), market value(5), day change$(6), day change%(7), reinvest dividends?(8), capital gain(9), percent of account(10), security type(11)
-					stock_shares_tuple = (row[0], int(row[2]))
-					#print line_number(), stock_shares_tuple
-					new_account_stock_list.append(stock_shares_tuple)
-					#print line_number(),"stock"
-		except Exception as exception:
-			#print line_number(),exception
-			#print line_number(),row
-			pass
-		count += 1
+			ticker = None
+			possible_ticker = row[ticker_col]
+			if possible_ticker == possible_ticker.upper():
+				ticker = possible_ticker
+			if ticker:
+				stock_shares_tuple = (ticker, row[quantity_col])
+				new_account_stock_list.append(stock_shares_tuple)
+				if cost_basis_col is not None:
+					basis = row[cost_basis_col]
+					formatted_basis = ""
+					for char in basis:
+						if char == "$" or char == " ":
+							pass
+						else:
+							formatted_basis += char
+					basis = float(formatted_basis)
+					cost_basis_dict[ticker] = basis
+
 	if cash == "This should be changed":
-		#print line_number(), 'Formatting error in CSV import'
-		pass
-	account_dict = {"cash": cash, "stock_list": new_account_stock_list}
+		logging.error('Formatting error in CSV import')
+	account_dict = {"cash": cash, "stock_list": new_account_stock_list, "cost_basis_dict": cost_basis_dict}
 
 	if not account_dict:
-		#print line_number(), "Error: empty account dictionary to return."
+		logging.error("Error: empty account dictionary to return.")
 		return
 
 	return account_dict

@@ -1,7 +1,7 @@
 import wx
 from wxStocks_modules import wxStocks_utilities as utils
 from wxStocks_modules import wxStocks_db_functions as db
-import numpy, inspect, os
+import numpy, inspect, os, logging
 from collections import namedtuple
 from wxStocks_modules.wxStocks_classes import Account
 
@@ -102,7 +102,7 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 		return
 
 	dirname = ''
-	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.xls", wx.OPEN)
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.xls")
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
@@ -161,7 +161,7 @@ def import_xls_via_user_created_function(wxWindow, user_created_function):
 def import_csv_via_user_created_function(wxWindow, user_created_function):
 	'''adds import csv data to stocks data via a user created function'''
 	dirname = ''
-	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv", wx.OPEN)
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv")
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
@@ -214,12 +214,12 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 
 def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_created_function):
 	dirname = ''
-	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv", wx.OPEN)
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv")
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
 
-		csv_file = open(os.path.join(dirname, filename), 'rb')
+		csv_file = open(os.path.join(dirname, filename), 'r')
 
 		account_dict = user_created_function(csv_file)
 
@@ -238,7 +238,10 @@ def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_crea
 	# Make sure there are no cost basis tuples that aren't in the ticker list
 	ticker_list = [this_tuple[0].upper() for this_tuple in stock_share_tuple_list]
 	cost_basis_dict = account_dict.get("cost_basis_dict")
-
+	logging.warning(account_dict)
+	for attribute in dir(account_dict):
+		if not attribute.startswith("__"):
+			logging.warning(attribute)
 	for ticker in cost_basis_dict:
 		if ticker.upper() not in ticker_list:
 			logging.error("Error: ticker %s is in cost_basis_dict, but not in stock_share_tuple_list".format(ticker))

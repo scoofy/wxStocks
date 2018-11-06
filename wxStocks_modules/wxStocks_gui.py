@@ -1221,7 +1221,7 @@ class PortfolioAccountTab(Tab):
         self.rename_button = wx.Button(self, label="Rename this portfolio", pos=gui_position.PortfolioAccountTab.rename_button, size=(-1,-1))
         self.rename_button.Bind(wx.EVT_BUTTON, self.changeTabName, self.rename_button)
 
-        self.add_a_portfolio_button = wx.Button(self, label="Add a portfolio", pos=gui_position.PortfolioAccountTab.add_a_portfolio_button, size=(-1,-1))
+        self.add_a_portfolio_button = wx.Button(self, label="Add new portfolio", pos=gui_position.PortfolioAccountTab.add_a_portfolio_button, size=(-1,-1))
         self.add_a_portfolio_button.Bind(wx.EVT_BUTTON, self.addPortfolio, self.add_a_portfolio_button)
 
         #print_portfolio_data_button = wx.Button(self, label="p", pos=(730,0), size=(-1,-1))
@@ -1332,7 +1332,7 @@ class PortfolioAccountTab(Tab):
     def addPortfolio(self, event):
 
         confirm = wx.MessageDialog(self,
-                                        "You are about to add a portfolio. The change will be applied the next time you launch this program.",
+                                        "You are about to add a new portfolio. The change will be applied the next time you launch this program.",
                                         'Restart Required',
                                         wx.OK | wx.CANCEL
                                        )
@@ -1440,7 +1440,7 @@ class PortfolioAccountTab(Tab):
 
         logging.info(type(self.account_obj))
 
-        self.spreadSheetFill(self.current_account_spreadsheet, self.account_obj)
+        self.spreadSheetFill(self.account_obj)
 
         # this is used in sale prep page:
         config.PORTFOLIO_OBJECTS_DICT[str(self.portfolio_id)] = self.account_obj
@@ -3842,7 +3842,7 @@ class SalePrepPage(Tab):
 
                     # set quantity cell
                     quantity_text = str(quantity)
-                    if quantity.is_integer():
+                    if float(quantity).is_integer():
                         quantity_text = str(int(quantity))
                     stocks_quantity_cell = SpreadsheetCell(row = row_count, col = self.total_shares_cell.col, text = quantity_text, value = int(quantity), align_right = True)
 
@@ -5766,7 +5766,7 @@ def create_account_spread_sheet(
 
         shares_held = account_obj.stock_shares_dict.get(stock.symbol)
         if shares_held:
-            if shares_held.is_integer():
+            if float(shares_held).is_integer():
                 shares_held = int(shares_held)
             screen_grid.SetCellValue(row_count, 2, str(shares_held))
             screen_grid.SetCellAlignment(row_count, 2, horiz = wx.ALIGN_RIGHT, vert = wx.ALIGN_BOTTOM)
