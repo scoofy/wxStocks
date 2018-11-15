@@ -1,6 +1,6 @@
 # Add rank functions below:
 # You can also edit this file (user/user_functions/wxStocks_rank_functions.py) in your own text editor.
-
+import logging
 ########################################### instructions #######################################################
 # functions should be of the following form:
 
@@ -53,16 +53,16 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 		peg5 = getattr(Stock, peg_attr)
 		dividend_yield = getattr(Stock, dividend_attr)
 		pe = getattr(Stock, pe_attr)
-		#print "PEG =", peg5
-		#print "type =", type(peg5)
-		#print "Yield =", dividend_yield
-		#print "type =", type(dividend_yield)
-		#print "PE =", pe
-		#print "type =", type(pe)
+		#print("PEG =", peg5)
+		#print("type =", type(peg5))
+		#print("Yield =", dividend_yield)
+		#print("type =", type(dividend_yield))
+		#print("PE =", pe)
+		#print("type =", type(pe))
 
-	except Exception as exception:
-		print (exception)
-		print ("%s is missing required data" % Stock.symbol)
+	except Exception, exception:
+		logging.warning(exception)
+		logging.info("{} is missing required data".format(Stock.symbol))
 
 		return (None, Stock, decending, rank_error_as_median)
 
@@ -84,19 +84,19 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 		pe = float(pe)
 
 
-	#print "PEG =", peg5
-	#print "type =", type(peg5)
-	#print "Yield =", dividend_yield
-	#print "type =", type(dividend_yield)
-	#print "PE =", pe
-	#print "type =", type(pe)
+	#print("PEG =", peg5)
+	#print("type =", type(peg5))
+	#print("Yield =", dividend_yield)
+	#print("type =", type(dividend_yield))
+	#print("PE =", pe)
+	#print("type =", type(pe))
 
 	if peg5 and pe:
 		neff5 = (1 / peg5) + (dividend_yield / pe)
 	else:
 		neff5 = None
 
-	#print "Neff 5 year for %s =" % Stock.symbol, neff5
+	#print("Neff 5 year for %s =" % Stock.symbol, neff5)
 	return (neff5, Stock, decending, rank_error_as_median)
 
 

@@ -1,6 +1,5 @@
 import os, glob, config, logging
 from wxStocks_modules.wxStocks_classes import SpreadsheetCell as Cell
-
 '''
 Here, you must use the class "Cell" to refer to a cell you want processed.
 This allows the program to process your data in to function wxPython code.

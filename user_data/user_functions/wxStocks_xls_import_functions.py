@@ -1,7 +1,8 @@
 # Add xls import functions below:
 # You can also edit this file (user/user_functions/wxStocks_xls_import_functions.py) in your own text editor.
+import logging
 try:
-	from modules import xlrd
+	import xlrd
 except:
 	pass
 ########################################### instructions #######################################################
@@ -36,8 +37,7 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 
 	# only 1 sheet
 	if not len(relevant_spreadsheet_list) == 1:
-		print("Error in process_sample_dot_xls() in wxStocks_xls_import_functions.py")
-		print("spreadsheet list > 1 sheet")
+		logging.info("\nError in process_sample_dot_xls() in wxStocks_xls_import_functions.py\nspreadsheet list > 1 sheet\n")
 		return None
 	spreadsheet = relevant_spreadsheet_list[0]
 
@@ -62,12 +62,12 @@ def process_sample_dot_xls(xlrd_workbook, attribute_suffix = "_xl"):
 					if attribute_name:
 						dict_to_add[attribute_name] = datum
 					else:
-						print("Error: wxStocks_xls_import_functions: function: process_sample_dot_xls: Data present with no named attribute.")
+						logging.error("Error: wxStocks_xls_import_functions: function: process_sample_dot_xls: Data present with no named attribute.")
 
 		if dict_to_add:
 			dict_list.append(dict_to_add)
 
-	print(dict_list)
+	logging.info(dict_list)
 
 	return (dict_list, attribute_suffix)
 
