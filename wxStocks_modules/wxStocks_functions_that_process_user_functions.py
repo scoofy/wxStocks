@@ -214,16 +214,16 @@ def import_csv_via_user_created_function(wxWindow, user_created_function):
 
 def import_portfolio_via_user_created_function(wxWindow, portfolio_id, user_created_function):
 	dirname = ''
-	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "", "*.csv")
+	dialog = wx.FileDialog(wxWindow, "Choose a file", dirname, "")
 	if dialog.ShowModal() == wx.ID_OK:
 		filename = dialog.GetFilename()
 		dirname = dialog.GetDirectory()
 
-		csv_file = open(os.path.join(dirname, filename), 'r')
+		the_file = open(os.path.join(dirname, filename), 'r')
 
-		account_dict = user_created_function(csv_file)
+		account_dict = user_created_function(the_file)
 
-		csv_file.close()
+		the_file.close()
 	else:
 		return None
 	dialog.Destroy()

@@ -2,7 +2,7 @@
 # You can also edit this file (user/user_functions/wxStocks_xls_import_functions.py) in your own text editor.
 import logging
 try:
-	from modules import xlrd
+	import xlrd
 except:
 	pass
 ########################################### instructions #######################################################
