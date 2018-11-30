@@ -60,7 +60,7 @@ def neff_ratio_5y(Stock, decending=True, rank_error_as_median=True): # requires 
 		#print("PE =", pe)
 		#print("type =", type(pe))
 
-	except Exception, exception:
+	except Exception as exception:
 		logging.warning(exception)
 		logging.info("{} is missing required data".format(Stock.symbol))
 
