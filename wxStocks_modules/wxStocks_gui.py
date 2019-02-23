@@ -3082,7 +3082,7 @@ class CustomAnalysisPage(Tab):
 
         new_grid = self.create_custom_analysis_spread_sheet(list_of_spreadsheet_cells, size = size)
 
-        self.grid_sizer.Add(new_grid, 1, wx.ALL|wx.EXPAND)
+        self.grid_sizer.Add(new_grid, 1, wx.EXPAND|wx.ALL)
         ##
         self.custom_spreadsheet = new_grid
 
