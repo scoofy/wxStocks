@@ -1,4 +1,4 @@
-#wxStocks is no longer functional, I would recommend OpenBB instead.
+**wxStocks is no longer functional, I would recommend OpenBB instead.**
 
 ![wxStocks](/wxStocks_logo.png?raw=true "wxStocks")
 
