@@ -1,3 +1,5 @@
+#wxStocks is no longer functional, I would recommend OpenBB instead.
+
 ![wxStocks](/wxStocks_logo.png?raw=true "wxStocks")
 
 This program is now in beta (let's be honest, it'll always be in beta until i write some tests), but i'm still happy to accept any pull requests or suggestions if you want to help out.
